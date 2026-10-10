@@ -1,0 +1,22 @@
+import {S} from '../../core/state.js';
+import {api} from '../../core/api.js';
+import {toast} from '../../core/dom.js';
+import {openAuth} from '../auth/auth-modal.js';
+import {loadListings} from './listings.js';
+import {browse} from './browse.js';
+import {dashboard} from '../dashboard/dashboard.js';
+import {applyPopup} from './apply-popup.js';
+
+// data-act handlers
+export const actions={
+  tab(b,id){S.f.type=id;document.querySelectorAll('.tabs button').forEach(t=>t.classList.toggle('active',t.dataset.id===id));loadListings()},
+  clear(){S.f={type:'',q:'',loc:''};browse(S.scope)},
+  save:saveOrApply,
+  apply:saveOrApply
+};
+async function saveOrApply(b,id){const act=b.dataset.act;if(!S.me){sessionStorage.next=location.hash||'#/';return openAuth('signin')}let body;if(act==='apply'){if(S.me.role==='user'&&!S.me.onboarded){location.hash='#/profile';return}if(S.me.role==='user'&&!S.me.phoneVerified){toast('Verify your phone number before applying');location.hash='#/phone';return}body=await applyPopup();if(!body)return}await api(`/${act}/${id}`,'POST',body);if(act==='apply')toast('Application sent!');location.hash.includes('dashboard')?dashboard():browse(S.scope)}
+
+// data-form handlers
+export const forms={
+  search(d){S.f.q=d.q;S.f.loc=d.loc;loadListings()}
+};

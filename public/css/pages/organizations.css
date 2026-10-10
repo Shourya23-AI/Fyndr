@@ -1,0 +1,3 @@
+/* "For organizations" page */
+.org-hero{position:relative;isolation:isolate;padding:72px 0 40px}.benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:36px;padding:36px 0 56px}.benefits div{border-top:2px solid var(--green);padding-top:16px}.benefits p{color:var(--muted);margin:6px 0 0}
+@media(max-width:800px){.benefits{grid-template-columns:1fr}}

@@ -1,0 +1,15 @@
+/* Fyndr theme tokens: edit colors here only */
+:root{
+  --paper:#f4f2ec; --white:#fbfaf6; --ink:#2d3330; --muted:#677069; --line:#dedbd1; --line-soft:#e9e6dc;
+  --yellow:#cfdccb; --yellow-soft:#e6eee2; --green:#4f8a6f; --deep:#55705e;
+  --ok-bg:#e3efe7; --ok-fg:#2f6b4f; --bad-bg:#f6e4dc; --bad-fg:#9a4a26;
+  --info-bg:#e4ecf3; --info-fg:#3d6485; --warn-bg:#f3ecd6; --warn-fg:#7d6422;
+  --shadow:rgba(40,50,40,.14); --glass:rgba(255,255,255,.34); --glass-line:rgba(255,255,255,.6);
+}
+:root[data-theme=dark]{
+  --paper:#181a17; --white:#222521; --ink:#e6e4dc; --muted:#a2a89f; --line:#363a35; --line-soft:#2d312c;
+  --yellow:#2a372e; --yellow-soft:#232d26; --green:#6fb28f; --deep:#9cc2a8;
+  --ok-bg:#223229; --ok-fg:#8fcba9; --bad-bg:#3a2822; --bad-fg:#e0a58a;
+  --info-bg:#222e38; --info-fg:#9cbfdc; --warn-bg:#352f1d; --warn-fg:#dcc58a;
+  --shadow:rgba(0,0,0,.45); --glass:rgba(34,37,33,.5); --glass-line:rgba(255,255,255,.12); color-scheme:dark;
+}
