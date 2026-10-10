@@ -1,9 +1,97 @@
 /* Forms and inputs */
-.form{display:grid;gap:12px}.form.cols{grid-template-columns:repeat(2,1fr)}.form .full{grid-column:1/-1}
-.fld{display:grid;gap:4px;font-size:12px;font-weight:600}
-.form input:not([type=checkbox]),.form select,.form textarea,.tbl select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--white);font-size:14px}.form textarea{min-height:90px;resize:vertical}
-.form input:focus,.form select:focus,.form textarea:focus{outline:0;border-color:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 25%,transparent)}
-.pw{position:relative;display:block}.pw input{padding-right:70px!important}.pw .mini{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:5px 10px;font-size:12px;font-weight:700}
-.or{display:flex;align-items:center;gap:12px;margin:14px 0;color:var(--muted);font-size:12px}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
-.err{margin:0;color:var(--bad-fg);font-size:13px}.err:empty{display:none}
-@media(max-width:800px){.form.cols{grid-template-columns:1fr}}
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.form.cols {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.form .full {
+  grid-column: 1/-1;
+}
+
+.fld {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.form input:not([type=checkbox]),
+.form select,
+.form textarea,
+.tbl select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  font-size: 14px;
+}
+
+.form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.form input:focus,
+.form select:focus,
+.form textarea:focus {
+  outline: 0;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent);
+}
+
+.pw {
+  position: relative;
+  display: block;
+}
+
+.pw input {
+  padding-right: 70px!important;
+}
+
+.pw .mini {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.or::before,
+.or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.err {
+  margin: 0;
+  color: var(--bad-fg);
+  font-size: 13px;
+}
+
+.err:empty {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .form.cols {
+    grid-template-columns: 1fr;
+  }
+}

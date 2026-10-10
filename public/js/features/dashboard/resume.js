@@ -1,41 +1,60 @@
-import {esc} from '../../core/dom.js';
+import { esc } from '../../core/dom.js';
 // Builds the website resume (two-column template: dark sidebar + main column) from the details the candidate saved.
 // Pure HTML string, so it can be shown in the dashboard, in the apply popup, and printed / saved as PDF from its own window.
 // A section is drawn ONLY if the profile has data for it; empty sections are left out.
-const lines=t=>String(t||'').split(/\n+/).map(x=>x.trim()).filter(Boolean);
-const bullets=t=>lines(t).length?`<ul>${lines(t).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'';
-const link=u=>{u=String(u||'').trim();if(!u)return'';const t=esc(u.replace(/^https?:\/\//i,'').replace(/\/$/,''));return/^https?:\/\//i.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener">${t}</a>`:t};
-const ICON={pin:'M12 21s-6-5.6-6-10a6 6 0 0 1 12 0c0 4.4-6 10-6 10zm0-8a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',phone:'M6 3h4l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2L20 13v4a2 2 0 0 1-2 2A15 15 0 0 1 4 5a2 2 0 0 1 2-2z',mail:'M3 6h18v12H3zM3 7l9 6 9-6'};
-const ci=(k,v)=>v?`<li><i><svg viewBox="0 0 24 24"><path d="${ICON[k]}"/></svg></i><span>${v}</span></li>`:'';
-const bar=(n,l)=>`<div class="rs-bar"><span>${esc(n)}</span><em><b style="width:${Math.min(5,Math.max(1,+l||3))*20}%"></b></em></div>`;
-const side=(t,b)=>b?`<section><h4>${t}</h4>${b}</section>`:'';
-const main=(t,b)=>b?`<section><h3>${t}</h3>${b}</section>`:'';
-const entry=(left,role,body)=>`<div class="rs-entry"><div class="rs-when">${left}</div><div class="rs-what"><b>${role}</b>${body||''}</div></div>`;
-const span=(a,b)=>[a,b].filter(Boolean).map(esc).join(' - ');
-export function buildResume(d){
-  const p=d.profile||{},me=d,skills=p.skills||[],sl=p.skillLevels||{};
-  const ref=p.reference||{},jobs=p.jobs||[],langs=p.languages||[],hobbies=p.hobbies||[];
-  const links=[['LinkedIn',p.linkedin],['Twitter',p.twitter],['Portfolio',p.link]].filter(x=>x[1]);
-  const edu=[];
-  if(p.qualification||p.institution)edu.push(entry(`${p.institution?`<strong>${esc(p.institution)}</strong>`:''}${p.gradYear?`<span>${esc(p.gradYear)}</span>`:''}`,esc(`${p.qualification||''}${p.field?(p.qualification?' in ':'')+p.field:''}`)));
-  (p.education||[]).forEach(e=>edu.push(entry(`${e.institution?`<strong>${esc(e.institution)}</strong>`:''}${e.place?`<span>${esc(e.place)}</span>`:''}${e.year?`<span>${esc(e.year)}</span>`:''}`,esc(e.degree),bullets(e.points))));
-  const sb=[
-    me.photo?`<img class="rs-photo" src="${me.photo}" alt="">`:'',
-    side('Links',links.map(([k,u])=>`<p><small>${k}</small>${link(u)}</p>`).join('')),
-    side('Reference',ref.name?`<p><strong>${esc(ref.name)}</strong></p>${ref.role?`<p>${esc(ref.role)}</p>`:''}${ref.phone?`<p>${esc(ref.phone)}</p>`:''}${ref.email?`<p>${esc(ref.email)}</p>`:''}`:''),
-    side('Hobbies',hobbies.length?`<ul>${hobbies.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>`:'')].join('');
-  const contact=[ci('pin',esc(p.address)),ci('phone',esc(me.phone)),ci('mail',esc(me.email))].join('');
-  return `<div class="rs-doc"><div class="rs-page"><aside>${sb}</aside><div class="rs-main">
-<header><div><h2>${esc(me.name)}</h2>${p.headline?`<p class="rs-head">${esc(p.headline)}</p>`:''}</div>${contact?`<ul class="rs-contact">${contact}</ul>`:''}</header>
-${main('Profile',p.summary?`<p>${esc(p.summary)}</p>`:'')}
-${main('Work Experience',jobs.map(j=>entry(`${j.org?`<strong>${esc(j.org)}</strong>`:''}${j.place?`<span>${esc(j.place)}</span>`:''}${j.from||j.to?`<span>${span(j.from,j.to)}</span>`:''}`,esc(j.role),bullets(j.points))).join(''))}
-${main('Education',edu.join(''))}
-${main('Projects',bullets(p.projects))}
-${main('Skills',skills.length?`<div class="rs-bars">${skills.map(s=>bar(s,sl[s])).join('')}</div>`:'')}
-${main('Languages',langs.length?`<div class="rs-bars">${langs.map(l=>bar(l.name,l.level)).join('')}</div>`:'')}
-</div></div></div>`}
+const lines = t => String(t || '').split(/\n+/).map(x => x.trim()).filter(Boolean);
+const bullets = t => lines(t).length ? `<ul>${lines(t).map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+const link = u => {
+    u = String(u || '').trim();
+    if (!u) {
+        return '';
+    }
+    const t = esc(u.replace(/^https?:\/\//i, '').replace(/\/$/, ''));
+    return /^https?:\/\//i.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener">${t}</a>` : t;
+};
+const ICON = {
+    pin: 'M12 21s-6-5.6-6-10a6 6 0 0 1 12 0c0 4.4-6 10-6 10zm0-8a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', phone: 'M6 3h4l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2L20 13v4a2 2 0 0 1-2 2A15 15 0 0 1 4 5a2 2 0 0 1 2-2z', mail: 'M3 6h18v12H3zM3 7l9 6 9-6'
+};
+const ci = (k, v) => v ? `<li><i><svg viewBox="0 0 24 24"><path d="${ICON[k]}"/></svg></i><span>${v}</span></li>` : '';
+const bar = (n, l) => `<div class="rs-bar"><span>${esc(n)}</span><em><b style="width:${Math.min(5, Math.max(1, +l || 3)) * 20}%"></b></em></div>`;
+const side = (t, b) => b ? `<section><h4>${t}</h4>${b}</section>` : '';
+const main = (t, b) => b ? `<section><h3>${t}</h3>${b}</section>` : '';
+const entry = (left, role, body) => `<div class="rs-entry"><div class="rs-when">${left}</div><div class="rs-what"><b>${role}</b>${body || ''}</div></div>`;
+const span = (a, b) => [a, b].filter(Boolean).map(esc).join(' - ');
+export function buildResume(d) {
+    const p = d.profile || {};
+    const me = d;
+    const skills = p.skills || [];
+    const sl = p.skillLevels || {};
+    const ref = p.reference || {};
+    const jobs = p.jobs || [];
+    const langs = p.languages || [];
+    const hobbies = p.hobbies || [];
+    const links = [['LinkedIn', p.linkedin], ['Twitter', p.twitter], ['Portfolio', p.link]].filter(x => x[1]);
+    const edu = [];
+    if (p.qualification || p.institution) {
+        edu.push(entry(`${p.institution ? `<strong>${esc(p.institution)}</strong>` : ''}${p.gradYear ? `<span>${esc(p.gradYear)}</span>` : ''}`, esc(`${p.qualification || ''}${p.field ? (p.qualification ? ' in ' : '') + p.field : ''}`)));
+    }
+    (p.education || []).forEach(e => edu.push(entry(`${e.institution ? `<strong>${esc(e.institution)}</strong>` : ''}${e.place ? `<span>${esc(e.place)}</span>` : ''}${e.year ? `<span>${esc(e.year)}</span>` : ''}`, esc(e.degree), bullets(e.points))));
+    const sb = [
+        me.photo ? `<img class="rs-photo" src="${me.photo}" alt="">` : '',
+        side('Links', links.map(([k, u]) => `<p><small>${k}</small>${link(u)}</p>`).join('')),
+        side('Reference', ref.name ? `<p><strong>${esc(ref.name)}</strong></p>${ref.role ? `<p>${esc(ref.role)}</p>` : ''}${ref.phone ? `<p>${esc(ref.phone)}</p>` : ''}${ref.email ? `<p>${esc(ref.email)}</p>` : ''}` : ''),
+        side('Hobbies', hobbies.length ? `<ul>${hobbies.map(h => `<li>${esc(h)}</li>`).join('')}</ul>` : '')
+    ].join('');
+    const contact = [ci('pin', esc(p.address)), ci('phone', esc(me.phone)), ci('mail', esc(me.email))].join('');
+    return `<div class="rs-doc"><div class="rs-page"><aside>${sb}</aside><div class="rs-main">
+<header><div><h2>${esc(me.name)}</h2>${p.headline ? `<p class="rs-head">${esc(p.headline)}</p>` : ''}</div>${contact ? `<ul class="rs-contact">${contact}</ul>` : ''}</header>
+${main('Profile', p.summary ? `<p>${esc(p.summary)}</p>` : '')}
+${main('Work Experience', jobs.map(j => entry(`${j.org ? `<strong>${esc(j.org)}</strong>` : ''}${j.place ? `<span>${esc(j.place)}</span>` : ''}${j.from || j.to ? `<span>${span(j.from, j.to)}</span>` : ''}`, esc(j.role), bullets(j.points))).join(''))}
+${main('Education', edu.join(''))}
+${main('Projects', bullets(p.projects))}
+${main('Skills', skills.length ? `<div class="rs-bars">${skills.map(s => bar(s, sl[s])).join('')}</div>` : '')}
+${main('Languages', langs.length ? `<div class="rs-bars">${langs.map(l => bar(l.name, l.level)).join('')}</div>` : '')}
+</div></div></div>`;
+}
 // Styles are scoped to .rs-doc so they can live in the app page (injected once) and in the print window.
-export const RESUME_CSS=`.rs-doc{container-type:inline-size;background:#fff;color:#222;font:12px/1.5 Lato,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+export const RESUME_CSS = `.rs-doc{container-type:inline-size;background:#fff;color:#222;font:12px/1.5 Lato,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .rs-doc *{box-sizing:border-box}.rs-doc a{color:inherit;text-decoration:none}.rs-doc p{margin:0}.rs-doc ul{list-style:none;margin:0;padding:0}
 .rs-page{display:grid;grid-template-columns:32% 1fr;min-height:1050px}
 .rs-doc aside{background:#3b3b3d;color:#fff;padding:26px 20px}
@@ -63,11 +82,23 @@ export const RESUME_CSS=`.rs-doc{container-type:inline-size;background:#fff;colo
 .rs-bar em{display:block;height:3px;background:#d4d4d4}.rs-bar b{display:block;height:3px;background:#2d2d2f}
 @container (max-width:560px){.rs-page{grid-template-columns:1fr;min-height:0}.rs-main header{flex-direction:column}.rs-contact{max-width:none}.rs-entry{grid-template-columns:1fr;gap:4px}.rs-bars{grid-template-columns:1fr}.rs-doc aside{padding-bottom:12px}.rs-doc aside:empty{display:none}}
 @media print{.rs-page{min-height:297mm}}`;
-export const PAGE_CSS='body{margin:0}@page{size:A4;margin:0}';
-const doc=(title,d)=>`<!doctype html><meta charset="utf-8"><title>${esc(title)} - Resume</title><style>${PAGE_CSS}${RESUME_CSS}</style>${buildResume(d)}`;
+export const PAGE_CSS = 'body{margin:0}@page{size:A4;margin:0}';
+const doc = (title, d) => `<!doctype html><meta charset="utf-8"><title>${esc(title)} - Resume</title><style>${PAGE_CSS}${RESUME_CSS}</style>${buildResume(d)}`;
 // Used by the app page itself: add the resume styles once.
-if(typeof document!=='undefined'&&!document.getElementById('rs-style')){const s=document.createElement('style');s.id='rs-style';s.textContent=RESUME_CSS;document.head.append(s)}
-export const resumeDoc=(d)=>doc(d.name,d);
-export function printResume(d){const w=window.open('','_blank');if(!w)throw new Error('Allow popups to download your resume');
-  w.document.write(resumeDoc(d));w.document.close();setTimeout(()=>w.print(),400)}
-export const pdfUrl=async data=>URL.createObjectURL(new Blob([Uint8Array.from(atob(data),c=>c.charCodeAt(0))],{type:'application/pdf'}));
+if (typeof document !== 'undefined' && !document.getElementById('rs-style')) {
+    const s = document.createElement('style');
+    s.id = 'rs-style';
+    s.textContent = RESUME_CSS;
+    document.head.append(s);
+}
+export const resumeDoc = (d) => doc(d.name, d);
+export function printResume(d) {
+    const w = window.open('', '_blank');
+    if (!w) {
+        throw new Error('Allow popups to download your resume');
+    }
+    w.document.write(resumeDoc(d));
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+}
+export const pdfUrl = async (data) => URL.createObjectURL(new Blob([Uint8Array.from(atob(data), c => c.charCodeAt(0))], { type: 'application/pdf' }));

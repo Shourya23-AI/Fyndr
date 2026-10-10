@@ -1,6 +1,74 @@
 /* Tables, status pills, progress bar */
-.tbl-wrap{overflow-x:auto}.tbl{width:100%;border-collapse:collapse;font-size:14px}.tbl th{text-align:left;color:var(--muted);font-size:12px;font-weight:600;padding:8px;border-bottom:1px solid var(--line)}.tbl td{padding:12px 8px;border-bottom:1px solid var(--line-soft)}
-.pill{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--yellow-soft)}.pill.approved,.pill.accepted,.pill.hired{background:var(--ok-bg);color:var(--ok-fg)}.pill.rejected{background:var(--bad-bg);color:var(--bad-fg)}.pill.pending,.pill.reviewing{background:var(--warn-bg);color:var(--warn-fg)}
-.pill.interview{background:var(--info-bg);color:var(--info-fg)}
-.pill.verified{background:var(--ok-bg);color:var(--ok-fg)}
-.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:var(--green);border-radius:99px}
+.tbl-wrap {
+  overflow-x: auto;
+}
+
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tbl th {
+  text-align: left;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tbl td {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--yellow-soft);
+}
+
+.pill.approved,
+.pill.accepted,
+.pill.hired {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.pill.rejected {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+
+.pill.pending,
+.pill.reviewing {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+.pill.interview {
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+
+.pill.verified {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--green);
+  border-radius: 99px;
+}

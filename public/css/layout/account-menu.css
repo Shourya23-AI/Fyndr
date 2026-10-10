@@ -1,17 +1,169 @@
 /* Name button in the top bar + the details card it opens */
-.me-wrap{position:relative}
-.who{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border:1px solid var(--line);border-radius:999px;background:var(--white);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
-.who:hover,.who[aria-expanded=true]{border-color:var(--ink)}
-.who-av{object-fit:cover;flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--green);color:#fff;font-size:13px;font-weight:800}
-.who-av.big{width:44px;height:44px;font-size:18px}
-.who-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.me-card{position:absolute;right:0;top:calc(100% + 10px);z-index:40;width:340px;max-width:calc(100vw - 24px);padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--white);box-shadow:0 22px 50px var(--shadow);font-weight:400;animation:pop .15s ease-out}
-@keyframes pop{from{opacity:0;transform:translateY(-6px)}}
-.me-head{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px dashed var(--line)}
-.me-head>div{min-width:0;flex:1}.me-head strong{display:block;font-size:16px;overflow:hidden;text-overflow:ellipsis}
-.me-mail{display:block;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
-.me-body{display:grid;gap:10px;padding:14px 0;font-size:13px}
-.me-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.me-row>span:first-child{color:var(--muted);flex:none}
-.me-row>b,.me-row>a{text-align:right;font-weight:600}.me-row .chips{justify-content:flex-end;margin:0}
-.me-foot{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px dashed var(--line)}.me-foot .button-small{width:100%;text-align:center;justify-content:center}.me-logout{width:100%;padding:12px 16px;font-size:15px;text-align:center;justify-content:center}
-@media(max-width:800px){.who{padding:3px}.who-name{display:none}.me-card{position:fixed;right:12px;left:12px;top:64px;width:auto}}
+.me-wrap {
+  position: relative;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.who:hover,
+.who[aria-expanded=true] {
+  border-color: var(--ink);
+}
+
+.who-av {
+  object-fit: cover;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--green);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.who-av.big {
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+}
+
+.who-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.me-card {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 40;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--white);
+  box-shadow: 0 22px 50px var(--shadow);
+  font-weight: 400;
+  animation: pop .15s ease-out;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.me-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.me-head > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.me-head strong {
+  display: block;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.me-mail {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.me-body {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0;
+  font-size: 13px;
+}
+
+.me-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.me-row > span:first-child {
+  color: var(--muted);
+  flex: none;
+}
+
+.me-row > b,
+.me-row > a {
+  text-align: right;
+  font-weight: 600;
+}
+
+.me-row .chips {
+  justify-content: flex-end;
+  margin: 0;
+}
+
+.me-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+
+.me-foot .button-small {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+}
+
+.me-logout {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  text-align: center;
+  justify-content: center;
+}
+
+@media (max-width: 800px) {
+  .who {
+    padding: 3px;
+  }
+  .who-name {
+    display: none;
+  }
+  .me-card {
+    position: fixed;
+    right: 12px;
+    left: 12px;
+    top: 64px;
+    width: auto;
+  }
+}

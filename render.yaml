@@ -1,0 +1,22 @@
+# Render blueprint: New > Blueprint > pick this repo. A persistent disk (needs a paid instance type) keeps your data across deploys.
+services:
+  - type: web
+    name: fyndr
+    runtime: node
+    plan: starter
+    buildCommand: echo "nothing to build"
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    disk:
+      name: fyndr-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: PHONE_EMAIL_CLIENT_ID
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false

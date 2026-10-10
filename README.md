@@ -1,5 +1,21 @@
 # Fyndr
 
+## Publish checklist (production)
+The app is one Node 18+ process with **no npm install**. Any host that runs `node server.js` works (Render, Railway, Fly.io, a VPS, Docker).
+
+1. **Put the code on the host.** `render.yaml` (Render blueprint) and a `Dockerfile` (Fly, Railway, Cloud Run, any Docker host) are included.
+2. **Set environment variables** (see `.env.example`):
+   - `NODE_ENV=production` (forces HTTPS redirect, HSTS, and does **not** seed the fake demo listings)
+   - `DATA_DIR=/data` pointing at a **persistent disk/volume**. The database (`data.json`) and uploaded files live there; on a host without a persistent disk they are wiped on every deploy.
+   - `PHONE_EMAIL_CLIENT_ID=...` (or keep it in `config/phone-email.json`)
+   - `ADMIN_EMAILS=you@gmail.com` (optional extra admins; `admin.fyndr@gmail.com` is always admin)
+3. **Firebase console** > Authentication > Settings > **Authorized domains**: add your live domain (e.g. `fyndr.com`). Without this, Google sign-in and the email links fail on the live site.
+4. **phone.email dashboard** > Profile Details: fill **Domain URL** with your live domain (leave it empty only while testing on localhost). Optionally add the Privacy and Terms URLs (`https://your-domain/#/privacy`, `/#/terms`).
+5. **Check it works:** open `https://your-domain/healthz` (should print `ok`), sign up with `admin.fyndr@gmail.com`, verify the email, then try phone verification.
+6. **Back up** the `DATA_DIR` folder regularly (it is the whole database).
+
+Built in for production: gzip + caching for static files, rate limiting on the API (stricter on sign-up and phone verification), security headers, atomic database writes, `/healthz` health check, graceful shutdown.
+
 ## New: admin side + organization size
 - **Admin account:** `admin.fyndr@gmail.com` is built in. Create that account yourself (Create account -> Candidate tab, choose your own password, confirm the email link, sign in). It becomes admin automatically. More admins: `ADMIN_EMAILS=a@x.com,b@y.com node server.js` (or edit `services/local-api/config.js` in Live Server mode). Code: `server/config.js`.
 - **Admin dashboard** (`features/dashboard/admin-dashboard.js`): Overview, Organizations, Listings, Verification, Candidates. Admins land on it after sign-in.

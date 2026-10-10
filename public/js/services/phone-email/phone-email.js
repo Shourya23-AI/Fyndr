@@ -1,30 +1,106 @@
 // phone.email helpers: read the Client ID, open the login popup, wait for the token it returns.
 let cid;
-export async function phoneClientId(){
-  if(cid!==undefined)return cid;
-  try{const r=await fetch('api/phone-config');if(!r.ok)throw 0;cid=(await r.json()).clientId}
-  catch{try{cid=(await (await fetch('config/phone-email.json')).json()).clientId}catch{cid=null}} // Live Server mode has no /api
-  if(!cid||/^YOUR/i.test(cid))cid=null;return cid}
+export async function phoneClientId() {
+    if (cid !== undefined) {
+        return cid;
+    }
+    try {
+        const r = await fetch('api/phone-config');
+        if (!r.ok) {
+            throw 0;
+        }
+        cid = (await r.json()).clientId;
+    } catch {
+        try {
+            cid = (await (await fetch('config/phone-email.json')).json()).clientId;
+        } catch {
+            cid = null;
+        }
+    } // Live Server mode has no /api
+    if (!cid || /^YOUR/i.test(cid)) {
+        cid = null;
+    }
+    return cid;
+}
+const CHANNEL = 'fyndr-phone';
+const TOKEN_KEY = 'fyndr-phone-token';
+
+function loginUrl(id) {
+    const redirect = new URL('phone-callback.html', location.href).href;
+    return 'https://www.phone.email/auth/log-in?client_id=' + encodeURIComponent(id) + '&redirect_url=' + encodeURIComponent(redirect);
+}
+
+// Popup blocked: go through phone.email in this same tab instead.
+// phone-callback.html then returns here and the token is picked up by takePendingToken().
+function redirectLogin(url) {
+    location.assign(url);
+    return Object.assign(new Promise(() => {}), { cancel() {} });
+}
+
+// Token left behind by phone-callback.html when it could not hand it to an open tab (full-page flow).
+export function takePendingToken() {
+    try {
+        const token = sessionStorage.getItem(TOKEN_KEY);
+        sessionStorage.removeItem(TOKEN_KEY);
+        return token || '';
+    } catch {
+        return '';
+    }
+}
 
 // Opens the popup and resolves with the access_token. Must be called straight from a click so popup blockers allow it.
 // `wait.cancel()` stops listening. (We do not poll popup.closed: some browsers report it as closed once the popup visits another site.)
-export function startLogin(id){
-  const redirect=new URL('phone-callback.html',location.href).href;
-  const url='https://www.phone.email/auth/log-in?client_id='+encodeURIComponent(id)+'&redirect_url='+encodeURIComponent(redirect);
-  const w=window.open(url,'peLoginWindow','toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=500,height=560,top='+(screen.height-600)/2+',left='+(screen.width-500)/2);
-  if(!w)throw{message:'Your browser blocked the popup. Allow popups for this site and try again.'};
-  let stop;const wait=new Promise((res,rej)=>{
-    const bc='BroadcastChannel' in window?new BroadcastChannel('fyndr-phone'):null;
-    const on=m=>{if(m&&m.type==='fyndr-phone-token'&&m.token){stop();res(m.token)}};
-    const onWin=e=>{if(e.origin===location.origin)on(e.data)};
-    if(bc)bc.onmessage=e=>on(e.data);addEventListener('message',onWin);
-    stop=()=>{bc&&bc.close();removeEventListener('message',onWin)};
-    wait.cancel=()=>{stop();try{w.close()}catch{}rej({cancelled:true})}});
-  return wait}
+export function startLogin(id) {
+    const url = loginUrl(id);
+    const left = (screen.width - 500) / 2;
+    const top = (screen.height - 600) / 2;
+    const popup = window.open(url, 'peLoginWindow', 'toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=500,height=560,top=' + top + ',left=' + left);
+    if (!popup) {
+        return redirectLogin(url);
+    }
+    let stop;
+    let reject;
+    const wait = new Promise((resolve, rej) => {
+        reject = rej;
+        const channel = 'BroadcastChannel' in window ? new BroadcastChannel(CHANNEL) : null;
+        const onMessage = msg => {
+            if (msg && msg.type === 'fyndr-phone-token' && msg.token) {
+                channel && channel.postMessage({ type: 'fyndr-phone-ack' }); // tells the callback page we have it
+                stop();
+                resolve(msg.token);
+            }
+        };
+        const onWindowMessage = e => {
+            if (e.origin === location.origin) {
+                onMessage(e.data);
+            }
+        };
+        if (channel) {
+            channel.onmessage = e => onMessage(e.data);
+        }
+        addEventListener('message', onWindowMessage);
+        stop = () => {
+            channel && channel.close();
+            removeEventListener('message', onWindowMessage);
+        };
+    });
+    // Attached after construction: referencing `wait` inside the executor throws (it is not initialised yet).
+    wait.cancel = () => {
+        stop();
+        try {
+            popup.close();
+        } catch {}
+        reject({ cancelled: true });
+    };
+    return wait;
+}
 
 // Browser-only (Live Server) mode: no Node server, so ask phone.email directly.
-export async function lookupPhone(token,id){
-  const fd=new FormData();fd.append('access_token',token);fd.append('client_id',id);
-  const d=await (await fetch('https://eapi.phone.email/getuser',{method:'POST',body:fd})).json();
-  const ph=d&&d.status===200&&d.phone_no?'+'+String(d.country_code||'').replace(/\D/g,'')+String(d.phone_no).replace(/\D/g,''):'';
-  return /^\+\d{8,15}$/.test(ph)?ph:null}
+export async function lookupPhone(token, id) {
+    const fd = new FormData();
+    fd.append('access_token', token);
+    fd.append('client_id', id);
+    const d = await (await fetch('https://eapi.phone.email/getuser', { method: 'POST', body: fd })).json();
+    const ph = d && d.status === 200 && d.phone_no ? '+' + String(d.country_code || '').replace(/\D/g, '') + String(d.phone_no).replace(/\D/g, '') : '';
+    return /^\+\d{8,15}$/.test(ph) ? ph : null;
+}

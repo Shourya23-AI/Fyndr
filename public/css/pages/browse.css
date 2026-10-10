@@ -1,16 +1,190 @@
 /* Browse page: listing tabs, listing cards, skeletons, empty state, suggestions */
-.page{padding:36px 0 72px}.tabs{margin:22px 0 4px;display:flex;gap:6px;overflow-x:auto}
-.tabs button{padding:8px 16px;border-radius:999px;color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap;border:1px solid transparent}
-.tabs button:hover{color:var(--ink)}.tabs .active{color:var(--ink);background:var(--yellow-soft);border-color:var(--yellow)}
-.opportunity-grid{border-top:1px solid var(--line)}
-.card{display:grid;grid-template-columns:52px 1fr auto;gap:20px;align-items:start;padding:24px 14px;border-bottom:1px solid var(--line);transition:background .15s}.card:hover{background:var(--yellow-soft)}
-.company-logo{width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:var(--yellow);color:var(--deep);font-weight:800;font-size:20px}
-.card h3{font-size:20px;margin:8px 0 2px}.card .company{margin:0;font-weight:600}.card .loc{margin:0;color:var(--muted);font-size:14px}.card .desc{max-width:52em}
-.card-side{display:grid;justify-items:end;gap:6px;text-align:right}.pay{font-size:16px}.when{color:var(--muted);font-size:12px}.acts{display:flex;gap:8px;margin-top:8px}
-.save-button{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;color:var(--muted);background:var(--white)}.save-button.saved{color:var(--deep);border-color:var(--deep)}.save-button.saved svg{fill:currentColor}
-.sk{height:120px;margin-top:1px;background:linear-gradient(90deg,var(--line-soft),var(--white),var(--line-soft));background-size:200% 100%;animation:sk 1.2s infinite}@keyframes sk{to{background-position:-200% 0}}
-.empty{text-align:center;padding:48px 16px;border:1px dashed var(--line);border-radius:18px;margin-top:16px}.empty p{color:var(--muted)}
-.sugg{padding-top:28px}
-.nudge{display:flex;gap:20px;align-items:center;justify-content:space-between;padding:20px 24px;border:1px dashed var(--green);border-radius:18px;background:var(--yellow-soft)}.nudge h3{margin-bottom:2px}
-@media(max-width:800px){.nudge{flex-direction:column;align-items:flex-start}}
-@media(max-width:800px){.card{grid-template-columns:44px 1fr}.card-side{grid-column:2;justify-items:start;text-align:left}.company-logo{width:44px;height:44px}}
+.page {
+  padding: 36px 0 72px;
+}
+
+.tabs {
+  margin: 22px 0 4px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.tabs button {
+  padding: 8px 16px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.tabs button:hover {
+  color: var(--ink);
+}
+
+.tabs .active {
+  color: var(--ink);
+  background: var(--yellow-soft);
+  border-color: var(--yellow);
+}
+
+.opportunity-grid {
+  border-top: 1px solid var(--line);
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 20px;
+  align-items: start;
+  padding: 24px 14px;
+  border-bottom: 1px solid var(--line);
+  transition: background .15s;
+}
+
+.card:hover {
+  background: var(--yellow-soft);
+}
+
+.company-logo {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--yellow);
+  color: var(--deep);
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.card h3 {
+  font-size: 20px;
+  margin: 8px 0 2px;
+}
+
+.card .company {
+  margin: 0;
+  font-weight: 600;
+}
+
+.card .loc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.card .desc {
+  max-width: 52em;
+}
+
+.card-side {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  text-align: right;
+}
+
+.pay {
+  font-size: 16px;
+}
+
+.when {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.acts {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.save-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  background: var(--white);
+}
+
+.save-button.saved {
+  color: var(--deep);
+  border-color: var(--deep);
+}
+
+.save-button.saved svg {
+  fill: currentColor;
+}
+
+.sk {
+  height: 120px;
+  margin-top: 1px;
+  background: linear-gradient(90deg, var(--line-soft), var(--white), var(--line-soft));
+  background-size: 200% 100%;
+  animation: sk 1.2s infinite;
+}
+
+@keyframes sk {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.empty {
+  text-align: center;
+  padding: 48px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  margin-top: 16px;
+}
+
+.empty p {
+  color: var(--muted);
+}
+
+.sugg {
+  padding-top: 28px;
+}
+
+.nudge {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border: 1px dashed var(--green);
+  border-radius: 18px;
+  background: var(--yellow-soft);
+}
+
+.nudge h3 {
+  margin-bottom: 2px;
+}
+
+@media (max-width: 800px) {
+  .nudge {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 800px) {
+  .card {
+    grid-template-columns: 44px 1fr;
+  }
+  .card-side {
+    grid-column: 2;
+    justify-items: start;
+    text-align: left;
+  }
+  .company-logo {
+    width: 44px;
+    height: 44px;
+  }
+}
