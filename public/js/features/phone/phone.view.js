@@ -36,6 +36,11 @@ export function phoneRender() {
             <h3>Verifying your number…</h3>
             <p class="desc">Hang on, we are confirming your phone number.</p>`);
     }
+    if (S.ph.busy && S.ph.redirecting) {
+        return card(`
+            <h3>Taking you to phone.email…</h3>
+            <p class="desc">Enter your number and the one-time code there. You will come straight back here when you are done.</p>`);
+    }
     if (S.ph.busy) {
         return card(`
             <h3>Finish in the popup</h3>
@@ -45,7 +50,7 @@ export function phoneRender() {
     const why = S.me.role === 'org' ? 'Organizations must verify a phone number before posting.' : 'You must verify a phone number before applying.';
     card(`
         <h3>Verify your phone</h3>
-        <p class="desc">${why} A small window opens where you enter your number and a one-time code. One phone number can be linked to one account only.</p>
+        <p class="desc">${why} You enter your number and a one-time code, then come straight back here. One phone number can be linked to one account only.</p>
         <div class="form">
             <button class="button button-dark" data-act="phone-open">Verify with phone</button>
             <p class="err" id="err">${esc(S.ph.error)}</p>

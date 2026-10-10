@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/components/hero.css" />
     <link rel="stylesheet" href="css/components/how-it-works.css" />
     <link rel="stylesheet" href="css/components/toast.css" />
+    <link rel="stylesheet" href="css/components/install.css" />
     <link rel="stylesheet" href="css/layout/header.css" />
     <link rel="stylesheet" href="css/layout/footer.css" />
     <link rel="stylesheet" href="css/layout/account-menu.css" />
@@ -29,6 +30,18 @@
     <link rel="stylesheet" href="css/pages/legal.css" />
     <link rel="stylesheet" href="css/base/dark.css" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Fyndr" />
+    <script>
+      // Keep the browser's install prompt so the footer "Get the app" button can use it later.
+      addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        window.__installPrompt = e;
+      });
+    </script>
     <script>
       // Apply the saved (or system) theme before first paint to avoid a flash.
       document.documentElement.dataset.theme =
@@ -67,6 +80,10 @@
         <a href="#/privacy">Privacy Policy</a>
         <a href="#/contact">Contact Us</a>
       </nav>
+      <button class="install-btn" type="button" data-act="install-app">
+        <svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" /></svg>
+        Get the app
+      </button>
       <span>© 2026 Fyndr</span>
     </footer>
 

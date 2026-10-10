@@ -21,6 +21,7 @@ export async function phoneVerify() {
     S.ph.error = '';
     const wait = startLogin(S.ph.cid); // opens the popup immediately (inside the click)
     S.ph.busy = true;
+    S.ph.redirecting = !!wait.redirected;
     S.ph.cancel = () => wait.cancel();
     phoneRender();
     try {

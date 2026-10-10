@@ -5,6 +5,8 @@ const { PUB, PROD } = require('../config');
 const types = {
     '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2'
 };
+// Always revalidated, so a new service worker / manifest is picked up right after a deploy.
+const NEVER_CACHE = new Set(['sw.js', 'manifest.webmanifest']);
 const zip = new Set(['.html', '.json', '.css', '.js', '.svg', '.txt', '.xml', '.webmanifest']);
 // Serves public/ with gzip, ETag/304 and cache headers. Unknown paths without a file extension fall back to index.html (single-page app);
 // a missing .js/.css/.png etc. is a real 404 instead of an HTML page pretending to be a script.
@@ -33,7 +35,7 @@ module.exports = function serveStatic(req, res, u) {
     const st = fs.statSync(f);
     const etag = 'W/"' + st.size.toString(16) + '-' + Math.floor(st.mtimeMs).toString(16) + '"';
     const h = {
-        'Content-Type': types[ext] || 'application/octet-stream', ETag: etag, 'Cache-Control': ext === '.html' || !PROD ? 'no-cache' : 'public, max-age=300', Vary: 'Accept-Encoding'
+        'Content-Type': types[ext] || 'application/octet-stream', ETag: etag, 'Cache-Control': ext === '.html' || !PROD || NEVER_CACHE.has(path.basename(f)) ? 'no-cache' : 'public, max-age=300', Vary: 'Accept-Encoding'
     };
     if (req.headers['if-none-match'] === etag) {
         res.writeHead(304, h);

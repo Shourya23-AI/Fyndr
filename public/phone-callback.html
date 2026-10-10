@@ -42,9 +42,11 @@
       const token = new URLSearchParams(location.search).get("access_token");
 
       function backToApp() {
-        try {
-          sessionStorage.setItem("fyndr-phone-token", token);
-        } catch {}
+        for (const store of [sessionStorage, localStorage]) {
+          try {
+            store.setItem("fyndr-phone-token", token);
+          } catch {} // storage can be blocked by privacy settings
+        }
         location.replace("index.html#/phone");
       }
 

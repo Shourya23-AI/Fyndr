@@ -30,28 +30,35 @@ function loginUrl(id) {
     return 'https://www.phone.email/auth/log-in?client_id=' + encodeURIComponent(id) + '&redirect_url=' + encodeURIComponent(redirect);
 }
 
-// Popup blocked: go through phone.email in this same tab instead.
-// phone-callback.html then returns here and the token is picked up by takePendingToken().
+// Firefox-based browsers (Firefox, Zen...) and phones are unreliable with login popups: they often block them,
+// open them as tabs, or cut the link back to this page. There we go through phone.email in this same tab instead.
+const preferRedirect = () => /Firefox|FxiOS|Android|iPhone|iPad|iPod|Mobi/.test(navigator.userAgent);
+
+// Same-tab login. phone-callback.html returns here afterwards and the token is picked up by takePendingToken().
 function redirectLogin(url) {
     location.assign(url);
-    return Object.assign(new Promise(() => {}), { cancel() {} });
+    return Object.assign(new Promise(() => {}), { cancel() {}, redirected: true });
 }
 
 // Token left behind by phone-callback.html when it could not hand it to an open tab (full-page flow).
 export function takePendingToken() {
-    try {
-        const token = sessionStorage.getItem(TOKEN_KEY);
-        sessionStorage.removeItem(TOKEN_KEY);
-        return token || '';
-    } catch {
-        return '';
+    let token = '';
+    for (const store of [sessionStorage, localStorage]) {
+        try {
+            token = token || store.getItem(TOKEN_KEY) || '';
+            store.removeItem(TOKEN_KEY);
+        } catch {} // storage can be blocked by privacy settings
     }
+    return token;
 }
 
 // Opens the popup and resolves with the access_token. Must be called straight from a click so popup blockers allow it.
 // `wait.cancel()` stops listening. (We do not poll popup.closed: some browsers report it as closed once the popup visits another site.)
 export function startLogin(id) {
     const url = loginUrl(id);
+    if (preferRedirect()) {
+        return redirectLogin(url);
+    }
     const left = (screen.width - 500) / 2;
     const top = (screen.height - 600) / 2;
     const popup = window.open(url, 'peLoginWindow', 'toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=500,height=560,top=' + top + ',left=' + left);
