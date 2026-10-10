@@ -2,10 +2,13 @@ const { routes, bad } = require('../lib/router');
 const { verifyFb } = require('../auth/firebase-token');
 const { db, save } = require('../db/store');
 const { isAdminEmail } = require('../config');
+const { applyStaff } = require('../lib/helpers');
 // Finds the route, checks the Firebase token + role, parses the JSON body, runs the handler.
 module.exports = async function handleApi(req, res, u) {
     const send = (c, d) => {
-        res.writeHead(c, { 'Content-Type': 'application/json' });
+        // Public config rarely changes: let browsers keep it for an hour. Everything else is per-user, never cached by the browser (the app keeps its own short client cache).
+        const cache = c === 200 && req.method === 'GET' && (u.pathname === '/api/firebase-config' || u.pathname === '/api/phone-config') ? 'public, max-age=3600, stale-while-revalidate=86400' : 'no-store';
+        res.writeHead(c, { 'Content-Type': 'application/json', 'Cache-Control': cache });
         res.end(JSON.stringify(d));
     };
     try {
@@ -30,10 +33,11 @@ module.exports = async function handleApi(req, res, u) {
             if (!fb.email_verified) {
                 return send(403, { error: 'Please verify your email' });
             }
-            if (user.role !== 'admin' && isAdminEmail(fb.email)) {
-                user.role = 'admin';
-                delete user.orgName;
-                user.verified = true;
+            // Staff roles: the main admin is always admin; others get what an admin granted them (or lose it when demoted).
+            if (applyStaff(user) || (isAdminEmail(fb.email) && !user.verified)) {
+                if (isAdminEmail(fb.email)) {
+                    user.verified = true;
+                }
                 save();
             }
             if (!r.roles.includes(user.role)) {

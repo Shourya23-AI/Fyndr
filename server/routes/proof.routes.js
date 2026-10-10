@@ -29,9 +29,9 @@ R('POST', '/api/proof', ['user', 'org'], ({ user, body: b }) => {
     save();
     return meOf(user);
 });
-R('GET', '/api/proof/file/:id', ['user', 'org', 'admin'], ({ user, p }) => {
+R('GET', '/api/proof/file/:id', ['user', 'org', 'moderator', 'admin'], ({ user, p }) => {
     const u = db.users.find(x => x.id === p[0]);
-    if (!u?.proof || (u.id !== user.id && user.role !== 'admin')) {
+    if (!u?.proof || (u.id !== user.id && (user.role !== 'admin' && user.role !== 'moderator'))) {
         bad(404, 'Not found');
     }
     if (u.id !== user.id) {

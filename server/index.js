@@ -2,6 +2,12 @@
 const http = require('http');
 const { PORT, HOST, PROD } = require('./config');
 require('./routes');
+try {
+    // One combined stylesheet = one request. Only rewrites public/css/app.css when a source file changed.
+    require('../scripts/bundle-css')();
+} catch (e) {
+    console.warn('CSS bundle skipped:', e.message);
+}
 const handleApi = require('./http/api-handler');
 const serveStatic = require('./http/static');
 // Tiny in-memory rate limiter (per IP). Behind a proxy (production) the client IP is the last X-Forwarded-For entry.

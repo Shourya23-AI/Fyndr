@@ -375,3 +375,24 @@
 .tbl .tag {
   white-space: nowrap;
 }
+
+/* Team tab */
+.team-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.team-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--yellow-soft);
+  font-size: 13px;
+}
+
+.team-chip.perm,
+.tag.perm {
+  border-color: var(--green);
+  font-weight: 700;
+}

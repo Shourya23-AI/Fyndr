@@ -1,8 +1,35 @@
 const crypto = require('crypto');
+const { isAdminEmail } = require('../config');
 // Shared constants and pure helpers used by several route files.
 const uid = () => crypto.randomBytes(6).toString('hex');
+// Staff levels. u.role is the *effective* role used by every route ('user' | 'org' | 'moderator' | 'admin').
+// u.staff is what an admin granted ('admin' | 'moderator'); u.baseRole remembers the account type underneath so a demoted
+// person goes back to being a candidate / organization. The built-in main admin (admin.fyndr@gmail.com) is permanent.
+const staffLevel = u => isAdminEmail(u.email) ? 'admin' : (u.staff === 'admin' || u.staff === 'moderator') ? u.staff : null;
+const baseKind = u => (u.role === 'admin' || u.role === 'moderator') ? (u.baseRole || 'user') : u.role;
+// Brings u.role in line with staffLevel(u). Returns true when something changed (caller saves).
+const applyStaff = u => {
+    const want = staffLevel(u);
+    if (want) {
+        if (u.role !== 'admin' && u.role !== 'moderator') {
+            u.baseRole = u.role;
+        }
+        if (u.role !== want) {
+            u.role = want;
+            return true;
+        }
+        return false;
+    }
+    if (u.role === 'admin' || u.role === 'moderator') {
+        u.role = u.baseRole || 'user';
+        delete u.baseRole;
+        return true;
+    }
+    return false;
+};
+const isStaff = u => u.role === 'admin' || u.role === 'moderator';
 const pub = u => ({
-    id: u.id, name: u.name, email: u.email, role: u.role, orgName: u.orgName, verified: u.verified, phoneVerified: !!u.phone, created: u.created, photo: u.photo || undefined
+    id: u.id, name: u.name, email: u.email, role: u.role, orgName: u.orgName, verified: u.verified, phoneVerified: !!u.phone, created: u.created, photo: u.photo || undefined, permanent: isAdminEmail(u.email) || undefined
 });
 const QUAL = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Other'];
 const EXP = ['Student / Fresher', '0–1 years', '1–3 years', '3–5 years', '5+ years'];
@@ -63,8 +90,8 @@ const signals = u => {
     };
 };
 const adminData = db => {
-    const orgs = db.users.filter(u => u.role === 'org');
-    const cands = db.users.filter(u => u.role === 'user');
+    const orgs = db.users.filter(u => baseKind(u) === 'org');
+    const cands = db.users.filter(u => baseKind(u) === 'user' && !isAdminEmail(u.email));
     const proofs = db.users.filter(u => u.proof);
     return {
         stats: {
@@ -77,11 +104,14 @@ const adminData = db => {
             id: u.id, name: u.name, email: u.email, phoneVerified: !!u.phone, completion: completion(u), applications: db.applications.filter(a => a.userId === u.id).length, created: u.created
         })),
         listings: db.listings,
+        team: db.users.filter(u => u.email).map(u => ({
+            id: u.id, name: u.name, email: u.email, kind: baseKind(u) === 'org' ? 'Organization' : 'Candidate', staff: staffLevel(u), permanent: isAdminEmail(u.email), created: u.created
+        })).sort((a, b) => (b.permanent - a.permanent) || ((b.staff === 'admin') - (a.staff === 'admin')) || ((!!b.staff) - (!!a.staff)) || a.name.localeCompare(b.name)),
         proofs: proofs.map(u => ({
             id: u.id, name: u.orgName || u.name, email: u.email, role: u.role, portal: u.proof.portal, status: u.proof.status, signals: u.role === 'org' ? signals(u) : null
         }))
     };
 };
 module.exports = {
-    ORG_TYPES, isFree, gmailAllowed, adminData, uid, pub, QUAL, EXP, JT, completion, cleanExtras, meOf, FREE, sniff, signals
+    staffLevel, baseKind, applyStaff, isStaff, ORG_TYPES, isFree, gmailAllowed, adminData, uid, pub, QUAL, EXP, JT, completion, cleanExtras, meOf, FREE, sniff, signals
 };

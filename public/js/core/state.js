@@ -12,3 +12,6 @@ export const S = {
         busy: false, cancel: null, cid: undefined
     }
 };
+
+// Staff = admins and moderators (they see the admin dashboard instead of the candidate / organization pages).
+export const isStaff = m => !!m && (m.role === 'admin' || m.role === 'moderator');

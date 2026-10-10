@@ -40,6 +40,25 @@ function redirectLogin(url) {
     return Object.assign(new Promise(() => {}), { cancel() {}, redirected: true });
 }
 
+// phone-callback.html returns to  #/phone?token=...  . Called by the router on every navigation: moves the token out of the
+// address bar into storage (so a redirect to another page can't lose it) and cleans the URL.
+export function capturePhoneToken() {
+    const h = location.hash;
+    const i = h.indexOf('?');
+    if (!h.startsWith('#/phone') || i < 0) {
+        return;
+    }
+    const t = new URLSearchParams(h.slice(i + 1)).get('token');
+    history.replaceState(null, '', location.pathname + location.search + '#/phone');
+    if (t) {
+        for (const store of [sessionStorage, localStorage]) {
+            try {
+                store.setItem(TOKEN_KEY, t);
+            } catch { } // storage can be blocked by privacy settings
+        }
+    }
+}
+
 // Token left behind by phone-callback.html when it could not hand it to an open tab (full-page flow).
 export function takePendingToken() {
     let token = '';

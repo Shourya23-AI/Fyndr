@@ -10,4 +10,6 @@
   border-radius: 999px;
   font-size: 14px;
   z-index: 300;
+  max-width: calc(100vw - 32px);
+  text-align: center;
 }

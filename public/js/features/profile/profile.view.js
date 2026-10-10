@@ -1,6 +1,7 @@
 import { S } from '../../core/state.js';
 import { $, esc } from '../../core/dom.js';
 import { api } from '../../core/api.js';
+import { skeleton } from '../../core/skeleton.js';
 import { QUAL, EXP, JT, LEVELS } from './constants.js';
 // #/profile: education, skills chips, job types, resume.
 const lvOpts = v => LEVELS.map((t, i) => `<option value="${i + 1}" ${(+v || 3) === i + 1 ? 'selected' : ''}>${t}</option>`).join('');
@@ -39,6 +40,7 @@ export const REP = {
 };
 const reps = (k, list) => (list || []).map(REP[k]).join('');
 export async function profileView() {
+    $('#app').innerHTML = skeleton('center');
     const d = await api('/profile');
     const p = d.profile;
     const onb = !S.me.onboarded;

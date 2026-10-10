@@ -8,7 +8,7 @@ export function proofView() {
     if (!S.me) {
         return openAuth('signin');
     }
-    if (S.me.role === 'admin') {
+    if (S.me.role === 'admin' || S.me.role === 'moderator') {
         return location.hash = '#/dashboard';
     }
     const org = S.me.role === 'org';

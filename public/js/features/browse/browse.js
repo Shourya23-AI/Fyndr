@@ -1,5 +1,6 @@
 import { S } from '../../core/state.js';
 import { $, esc, TICK } from '../../core/dom.js';
+import { skeleton } from '../../core/skeleton.js';
 import { api } from '../../core/api.js';
 import { SPEC } from '../home/specimen.js';
 import { suggest } from '../suggestions/suggest.js';
@@ -12,6 +13,7 @@ export async function browse(scope = 'jobs') {
     S.scope = scope;
     const courses = scope === 'courses';
     if (S.me?.role === 'user') {
+        $('#app').innerHTML = skeleton('list');
         S.mine = await api('/my');
     }
     $('#app').innerHTML = `<section class="hero container"><div>${courses ? '<h1>Courses from organizations we have checked.</h1><p class="lead">Learn a skill with providers our team has verified. Every course listing is reviewed before it appears.</p>' : '<h1>Every listing is checked before you see it.</h1><p class="lead">Internships and jobs from organizations our team has verified. Apply without second-guessing.</p>'}

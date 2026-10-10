@@ -47,7 +47,8 @@ for (const f of [path.join(ROOT, 'config', 'phone-email.json')]) {
 const PHONE_EMAIL_CLIENT_ID = [process.env.PHONE_EMAIL_CLIENT_ID, pe.clientId].map(x => String(x || '').trim()).find(x => x && !/^YOUR/i.test(x)) || '';
 // Built-in admin account (sign up with this email, confirm it, and the account becomes admin). More can be added with ADMIN_EMAILS.
 const DEFAULT_ADMINS = 'admin.fyndr@gmail.com';
+const MAIN_ADMIN = DEFAULT_ADMINS;
 const isAdminEmail = e => (DEFAULT_ADMINS + ',' + (process.env.ADMIN_EMAILS || '')).toLowerCase().split(',').map(x => x.trim()).filter(Boolean).includes((e || '').toLowerCase());
 module.exports = {
-    ROOT, PORT, HOST, PROD, SEED_DEMO, PUB, DATA_DIR, DB_FILE, UP_DIR, cfg, isAdminEmail, PHONE_EMAIL_CLIENT_ID
+    ROOT, PORT, HOST, PROD, SEED_DEMO, PUB, DATA_DIR, DB_FILE, UP_DIR, cfg, isAdminEmail, MAIN_ADMIN, PHONE_EMAIL_CLIENT_ID
 };

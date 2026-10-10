@@ -27,31 +27,62 @@
         color: inherit;
         font-weight: 700;
       }
+      .spin {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-right: 6px;
+        vertical-align: -2px;
+        border: 2px solid #c9c6bb;
+        border-top-color: #4f8a6f;
+        border-radius: 50%;
+        animation: s .8s linear infinite;
+      }
+      @keyframes s {
+        to {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
   <body>
     <div>
-      <p id="m">Finishing up…</p>
-      <p><a href="index.html#/phone">Back to Fyndr</a></p>
+      <p id="m"><span class="spin"></span> Finishing up…</p>
+      <p id="b" hidden><a id="back" href="index.html#/phone">Continue to Fyndr</a></p>
     </div>
     <script>
-      // phone.email sends the popup back here with ?access_token=… . Hand the token to the Fyndr
-      // tab that opened the popup and close. If no tab confirms receipt (popup was blocked and we
-      // are in the full-page flow), keep the token for this tab and go back to the app.
+      // phone.email sends the popup/tab back here with ?access_token=… (some setups use the #fragment).
+      // 1) Popup flow: hand the token to the Fyndr tab that opened us, then close.
+      // 2) Same-tab flow (phones, blocked popups): go back to Fyndr carrying the token in the link, so nothing depends on storage.
       const message = document.getElementById("m");
-      const token = new URLSearchParams(location.search).get("access_token");
+      const params = new URLSearchParams(location.search);
+      const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+      const pick = (k) => params.get(k) || hashParams.get(k) || "";
+      const token = pick("access_token") || pick("token");
+      const failure = pick("error") || pick("error_description");
+      const back = document.getElementById("back");
+
+      function show(text, link) {
+        message.textContent = text;
+        if (link) {
+          document.getElementById("b").hidden = false;
+        }
+      }
 
       function backToApp() {
+        const target = "index.html#/phone?token=" + encodeURIComponent(token);
         for (const store of [sessionStorage, localStorage]) {
           try {
             store.setItem("fyndr-phone-token", token);
           } catch {} // storage can be blocked by privacy settings
         }
-        location.replace("index.html#/phone");
+        back.href = target;
+        show("Taking you back to Fyndr…", true);
+        location.replace(target);
       }
 
       if (!token) {
-        message.textContent = "Verification was not completed. You can close this window.";
+        show(failure ? "Verification failed: " + failure : "Verification was not completed.", true);
       } else {
         const payload = { type: "fyndr-phone-token", token };
         history.replaceState(null, "", location.pathname); // keep the token out of the address bar
@@ -75,8 +106,8 @@
         } catch {}
 
         const handedOver = () => {
-          message.textContent = "Phone verified. You can close this window.";
-          setTimeout(() => window.close(), 500);
+          show("Phone number received. You can close this window.", true);
+          setTimeout(() => window.close(), 600);
         };
 
         if (!channel) {

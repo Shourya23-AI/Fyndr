@@ -1,5 +1,38 @@
 # Fyndr
 
+## Latest update: speed, caching, mobile, phone verification, team roles
+
+**Speed (the reload feels instant now)**
+- **Instant shell:** the header and shimmering placeholders are in `index.html` itself and are drawn before any JavaScript runs. Returning visitors also get their signed-in header straight away (a small hint is kept on the device; the real profile replaces it a moment later).
+- **Lazy Firebase:** the Firebase SDK and its config load in the background and no longer block the first paint (`services/firebase/firebase-init.js`). Config is cached on the device.
+- **Fewer requests:** all 27 stylesheets are joined into one `css/app.css` (`scripts/bundle-css.js`, rebuilt automatically when the server starts; run `node scripts/bundle-css.js` by hand after editing CSS in Live Server mode). The server injects `modulepreload` tags so the ~50 JS files download in parallel instead of one after another. Fonts load without blocking.
+- **Skeleton shimmer:** grey blocks with a light shade sweeping over them appear exactly where content will show up (home, listings, dashboards, phone and profile pages). Code: `js/core/skeleton.js`, `css/components/skeleton.css`.
+
+**Caching (three layers)**
+1. **Server static cache** (`server/http/static.js`): every file is read and gzipped once and served from memory, with ETag/304. JS/CSS: `max-age=60, stale-while-revalidate`; images/icons: 7 days; HTML, `sw.js`, manifest: always revalidated.
+2. **Service worker** (`public/sw.js`): stale-while-revalidate for pages and files, so repeat visits open from the device. The server stamps each deploy with a build id (`__BUILD__`), so a deploy gets a fresh cache and the old one is deleted. API calls are never cached by it (except the two public config endpoints).
+3. **Client data cache** (`js/core/api.js`): `/me`, listings, `/my`, admin data and so on are kept in memory for 10-45 seconds, duplicate requests share one call, and **any change or sign-out clears it**. The last listings are also saved on the device so a reload draws them immediately while fresh ones load.
+
+**Mobile layout**
+The page used to drift to the right on phones. Causes fixed in `css/base/reset.css`: iOS Safari zooms into any field smaller than 16px and stays shifted (fields are now 16px on phones); the page can no longer scroll sideways (`overflow-x: clip` on `html` and `body`, `touch-action: pan-y pinch-zoom`); grid/flex children can shrink; tables scroll inside their own box.
+
+**Phone verification (phone.email)**
+- The result is now **visible**: a 3-step indicator (Enter number and code, We confirm it, Done), spinners, a clear red error message on the page (not only a toast), a **Try again** button, an **"I already verified: check again"** button, and a success screen that continues to the dashboard on its own.
+- More reliable return from phone.email: `phone-callback.html` accepts the token from `?access_token=`, `#access_token=` or `?token=`, and in same-tab mode (phones) sends it back **inside the link** (`#/phone?token=...`), so it no longer depends on browser storage. The router also lets a candidate who has not finished their profile reach `#/phone` (before, they were bounced to the profile page and the result was lost).
+- The server retries phone.email once, times out cleanly, and logs why a token was rejected.
+- **Important:** in the phone.email dashboard, *Domain URL* must be exactly the address people use (for example `https://fyndr.com`, not `www.` if you serve without it, and not `localhost`). A mismatch is the most common reason nothing comes back.
+
+**Admin roles: moderators and admins**
+- **Main admin (`admin.fyndr@gmail.com`) is permanent.** It shows as "★ Permanent admin", has no role selector, and the server refuses to change, demote or delete it (even by another admin).
+- Admins open **Dashboard > Team**, search any account (candidate or organization) and choose **Member / Moderator / Admin** from a dropdown. The person must have signed up and confirmed their email; the role applies the next time they open Fyndr. Demoting returns them to their normal candidate/organization account (nothing is lost).
+- **Moderators** can review listings and verification documents and verify organizations. **Admins** can also change organization size / Gmail posting, delete accounts and manage the team. The Team tab is hidden from moderators and the server enforces all of this (`server/routes/admin.routes.js`, `PATCH /api/admin/staff/:id`).
+- Extra admins from `ADMIN_EMAILS` are also permanent (set in server config, not editable in the UI).
+- Roles work with the Node server. The browser-only Live Server mode (`services/local-api`) does not implement moderators.
+
+**Tested:** 21 automated checks of the role rules (promotion, demotion, permanent admin, moderator limits), static cache headers, 304s, gzip, build-stamped service worker and modulepreload injection. Please also try the site once on your own phone (see "Mobile checklist" below).
+
+**Mobile checklist (2 minutes):** open the site on your phone, rotate the screen, tap into a search box (the page must not zoom or shift), reload (placeholders then content), sign in, open `#/phone` and run the verification, then in the admin account open Team and change a role.
+
 ## Publish checklist (production)
 The app is one Node 18+ process with **no npm install**. Any host that runs `node server.js` works (Render, Railway, Fly.io, a VPS, Docker).
 

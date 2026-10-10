@@ -70,7 +70,7 @@ R('PATCH', '/api/applications/:id', ['org'], ({ user, p, body: b }) => {
     save();
     return { ok: 1 };
 });
-R('DELETE', '/api/listings/:id', ['org', 'admin'], ({ user, p }) => {
+R('DELETE', '/api/listings/:id', ['org', 'moderator', 'admin'], ({ user, p }) => {
     const l = db.listings.find(x => x.id === p[0]);
     if (!l || (user.role === 'org' && l.orgId !== user.id)) {
         bad(404, 'Not found');

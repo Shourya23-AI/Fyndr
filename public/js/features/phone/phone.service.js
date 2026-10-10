@@ -1,15 +1,52 @@
 import { S } from '../../core/state.js';
-import { api } from '../../core/api.js';
+import { api, clearApiCache } from '../../core/api.js';
 import { toast } from '../../core/dom.js';
 import { ferr } from '../../core/errors.js';
 import { startLogin, takePendingToken } from '../../services/phone-email/phone-email.js';
 import { phoneRender } from './phone.view.js';
+import { nav } from '../layout/nav.js';
 
 // Sends the phone.email token to our server, which confirms it and stores the verified number.
 async function phoneConfirm(token) {
+    S.ph.verifying = true;
+    S.ph.error = '';
+    phoneRender();
     S.me = await api('/phone/verify', 'POST', { access_token: token });
+    // Show a clear success screen, then move on by itself.
+    S.ph.verifying = false;
+    S.ph.done = true;
     toast('Phone verified ✓');
-    location.hash = '#/dashboard';
+    nav();
+    if (location.hash.startsWith('#/phone')) {
+        phoneRender();
+        setTimeout(() => {
+            if (location.hash === '#/phone') {
+                location.hash = '#/dashboard';
+            }
+        }, 2500);
+    }
+}
+
+// "Check again": asks the server whether this account already has a verified number (e.g. verification finished in another tab).
+export async function phoneRecheck() {
+    clearApiCache();
+    S.ph.checking = true;
+    S.ph.error = '';
+    phoneRender();
+    try {
+        S.me = await api('/me');
+        nav();
+        if (S.me.phoneVerified) {
+            S.ph.done = true;
+        } else {
+            S.ph.error = 'Not verified yet. Press "Verify with phone" and finish the steps.';
+        }
+    } catch (x) {
+        S.ph.error = ferr(x);
+    } finally {
+        S.ph.checking = false;
+        phoneRender();
+    }
 }
 
 // Opens the phone.email popup, waits for its token, and lets our server confirm it.
@@ -30,9 +67,9 @@ export async function phoneVerify() {
         if (x && x.cancelled) {
             return;
         }
-        S.ph.error = ferr(x);
-        throw x;
+        S.ph.error = ferr(x); // shown on the page (a toast alone is easy to miss)
     } finally {
+        S.ph.verifying = false;
         S.ph.busy = false;
         S.ph.cancel = null;
         if (location.hash === '#/phone') {
@@ -47,8 +84,6 @@ export async function phoneResume() {
     if (!token || S.me.phoneVerified) {
         return;
     }
-    S.ph.verifying = true;
-    phoneRender();
     try {
         await phoneConfirm(token);
     } catch (x) {

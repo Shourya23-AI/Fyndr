@@ -44,6 +44,14 @@ export const onChange = async (e) => {
         if (t.appid) {
             await api('/applications/' + t.appid, 'PATCH', { status: v });
             toast('Updated');
+        } else if (t.staff) {
+            const name = e.target.options[e.target.selectedIndex].text;
+            if (!confirm('Change this account to: ' + name + '?')) {
+                return dashboard();
+            }
+            await api('/admin/staff/' + t.staff, 'PATCH', { role: v });
+            toast('Role updated');
+            dashboard();
         } else if (t.orgtype) {
             await api('/admin/orgs/' + t.orgtype, 'PATCH', { orgType: v });
             toast('Organization size updated');
@@ -101,5 +109,13 @@ Object.assign(actions, {
         printResume({
             ...d, ...me, profile: d.profile
         });
+    }
+});
+// Live search in the Team tab.
+document.addEventListener('input', e => {
+    if (e.target.id === 'tq') {
+        ST.tq = e.target.value;
+        clearTimeout(onChange.t);
+        onChange.t = setTimeout(dashboard, 200);
     }
 });

@@ -122,20 +122,6 @@
   fill: currentColor;
 }
 
-.sk {
-  height: 120px;
-  margin-top: 1px;
-  background: linear-gradient(90deg, var(--line-soft), var(--white), var(--line-soft));
-  background-size: 200% 100%;
-  animation: sk 1.2s infinite;
-}
-
-@keyframes sk {
-  to {
-    background-position: -200% 0;
-  }
-}
-
 .empty {
   text-align: center;
   padding: 48px 16px;

@@ -1,5 +1,7 @@
-import { S } from './state.js';
-import { toast } from './dom.js';
+import { S, isStaff } from './state.js';
+import { toast, $ } from './dom.js';
+import { skeleton, skeletonFor } from './skeleton.js';
+import { capturePhoneToken } from '../services/phone-email/phone-email.js';
 import { fb } from '../services/firebase/firebase-init.js';
 import { nav, markNav } from '../features/layout/nav.js';
 import { loadMe } from '../features/auth/load-me.js';
@@ -17,8 +19,21 @@ import { termsView, privacyView, contactView } from '../features/legal/legal.vie
 // Hash router: '#/organizations', '#/dashboard', ... Decides which page to draw and redirects people who are signed out or not set up yet.
 export async function route() {
     const rid = route.n = (route.n || 0) + 1;
-    await fb.ready();
-    const gate = await loadMe();
+    // Returning from phone.email: grab the token from the address bar right away (before any redirect below can lose it).
+    capturePhoneToken();
+    // If the user check takes more than a blink, show a placeholder shaped like the page instead of a blank screen.
+    const wait = setTimeout(() => {
+        if (rid === route.n) {
+            $('#app').innerHTML = skeleton(skeletonFor(location.hash.slice(2), !!S.me));
+        }
+    }, 120);
+    let gate;
+    try {
+        await fb.ready();
+        gate = await loadMe();
+    } finally {
+        clearTimeout(wait);
+    }
     if (rid !== route.n) {
         return;
     }
@@ -26,7 +41,7 @@ export async function route() {
     if (S.me || gate === 'verify') {
         closeAuth();
     }
-    let r = location.hash.slice(2) || '';
+    let r = (location.hash.slice(2) || '').split('?')[0];
     const q = new URLSearchParams(location.search);
     if (q.get('mode') === 'resetPassword' && q.get('oobCode')) {
         r = 'reset';
@@ -44,7 +59,7 @@ export async function route() {
         }
         r = '';
     }
-    if (S.me?.role === 'user' && !S.me.onboarded) {
+    if (S.me?.role === 'user' && !S.me.onboarded && r !== 'phone') {
         r = 'profile';
     } else if (S.me && S.me.role !== 'user' && r === 'profile') {
         r = 'dashboard';
@@ -56,7 +71,7 @@ export async function route() {
         r = 'proof';
     }
     if (S.me && r === '') {
-        r = S.me.role === 'admin' ? 'dashboard' : 'jobs';
+        r = isStaff(S.me) ? 'dashboard' : 'jobs';
     }
     markNav(r);
     document.title = 'Fyndr: internships and jobs, checked before you see them';

@@ -63,3 +63,74 @@ main:has(> .phone-page) {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+/* Visible progress while verifying */
+.phone-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.phone-steps li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phone-steps i {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  font-style: normal;
+  font-size: 11px;
+}
+
+.phone-steps .now {
+  color: var(--ink);
+}
+
+.phone-steps .now i {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.phone-steps .done i {
+  background: var(--ok-bg);
+  border-color: transparent;
+  color: var(--ok-fg);
+}
+
+.phone-err {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  font-size: 14px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border: 2px solid var(--line);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

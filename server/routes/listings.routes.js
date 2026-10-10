@@ -1,7 +1,7 @@
 const { R } = require('../lib/router');
 const { db } = require('../db/store');
 // Public listing search (any signed-in role).
-R('GET', '/api/listings', ['user', 'org', 'admin'], ({ q }) => {
+R('GET', '/api/listings', ['user', 'org', 'moderator', 'admin'], ({ q }) => {
     const s = (q.get('q') || '').toLowerCase();
     const t = q.get('type');
     const l = (q.get('loc') || '').toLowerCase();

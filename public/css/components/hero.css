@@ -3,7 +3,9 @@
 .org-hero::before {
   content: "";
   position: absolute;
-  inset: -60px -10vw 0;
+  /* Reach the screen edge but never past it. The old -10vw pushed this layer beyond the right edge of the
+     viewport, which made phones scroll sideways and shift the whole page to the right. */
+  inset: -60px calc(-1 * clamp(16px, 3.5vw, 60px)) 0;
   z-index: -1;
   pointer-events: none;
   background: radial-gradient(420px 360px at 8% 10%, color-mix(in srgb, var(--green) 28%, transparent), transparent 70%), radial-gradient(380px 320px at 92% 70%, color-mix(in srgb, var(--yellow) 90%, transparent), transparent 70%);

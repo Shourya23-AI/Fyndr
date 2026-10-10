@@ -70,7 +70,7 @@ export const forms = {
             await fb.out();
             throw { message: 'Signed in, but we could not load your account (' + (loadMe.err || 'no response') + '). Check that the server is running and try again.' };
         }
-        if (S.me && S.me.role !== 'admin' && (S.me.role === 'org') !== (want === 'org')) {
+        if (S.me && S.me.role !== 'admin' && S.me.role !== 'moderator' && (S.me.role === 'org') !== (want === 'org')) {
             const wasOrg = S.me.role === 'org';
             await fb.out();
             S.me = null;
