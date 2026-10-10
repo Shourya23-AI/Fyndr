@@ -1,7 +1,7 @@
 # Fyndr
 
 ## New: admin side + organization size
-- **Admin account:** `fyndr.admin@gmail.com` is built in. Create that account yourself (Create account -> Candidate tab, choose your own password, confirm the email link, sign in). It becomes admin automatically. More admins: `ADMIN_EMAILS=a@x.com,b@y.com node server.js` (or edit `services/local-api/config.js` in Live Server mode). Code: `server/config.js`.
+- **Admin account:** `admin.fyndr@gmail.com` is built in. Create that account yourself (Create account -> Candidate tab, choose your own password, confirm the email link, sign in). It becomes admin automatically. More admins: `ADMIN_EMAILS=a@x.com,b@y.com node server.js` (or edit `services/local-api/config.js` in Live Server mode). Code: `server/config.js`.
 - **Admin dashboard** (`features/dashboard/admin-dashboard.js`): Overview, Organizations, Listings, Verification, Candidates. Admins land on it after sign-in.
 - **Organization size:** organizations choose *Small business* or *Enterprise* at sign-up. Enterprises must use a work email; small businesses may use Gmail etc.
 - **Admin override per organization** (Organizations tab): change the size, and set *Gmail posting* to Default (by size) / Allow / Block. Enforced when posting (`POST /api/listings`). Rules live in `gmailAllowed()` in `server/lib/helpers.js` and `services/local-api/helpers.js`.
@@ -25,14 +25,19 @@ Sidebar dashboard (Profile · Resume · Applications, read-only), auto-built res
        ADMIN_EMAILS=you@gmail.com node server.js
        # Windows (cmd): set ADMIN_EMAILS=you@gmail.com && node server.js
 
-   Open http://localhost:3000. The account with `fyndr.admin@gmail.com` (or an `ADMIN_EMAILS` address) becomes **admin once its email is verified**.
+   Open http://localhost:3000. The account with `admin.fyndr@gmail.com` (or an `ADMIN_EMAILS` address) becomes **admin once its email is verified**.
 5. Your database and uploads live in `data/`. (If you have an old `data.json` / `uploads/` next to `server.js`, the server moves them into `data/` on first start. An old file from before the Firebase change should be deleted.)
 
-## Phone verification (Step 3)
-1. Firebase console → Authentication → Sign-in method → enable **Phone**.
-2. Same page → **Phone numbers for testing** → add e.g. `+91 99999 99999` with code `123456`. Test numbers send **no SMS**, cost nothing and don't use your quota, so use them while developing. Real numbers send real SMS (check your plan's SMS quota/billing in the Firebase console).
-3. Authentication → Settings → Authorized domains must include `localhost` (and your real domain when you deploy).
-4. Users must verify a phone before **applying**; organizations before **posting**. Firebase refuses to link one number to two accounts; the server double-checks.
+## Phone verification (phone.email, no Firebase billing needed)
+Phone numbers are verified with [phone.email](https://www.phone.email). Firebase is still used for email / Google sign-in only, so you do **not** need the Blaze plan.
+1. Sign up at https://admin.phone.email and copy the **CLIENT_ID** from *Profile Details*.
+2. Give the server the ID, either way:
+   - environment variable: `PHONE_EMAIL_CLIENT_ID=your_id node server.js`, or
+   - put it in `config/phone-email.json` (`{"clientId":"your_id"}`). For Live Server mode also edit `public/config/phone-email.json`.
+3. Restart the server and open `#/phone` while signed in. Check the phone.email dashboard for any allowed-domain / redirect settings and add your site (and `localhost` while developing).
+4. How it works: the button opens a phone.email popup → the user enters a number and one-time code → the popup lands on `public/phone-callback.html` with an `access_token` → the page hands it to the Fyndr tab → the browser sends it to `POST /api/phone/verify` → the **server** exchanges it with phone.email and stores the verified number. The browser never supplies the number itself.
+5. Users must verify a phone before **applying**; organizations before **posting**. One number can be linked to one account; the server enforces it.
+6. You can switch the **Phone** provider off in Firebase console → Authentication → Sign-in method; it is no longer used.
 
 ## Where things live
 ```

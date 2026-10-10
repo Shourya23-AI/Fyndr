@@ -1,4 +1,5 @@
 import {ADMIN_EMAILS} from './config.js';
+import {phoneClientId,lookupPhone} from '../phone-email/phone-email.js';
 import {db,save,uid,now,bad} from './store.js';
 import {QUAL,EXP,JT,pub,completion,cleanExtras,meOf,need,listings,signals,ORG_TYPES,isFree,gmailAllowed,adminData} from './helpers.js';
 // Same routes as the Node server (server/routes/*), answered from localStorage.
@@ -31,7 +32,9 @@ export async function localApi(path,method,b={},fu){
     case'GET /proof/file/:id':{const u=db.users.find(x=>x.id===id);if(!u?.proof||(u.id!==user.id&&user.role!=='admin'))bad('Not found');return{mime:u.proof.mime,data:u.proofData}}
     case'PATCH /admin/proof/:id':{only('admin');const u=db.users.find(x=>x.id===id);if(!u?.proof)bad('Not found');if(!['verified','rejected'].includes(b.status))bad('Bad status');
       u.proof.status=b.status;if(u.role==='org')u.verified=b.status==='verified';save();return{ok:1}}
-    case'POST /phone/sync':{only('user','org');const ph=fu.phoneNumber;if(!ph)bad('Phone not verified yet','NO_PHONE');
+    case'POST /phone/verify':{only('user','org');const cid=await phoneClientId();if(!cid)bad('Phone verification is not set up yet. Add your Client ID to config/phone-email.json','NOT_CONFIGURED');
+      let ph=null;try{ph=await lookupPhone(String(b.access_token||''),cid)}catch{bad('Could not reach the phone verification service. Please try again.','PHONE_UNREACHABLE')}
+      if(!ph)bad('Phone verification failed or expired. Please try again.','PHONE_FAILED');
       if(db.users.some(u=>u.id!==user.id&&u.phone===ph))bad('This phone number is already used by another account','PHONE_TAKEN');
       user.phone=ph;save();return meOf(user)}
     case'GET /my':only('user');return{saved:db.saved.filter(s=>s.userId===user.id).map(s=>s.listingId),applications:db.applications.filter(a=>a.userId===user.id).map(a=>({...a,listing:db.listings.find(l=>l.id===a.listingId)}))};

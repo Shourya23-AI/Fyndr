@@ -4,12 +4,15 @@
   --yellow:#cfdccb; --yellow-soft:#e6eee2; --green:#4f8a6f; --deep:#55705e;
   --ok-bg:#e3efe7; --ok-fg:#2f6b4f; --bad-bg:#f6e4dc; --bad-fg:#9a4a26;
   --info-bg:#e4ecf3; --info-fg:#3d6485; --warn-bg:#f3ecd6; --warn-fg:#7d6422;
+  --auth-a:#6f9381; --auth-b:#4d6a59; --auth-blob1:#a9c4b4; --auth-blob2:#cfdccb; --auth-blob3:#8fa898;
   --shadow:rgba(40,50,40,.14); --glass:rgba(255,255,255,.34); --glass-line:rgba(255,255,255,.6);
 }
 :root[data-theme=dark]{
-  --paper:#181a17; --white:#222521; --ink:#e6e4dc; --muted:#a2a89f; --line:#363a35; --line-soft:#2d312c;
-  --yellow:#2a372e; --yellow-soft:#232d26; --green:#6fb28f; --deep:#9cc2a8;
-  --ok-bg:#223229; --ok-fg:#8fcba9; --bad-bg:#3a2822; --bad-fg:#e0a58a;
-  --info-bg:#222e38; --info-fg:#9cbfdc; --warn-bg:#352f1d; --warn-fg:#dcc58a;
-  --shadow:rgba(0,0,0,.45); --glass:rgba(34,37,33,.5); --glass-line:rgba(255,255,255,.12); color-scheme:dark;
+  /* neutral graphite surfaces, one calm emerald accent. Extra dark-only polish lives in dark.css */
+  --paper:#0f1012; --white:#17181b; --ink:#ececee; --muted:#9a9da5; --line:#2a2c32; --line-soft:#212328;
+  --yellow:#22252a; --yellow-soft:#1b1d21; --green:#4cae8b; --deep:#7cc7a6; --on-accent:#07120d;
+  --ok-bg:#12261d; --ok-fg:#7ccaa3; --bad-bg:#2b1a17; --bad-fg:#e8a08c;
+  --info-bg:#16212e; --info-fg:#8fb6e0; --warn-bg:#292213; --warn-fg:#dcc07c;
+  --auth-a:#1f2e28; --auth-b:#131d19; --auth-blob1:#15201b; --auth-blob2:#17191c; --auth-blob3:#1a1d20;
+  --shadow:rgba(0,0,0,.5); --glass:rgba(24,25,28,.72); --glass-line:rgba(255,255,255,.08); color-scheme:dark;
 }

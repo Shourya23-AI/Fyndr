@@ -1,0 +1,65 @@
+/* Dark mode refinements. Loaded last; every rule is scoped to :root[data-theme=dark].
+   Palette tokens are in theme.css. Goals: flat neutral surfaces, hairline borders, one restrained accent, no glow. */
+:root[data-theme=dark]{--r:#0b0c0e}
+:root[data-theme=dark] ::selection{background:color-mix(in srgb,var(--green) 35%,transparent);color:var(--ink)}
+:root[data-theme=dark]{scrollbar-color:#3a3d44 transparent}
+
+/* primary buttons: solid accent, dark label (white on this green is too faint), no gradient or glow */
+:root[data-theme=dark] .button-dark,:root[data-theme=dark] .btn-primary,:root[data-theme=dark] .pane .button-dark{background:var(--green);color:var(--on-accent);box-shadow:none;font-weight:700}
+:root[data-theme=dark] .button-dark:hover,:root[data-theme=dark] .btn-primary:hover{background:color-mix(in srgb,var(--green) 86%,#fff);transform:none}
+:root[data-theme=dark] .button-dark.is-loading::after,:root[data-theme=dark] .btn-primary.is-loading::after{border-color:var(--on-accent);border-top-color:transparent}
+:root[data-theme=dark] .button:not(.button-dark):hover{border-color:#41444c;background:var(--yellow-soft)}
+:root[data-theme=dark] .btn-line{border:1px solid #3a3d44}
+:root[data-theme=dark] .btn-line:hover{border-color:var(--ink);background:var(--yellow-soft)}
+:root[data-theme=dark] .gbtn{background:#1c1d21;color:var(--ink);border-color:var(--line)}
+:root[data-theme=dark] .gbtn:hover{background:#222428;border-color:#41444c}
+:root[data-theme=dark] .icon-btn,:root[data-theme=dark] .mini{background:var(--white)}
+:root[data-theme=dark] .icon-btn:hover,:root[data-theme=dark] .mini:hover{border-color:#41444c;background:var(--yellow-soft)}
+:root[data-theme=dark] .search-button{background:var(--green);color:var(--on-accent)}
+
+/* brand marks and avatars */
+:root[data-theme=dark] .logo-mark,:root[data-theme=dark] .who-av,:root[data-theme=dark] .av-lg{background:var(--green);color:var(--on-accent)}
+:root[data-theme=dark] .company-logo{background:var(--yellow);color:var(--deep);border:1px solid var(--line)}
+
+/* hero: drop the colored glow blobs for a barely-there top light */
+:root[data-theme=dark] .hero::before,:root[data-theme=dark] .org-hero::before{background:radial-gradient(700px 300px at 50% 0,rgba(255,255,255,.045),transparent 70%)}
+:root[data-theme=dark] .specimen{box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 24px 48px rgba(0,0,0,.45)}
+:root[data-theme=dark] .search-box{box-shadow:0 10px 28px rgba(0,0,0,.35)}
+:root[data-theme=dark] .ck{background:var(--ok-bg);color:var(--ok-fg)}
+
+/* surfaces: hairline borders, soft top highlight, no dashed lines */
+:root[data-theme=dark] .panel,:root[data-theme=dark] .stat,:root[data-theme=dark] .dash-side{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+:root[data-theme=dark] .me-card{box-shadow:0 24px 56px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04)}
+:root[data-theme=dark] .me-head{border-bottom-style:solid;border-bottom-color:var(--line-soft)}
+:root[data-theme=dark] .me-foot,:root[data-theme=dark] .cks,:root[data-theme=dark] .side-link{border-top-style:solid;border-top-color:var(--line-soft)}
+:root[data-theme=dark] .rep,:root[data-theme=dark] .empty{border-style:solid}
+:root[data-theme=dark] .nudge{border:1px solid var(--line);border-left:3px solid var(--green);background:var(--white)}
+:root[data-theme=dark] .spec-top{color:var(--muted)}
+:root[data-theme=dark] .nav-links a[aria-current=page]{background:var(--yellow);box-shadow:inset 0 2px 0 var(--green)}
+:root[data-theme=dark] .card:hover{background:var(--yellow-soft)}
+:root[data-theme=dark] .tabs .active,:root[data-theme=dark] .chip-f.on{background:var(--yellow);border-color:var(--line);color:var(--ink)}
+:root[data-theme=dark] .chip-f.on{border-color:var(--green)}
+:root[data-theme=dark] .benefits div{border-top-color:var(--line)}
+:root[data-theme=dark] .benefits div::before{content:"";display:block;width:28px;height:2px;margin:-17px 0 15px;background:var(--green)}
+:root[data-theme=dark] .rs-opt.on{border-color:var(--green);box-shadow:none;background:var(--yellow-soft)}
+:root[data-theme=dark] .steps .done{border-color:var(--green)}
+
+/* forms */
+:root[data-theme=dark] .form input:not([type=checkbox]),:root[data-theme=dark] .form select,:root[data-theme=dark] .form textarea,:root[data-theme=dark] .tbl select{background:#121316;border-color:var(--line)}
+:root[data-theme=dark] .form input:focus,:root[data-theme=dark] .form select:focus,:root[data-theme=dark] .form textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 20%,transparent)}
+:root[data-theme=dark] .form input::placeholder,:root[data-theme=dark] .form textarea::placeholder{color:#6b6e76}
+
+/* sign-in / sign-up box */
+:root[data-theme=dark] .glass{box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05)}
+:root[data-theme=dark] .auth-box{background:rgba(20,21,24,.82)}
+:root[data-theme=dark] .pane .form input:not([type=checkbox]){background:#0f1012;border-color:var(--line)}
+:root[data-theme=dark] .role-switch{background:#0f1012;border:1px solid var(--line)}
+:root[data-theme=dark] .role-switch .on{background:#23252a;color:var(--ink);box-shadow:none}
+:root[data-theme=dark] .overlay-inner{background:linear-gradient(160deg,var(--auth-a),var(--auth-b));border-left:1px solid var(--line)}
+:root[data-theme=dark] .btn-glass{border-color:rgba(255,255,255,.35)}
+:root[data-theme=dark] .auth-page.modal{background:radial-gradient(circle at var(--ox,50%) var(--oy,50%),rgba(255,255,255,.04),transparent 60%),color-mix(in srgb,var(--paper) 55%,transparent)}
+
+/* toast and dialogs */
+:root[data-theme=dark] #toast{background:#26282d;color:var(--ink);border:1px solid #34373e;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+:root[data-theme=dark] .ap-back{background:rgba(0,0,0,.62)}
+:root[data-theme=dark] .ap-box{box-shadow:0 30px 70px rgba(0,0,0,.6)}

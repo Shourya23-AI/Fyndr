@@ -18,7 +18,7 @@ export function termsView(){page('Terms &amp; Conditions',
 export function privacyView(){page('Privacy Policy',
  sec('What we collect','Your name, email address and phone number; profile details you enter (education, skills); for organizations, the organization name, careers page link and registration proof; documents you choose to upload as proof; and your applications.')+
  sec('How we use it','To run your account, show your profile to organizations you apply to, verify organizations and candidates, prevent fraud (for example, one phone number per account) and keep the service secure.')+
- sec('Who handles it','Sign-in and phone verification are handled by Google Firebase Authentication. Firebase may send an SMS to your number and uses reCAPTCHA to prevent abuse. Fyndr\'s own server stores your profile, listings and uploaded proof files.')+
+ sec('Who handles it','Sign-in is handled by Google Firebase Authentication. Phone verification is handled by phone.email, which sends a one-time code by SMS to your number and tells us the verified number. Fyndr\'s own server stores your profile, listings and uploaded proof files.')+
  sec('Who can see it','Organizations see your profile and details only for listings you apply to. Verification staff can view proof documents to review them, and each view is logged. We do not sell your personal data.')+
  sec('Cookies and local storage','We store your theme (light/dark) and sign-in session in your browser. We do not use advertising cookies.')+
  sec('Your choices','You can ask us to correct or delete your account and data at any time by contacting us. Some records may be kept where the law requires.')+
