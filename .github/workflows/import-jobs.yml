@@ -27,6 +27,15 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Are the project files at the top of the repository?
+        run: |
+          for f in scripts/import-to-firestore.js scripts/import-jobs.js config/companies.json public/js/package.json; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Cannot find $f. The project files must sit at the TOP of the repository (next to the .github folder), not inside an extra folder like fyndr/. On GitHub: open the folder, move its contents up one level, or re-upload the files from INSIDE the fyndr folder."
+              ls -la
+              exit 1
+            fi
+          done
       - uses: actions/setup-node@v4
         with:
           node-version: 22

@@ -95,16 +95,80 @@ async function run(db, items, deps, report = { complete: new Set() }, nowMs = Da
     }
     return out;
 }
-async function main() {
-    const admin = require('firebase-admin');
+// ---- first-run setup checks: every usual mistake gets ONE plain sentence that says what to click ----
+function readKey() {
+    const raw = String(process.env.FIREBASE_SERVICE_ACCOUNT || '').trim();
+    if (!raw) {
+        throw new Error('The FIREBASE_SERVICE_ACCOUNT secret is empty. GitHub repository > Settings > Secrets and variables > Actions > New repository secret. Name: FIREBASE_SERVICE_ACCOUNT, value: the WHOLE service-account .json file.');
+    }
     let key;
     try {
-        key = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '');
+        key = JSON.parse(raw);
+        if (typeof key === 'string') {
+            key = JSON.parse(key); // pasted with quotes around it
+        }
     } catch {
-        throw new Error('FIREBASE_SERVICE_ACCOUNT is missing or is not valid JSON');
+        throw new Error('The FIREBASE_SERVICE_ACCOUNT secret is not valid JSON. Open the downloaded .json key file in Notepad, select ALL of it (it starts with { and ends with }), and paste it again without adding quotes or leaving anything out.');
     }
-    admin.initializeApp({ credential: admin.credential.cert(key) });
+    const missing = ['project_id', 'client_email', 'private_key'].filter(k => !key || typeof key[k] !== 'string' || !key[k].trim());
+    if (missing.length) {
+        throw new Error(`The FIREBASE_SERVICE_ACCOUNT secret is JSON but not a service-account key (missing: ${missing.join(', ')}). Firebase Console > gear icon > Project settings > Service accounts > Generate new private key, and paste that whole file. (Not the web "firebaseConfig" and not google-services.json.)`);
+    }
+    key.private_key = key.private_key.replace(/\\n/g, '\n'); // a key whose line breaks were pasted as the two characters \n
+    return key;
+}
+function explain(e, projectId) {
+    const m = String((e && e.message) || e);
+    const code = e && e.code;
+    if (/Datastore Mode/i.test(m)) {
+        return `The Firestore database in project "${projectId}" was created in Datastore mode. Fyndr needs Native mode: make a new project (or database) and choose "Native mode".`;
+    }
+    if (/Cloud Firestore API has not been used|SERVICE_DISABLED|firestore\.googleapis\.com.*disabled/i.test(m)) {
+        return `The Cloud Firestore API is switched off for project "${projectId}". Open https://console.cloud.google.com/apis/library/firestore.googleapis.com?project=${projectId} , click Enable, wait a minute, then run the workflow again.`;
+    }
+    if (code === 5 || /^5 NOT_FOUND/.test(m)) {
+        return `Project "${projectId}" has no Firestore database yet. Firebase Console > Build > Firestore Database > Create database (production mode is fine), then run the workflow again.`;
+    }
+    if (code === 7 || /PERMISSION_DENIED/.test(m)) {
+        return `Google says this service account may not use Firestore in project "${projectId}". Generate a new private key from Firebase Console > Project settings > Service accounts of THAT project (it must be the project that holds the site's data), replace the secret, and run again. Details: ${m}`;
+    }
+    if (code === 16 || /UNAUTHENTICATED|invalid_grant|Invalid JWT|DECODER routines|private key|PEM/i.test(m)) {
+        return `Google refused the key. It was deleted, copied only in part, or belongs to another project. Generate a new private key (Firebase Console > Project settings > Service accounts), replace the FIREBASE_SERVICE_ACCOUNT secret with the whole new file, and run again. Details: ${m}`;
+    }
+    return null;
+}
+function say(kind, text) {
+    // In GitHub Actions "::error::" shows the message as a red banner at the top of the run.
+    console[kind === 'error' ? 'error' : 'log'](process.env.GITHUB_ACTIONS ? `::${kind}::${String(text).replace(/\r?\n/g, ' ')}` : text);
+}
+function writeSummary(lines) {
+    if (process.env.GITHUB_STEP_SUMMARY) {
+        try {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+        } catch { }
+    }
+}
+async function main() {
+    const admin = require('firebase-admin');
+    const key = readKey();
+    let webProject = '';
+    try {
+        webProject = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'firebase-config.json'), 'utf8')).projectId || '';
+    } catch { }
+    if (webProject && webProject !== key.project_id) {
+        say('warning', `The key is for project "${key.project_id}" but the site (config/firebase-config.json) reads project "${webProject}". The importer would fill a database the site never looks at. Use a key from "${webProject}".`);
+    }
+    try {
+        admin.initializeApp({ credential: admin.credential.cert(key) });
+    } catch (e) {
+        throw new Error(explain(e, key.project_id) || `The service-account key was rejected: ${e.message}. Generate a new private key and replace the secret.`);
+    }
     const db = admin.firestore();
+    try {
+        await db.collection('listings').limit(1).get(); // cheap read: proves the key, the API and the database all work before 70+ sites are fetched
+    } catch (e) {
+        throw new Error(explain(e, key.project_id) || `Could not read Firestore (${e.message}).`);
+    }
     const root = path.join(__dirname, '..', 'public', 'js');
     const load = rel => import(pathToFileURL(path.join(root, rel)).href);
     const { trustScore, decide: decideTrust } = await load('features/trust/trust.js');
@@ -131,11 +195,12 @@ async function main() {
     }
     const out = await run(db, items, { trustScore, decide, cleanImport, hash, LIFE_DAYS }, report);
     console.log('Import finished:', JSON.stringify(out));
+    writeSummary(['### Import finished', '', `Collected ${items.length} listing(s) from ${list.length} sources.`, '', '| New and live | Waiting for review | Refreshed | Closed (gone from employer) | Closed (stale) |', '|---|---|---|---|---|', `| ${out.published} | ${out.review} | ${out.refreshed} | ${out.gone} | ${out.closed} |`, '', report.failed.length ? `Sources that failed (fix or delete in config/companies.json): ${report.failed.join(', ')}` : 'No source failed.']);
     if (report.failed.length) {
         console.log('These sources failed (wrong board name, or the site is down). Fix or delete them in config/companies.json:', report.failed.join(', '));
     }
     if (report.skipped.length) {
-        console.log('Skipped (no key set):', report.skipped.join(', '));
+        console.log('Skipped (no API key set, or no public job board found for that company; this is normal and not an error):', report.skipped.join(', '));
     }
     if (!items.length) {
         throw new Error('Nothing was collected from any source. Check the log above.');
@@ -144,7 +209,8 @@ async function main() {
 if (require.main === module) {
     // firebase-admin keeps a network connection open, so without process.exit() this program never ends by itself.
     main().then(() => process.exit(0), e => {
-        console.error(e.message);
+        say('error', e.message);
+        writeSummary(['### Import failed', '', String(e.message)]);
         process.exit(1);
     });
 }

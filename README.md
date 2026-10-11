@@ -32,6 +32,17 @@
 
 Optional: free keys from developer.adzuna.com as secrets `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` (more internships and fresher jobs in India).
 
+### If the GitHub run is red (Actions > Import jobs > click the run)
+The run now checks its setup first and prints ONE red sentence that says what to fix. The usual ones:
+- **"Cannot find scripts/import-to-firestore.js"**: the files are inside an extra folder. `.github`, `scripts`, `config`, `public` must be at the very top of the repository (open the repository's first page: you should see them right there, not inside `fyndr/`).
+- **"The FIREBASE_SERVICE_ACCOUNT secret is missing / empty / not valid JSON / not a service-account key"**: redo steps 2 and 3. Paste the WHOLE downloaded `.json` file, no quotes. It is not the `firebaseConfig` snippet from the web-app settings.
+- **"has no Firestore database yet"**: Firebase Console > Build > Firestore Database > Create database.
+- **"The Cloud Firestore API is switched off"**: open the link in the message, click Enable, wait a minute, run again.
+- **"Google says this service account may not use Firestore" / "Google refused the key"**: make a new private key in the Firebase project that the site uses (`projectId` in `config/firebase-config.json`) and replace the secret.
+- A yellow warning that the key is for another project means the importer would fill a database the site never reads: use a key from the project named in the message.
+- Several companies listed as "skipped" or "failed" is normal; the others still import. The run is only red when nothing at all could be collected.
+After a green run, the page of the run shows a small table (new, refreshed, closed).
+
 ### What changed in the files
 - `scripts/import-jobs.js`: every download is cut off after 20 s (8 s for board guesses); several companies are fetched at once (5) instead of one by one; a time limit for the whole run (companies not reached are tried next time); it always ends by itself; **new source `mslearn`**: Microsoft Learn's public catalog, newest free beginner learning paths first, so **new courses appear by themselves** (`{ "type": "mslearn", "levels": ["beginner"], "limit": 40 }` in `config/companies.json`). Hand-picked courses stay in `config/courses.json`; push an edit and it is live minutes later.
 - `scripts/import-to-firestore.js`: closes its connection and exits; remembers which job board each `auto` company uses (in the database, document `meta/atsCache`) so every run no longer guesses all of them again; checks existing listings in batches of 100; loads the site's modules in a way that also works on Windows.
