@@ -84,5 +84,19 @@ export const fb = {
         await auth.currentUser.getIdToken(true);
         return auth.currentUser;
     }),
-    out: W(() => m.signOut(auth))
+    out: W(() => m.signOut(auth)),
+    // Deleting an account needs a fresh sign-in: password users type the password again, Google users confirm in the popup.
+    hasPassword: () => !!auth?.currentUser?.providerData?.some(p => p.providerId === 'password'),
+    reauth: W(async (pw) => {
+        const u = auth.currentUser;
+        if (u.providerData.some(p => p.providerId === 'password')) {
+            if (!pw) {
+                throw { message: 'Enter your password to confirm' };
+            }
+            await m.reauthenticateWithCredential(u, m.EmailAuthProvider.credential(u.email, pw));
+        } else {
+            await m.reauthenticateWithPopup(u, new m.GoogleAuthProvider());
+        }
+    }),
+    removeUser: W(() => m.deleteUser(auth.currentUser))
 };

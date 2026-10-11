@@ -1,4 +1,5 @@
 import { ADMIN_EMAILS } from './config.js';
+import { POLICY_VERSION } from '../../features/legal/constants.js';
 // Small pure helpers shared by the Firestore API routes (no database access in here).
 export const uid = () => Math.random().toString(36).slice(2, 14);
 export const now = () => new Date().toISOString();
@@ -25,7 +26,7 @@ export const completion = u => {
     return Math.round([p.qualification, p.field, p.institution, p.gradYear, p.skills?.length, p.experience, p.jobTypes?.length, p.locations, u.resume].filter(Boolean).length / 9 * 100);
 };
 export const meOf = u => ({
-    ...pub(u), permanent: isMain(u.email) || undefined, proofStatus: u.proof?.status, portal: u.proof?.portal, phoneMasked: u.phone ? u.phone.replace(/\d(?=\d{4})/g, '•') : undefined, ...(u.role === 'user' ? {
+    ...pub(u), permanent: isMain(u.email) || undefined, proofStatus: u.proof?.status, portal: u.proof?.portal, consentAt: u.consent?.at, needsConsent: u.consent?.v !== POLICY_VERSION, phoneMasked: u.phone ? u.phone.replace(/\d(?=\d{4})/g, '•') : undefined, ...(u.role === 'user' ? {
         hasResume: !!u.resume, onboarded: !!u.profile?.done, completion: completion(u)
     } : {}), ...(u.role === 'org' ? { orgType: u.orgType || 'small', gmailBlocked: !gmailAllowed(u) } : {})
 });

@@ -1,5 +1,33 @@
 # Fyndr
 
+## Update: resume privacy and consent (plan step 1)
+
+**Before you publish (2 minutes, in this order)**
+1. Push the site files to GitHub (the service-worker label is already bumped to `static-2026-10-11-privacy`).
+2. Firebase Console > Firestore Database > **Rules**: paste the new `firestore.rules` and **Publish**. New sign-ups and applications need the new rules, and old ones need the new site, so do both close together.
+3. Open the site, sign in: accounts created before this update see a one-time **"Please review our updated policies"** screen and accept once.
+
+**What changed**
+- **Consent at Apply:** the apply popup says *"Your resume will be shared with <Organization> and Fyndr admins."* above the Apply button, with a Privacy Policy link. The time of consent is stored on the application (`consentAt`).
+- **Terms and Privacy checkbox:** now linked to both pages, required, and also shown on the "Finish setting up" screen that Google sign-ups go through (before, Google sign-ups skipped it). The version and time are stored on the account (`consent`). Bump `POLICY_VERSION` in `js/features/legal/constants.js` whenever the policies change and everyone is asked to accept again.
+- **The organization now gets a copy of the resume, not live access.** When a candidate applies, the chosen resume (the website resume as it was at that moment, or the PDF) is copied into the application (`blobs/ar_{appId}_{i}`). The organization reads only that copy. Deleting the application deletes the copy, so it takes the organization's access with it. (Applications made before this update keep working through the old `sharedWith` route; withdrawing one removes it.)
+- **Withdraw application:** the candidate dashboard has a Withdraw button (Applications tab and the new **Privacy & data** tab).
+- **Download my data:** a JSON file (account, profile, applications, consent record, uploaded resume as base64) for candidates; account, listings and applications received for organizations. A separate button downloads the uploaded resume PDF.
+- **Delete my account:** asks for the password again (or a Google confirmation), then deletes the profile, files, applications and their resume copies, saved items and the phone claim, and finally the Firebase sign-in. Organizations also lose their listings and the applications they received. Admin and moderator accounts cannot delete themselves (change the role first); the main admin never can.
+- **Retention (in the Privacy Policy, from one shared setting):** applications and their resume copies are deleted **30 days after a listing is closed** and in any case **365 days after applying**. Change the numbers in `js/features/privacy/retention.js` and the policy text and the cleanup follow.
+- **Cleanup:** it runs when an admin opens the dashboard (at most once an hour) and with **Overview > Data retention > Run cleanup now**. There is no server, so nothing runs while no admin visits; a scheduled job (GitHub Actions or a Cloud Function) is the proper long-term answer.
+- **Privacy Policy rewritten** to match how the site really works (Firebase, who sees what, retention, your rights). I removed the line "each view is logged" because no such log exists yet; add it back when the admin audit log (step 3) is built.
+
+**Things to know**
+- Closing a listing arrives in step 2. The cleanup already understands it: a listing with `status: 'closed'` and a `closedAt` date. Step 2 must set both.
+- Admins cannot open resume copies yet (they can see account details and verification documents). The consent line already mentions admins because step 3 adds that, with its audit log.
+- The new rules could not be run in the Firebase emulator here (step 4). After publishing, try one full run: sign up, apply, withdraw, then delete the account. Any "Not allowed" message points at a rules problem.
+- The optional Node server (`node server.js`) is not updated for these features; they run on the Firestore backend used by GitHub Pages.
+- When you turn on Firestore backups (step 4), add the backup retention period to the Privacy Policy.
+
+**Checks:** `node test/run.test.js` now runs 76 checks (new: consent at sign-up and apply, resume copy stays as shared, withdraw, older applications, data export, delete account for candidates and organizations, retention cleanup).
+
+
 ## GitHub Pages + Firebase only (no server)
 
 The site now runs completely on **GitHub Pages + Firebase**. Accounts, profiles, listings, applications, resumes, saved items, phone claims and staff roles are all stored in **Firestore**, so every device sees the same data. The yellow "Demo mode" bar and the "No server is connected" message are gone. (The optional Node server still works exactly as before if you ever want it; the site picks Firestore automatically when no server answers.)
@@ -31,7 +59,7 @@ The site now runs completely on **GitHub Pages + Firebase**. Accounts, profiles,
 - Firestore free plan: 50,000 reads / 20,000 writes per day. A rules-check read is counted when staff roles are looked up.
 - Data that used to live only in one browser (old demo mode) is not moved into Firestore: people sign in and set up again.
 
-**Checks**: `node test/run.test.js` runs 46 checks of the whole backend logic against an in-memory Firestore stand-in (signup, verification, posting with images, approval, applying, chunked resumes, roles, cascade delete). It cannot test `firestore.rules`; use Firebase Console > Rules > *Rules Playground* for that.
+**Checks**: `node test/run.test.js` runs 76 checks of the whole backend logic against an in-memory Firestore stand-in (signup, verification, posting with images, approval, applying, chunked resumes, roles, cascade delete). It cannot test `firestore.rules`; use Firebase Console > Rules > *Rules Playground* for that.
 
 ## Latest update: speed, caching, mobile, phone verification, team roles
 

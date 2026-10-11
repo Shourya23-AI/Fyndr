@@ -6,7 +6,10 @@
 //   - A user can only edit their own account, and never their own staff/verification fields.
 //   - Organizations can post only when staff verified them AND they have a phone; a post waits as "pending" until staff approve it.
 //   - Candidates apply once per listing; only the organization that owns the listing can change an application's status.
-//   - An organization can read a candidate's profile/resume only after that candidate applied to it.
+//   - When a candidate applies, the resume they chose is COPIED into the application (blobs/ar_{appId}_{i}). The organization reads only that
+//     copy. Withdrawing or deleting the application (or closing the listing, or the retention cleanup) removes the organization's access.
+//   - Every account records that the person accepted the Terms and Privacy Policy (users/{uid}.consent).
+//   - People can delete their own account and applications (withdraw); organizations can delete theirs.
 //   - Staff roles live in staff/{email}; only admins can change them. The main admin below can never be changed.
 rules_version = '2';
 service cloud.firestore {
@@ -70,8 +73,10 @@ service cloud.firestore {
       allow list: if isStaff();
 
       allow create: if signedIn() && userId == me()
-        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'orgName', 'orgType', 'website', 'verified', 'sharedWith', 'created'])
-        && request.resource.data.keys().hasAll(['name', 'email', 'role', 'verified', 'sharedWith', 'created'])
+        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'orgName', 'orgType', 'website', 'verified', 'sharedWith', 'consent', 'created'])
+        && request.resource.data.keys().hasAll(['name', 'email', 'role', 'verified', 'sharedWith', 'consent', 'created'])
+        && request.resource.data.consent.keys().hasOnly(['v', 'at'])
+        && request.resource.data.consent.v is string && request.resource.data.consent.at is string
         && request.resource.data.email == mail()
         && request.resource.data.role in ['user', 'org']
         && request.resource.data.verified == false
@@ -85,7 +90,9 @@ service cloud.firestore {
       allow update: if signedIn() && (
         // the person themselves: never role, email, verified, orgType, gmailOk
         (userId == me()
-          && changed().hasOnly(['name', 'website', 'profile', 'resume', 'photo', 'proof', 'phone', 'sharedWith'])
+          && changed().hasOnly(['name', 'website', 'profile', 'resume', 'photo', 'proof', 'phone', 'sharedWith', 'consent'])
+          && (!changed().hasAny(['consent'])
+              || (request.resource.data.consent.keys().hasOnly(['v', 'at']) && request.resource.data.consent.v is string && request.resource.data.consent.at is string))
           && request.resource.data.get('photo', '').size() <= 120000
           && request.resource.data.sharedWith.size() < 500
           && (!changed().hasAny(['proof']) || request.resource.data.proof.status == 'pending')
@@ -98,7 +105,8 @@ service cloud.firestore {
         || (isAdmin() && changed().hasOnly(['orgType', 'gmailOk']))
       );
 
-      allow delete: if isAdmin();
+      // Admins, or the person deleting their own account (the app removes their data first, then this document).
+      allow delete: if isAdmin() || (signedIn() && userId == me());
 
       match /saved/{listingId} {
         allow read, write: if signedIn() && userId == me();
@@ -114,7 +122,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['uid', 'at'])
         && request.resource.data.uid == me()
         && getAfter(/databases/$(database)/documents/users/$(me())).data.get('phone', '') == '+' + digits;
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == me());
     }
 
     // ---------- listings (jobs, internships, courses) ----------
@@ -164,7 +172,10 @@ service cloud.firestore {
         && applicationId == me() + '_' + request.resource.data.listingId
         && request.resource.data.status == 'applied'
         && request.resource.data.resumeType in ['site', 'own']
-        && request.resource.data.keys().hasOnly(['userId', 'listingId', 'orgId', 'orgName', 'title', 'type', 'name', 'email', 'status', 'resumeType', 'created'])
+        && request.resource.data.keys().hasOnly(['userId', 'listingId', 'orgId', 'orgName', 'title', 'type', 'name', 'email', 'status', 'resumeType', 'consentAt', 'snapChunks', 'created'])
+        && request.resource.data.keys().hasAll(['userId', 'listingId', 'orgId', 'status', 'resumeType', 'consentAt', 'snapChunks'])
+        && request.resource.data.consentAt is string
+        && request.resource.data.snapChunks is int && request.resource.data.snapChunks >= 1 && request.resource.data.snapChunks <= 6
         && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.status == 'approved'
         && request.resource.data.orgId == get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.orgId
         && myDoc().role == 'user'
@@ -177,7 +188,8 @@ service cloud.firestore {
         && changed().hasOnly(['status'])
         && request.resource.data.status in ['applied', 'reviewing', 'interview', 'accepted', 'rejected'];
 
-      allow delete: if isStaff() || (signedIn() && resource.data.orgId == me());
+      // The organization, staff, and the candidate (withdrawing their own application).
+      allow delete: if isStaff() || (signedIn() && (resource.data.orgId == me() || resource.data.userId == me()));
     }
 
     // ---------- files: resume PDFs and proof documents, stored as base64 text chunks ----------
@@ -185,7 +197,9 @@ service cloud.firestore {
       allow get: if signedIn() && (
         resource.data.owner == me()
         || (resource.data.kind == 'proof' && isStaff())
-        // an organization may read the resume of a candidate who applied to it
+        // the resume copy shared by an application: the organization it was shared with
+        || (resource.data.kind == 'appresume' && resource.data.orgId == me())
+        // applications made before resume copies existed: the candidate listed the organization in sharedWith
         || (resource.data.kind == 'resume' && me() in get(/databases/$(database)/documents/users/$(resource.data.owner)).data.sharedWith)
       );
       allow create, update: if signedIn()
@@ -195,7 +209,22 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['owner', 'kind', 'i', 'data'])
         && request.resource.data.data is string
         && request.resource.data.data.size() <= 750000;
-      allow delete: if isAdmin() || (signedIn() && resource.data.owner == me());
+      // A resume copy belongs to one application: it is written in the same batch as the application, for the organization that owns the listing.
+      allow create: if signedIn()
+        && request.resource.data.owner == me()
+        && request.resource.data.kind == 'appresume'
+        && request.resource.data.keys().hasOnly(['owner', 'kind', 'i', 'appId', 'orgId', 'data'])
+        && request.resource.data.keys().hasAll(['owner', 'kind', 'i', 'appId', 'orgId', 'data'])
+        && request.resource.data.appId.matches(me() + '_[A-Za-z0-9]+')
+        && blobId.matches('ar_' + request.resource.data.appId + '_[0-9]+')
+        && request.resource.data.data is string
+        && request.resource.data.data.size() <= 750000
+        && getAfter(/databases/$(database)/documents/applications/$(request.resource.data.appId)).data.userId == me()
+        && getAfter(/databases/$(database)/documents/applications/$(request.resource.data.appId)).data.orgId == request.resource.data.orgId;
+      // Owner, admins, the organization it was shared with, and staff cleaning up a deleted listing.
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.owner == me())
+        || (signedIn() && resource.data.kind == 'appresume' && (resource.data.orgId == me() || isStaff()));
     }
   }
 }

@@ -1,6 +1,7 @@
 import { S } from '../../core/state.js';
 import { esc, fmt, table, pill } from '../../core/dom.js';
 import { api } from '../../core/api.js';
+import { RETENTION } from '../privacy/retention.js';
 // Admin dashboard (sidebar like the candidate one): Overview · Organizations · Listings · Verification · Candidates.
 // Data comes from GET /admin/data. Org size + Gmail-posting controls are <select>s handled by onChange in dashboard.actions.js.
 const TABS = [['overview', 'Overview', 'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z'], ['orgs', 'Organizations', 'M4 21V7l8-4 8 4v14M9 21v-6h6v6'], ['listings', 'Listings', 'M4 7h16v12H4zM9 7V4h6v3'], ['verify', 'Verification', 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4'], ['people', 'Candidates', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0'], ['team', 'Team', 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 11a2.5 2.5 0 1 0 0-5M17 14.5a5 5 0 0 1 4 5.5']];
@@ -20,6 +21,7 @@ function overview(d) {
     const items = todo(s.pendingListings, 'listing(s) waiting for approval', 'listings') + todo(s.pendingVerifications, 'verification document(s) to review', 'verify') + todo(free.length, `organization(s) use a Gmail-type email (${free.filter(o => o.gmailAllowed).length} can post)`, 'orgs');
     return head('Overview', 'What needs your attention right now.') + `<div class="stats3">${tile(s.candidates, 'Candidates') + tile(s.organizations, 'Organizations') + tile(s.listings, 'Listings') + tile(s.pendingListings, 'Listings pending') + tile(s.pendingVerifications, 'Verifications pending') + tile(s.applications, 'Applications')}</div>
 <div class="panel"><h3>Needs attention</h3>${items || '<p class="desc">All caught up.</p>'}</div>
+${isAdmin() ? `<div class="panel"><h3>Data retention</h3><p class="desc">Applications (and the resume copies shared with organizations) are deleted ${RETENTION.closedListingDays} days after a listing is closed, and ${RETENTION.maxApplicationDays} days after the candidate applied. This runs when an admin opens this dashboard (at most once an hour)${d.cleaned ? `: <b>${d.cleaned}</b> removed just now` : ''}.</p><button class="button button-small" style="margin-top:12px" data-act="cleanup">Run cleanup now</button></div>` : ''}
 <div class="panel"><h3>Waiting for approval</h3>${table(['Title', 'Org', 'Type', 'Status', 'Actions'], pend.slice(0, 5).map(lstRow))}${pend.length > 5 ? `<p class="desc" style="margin-top:10px">${pend.length - 5} more in Listings.</p>` : ''}</div>`;
 }
 function orgs(d) {

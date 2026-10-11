@@ -9,7 +9,7 @@ const ORDER = [
     'base/theme.css', 'base/reset.css',
     'components/logo.css', 'components/buttons.css', 'components/forms.css', 'components/panel.css', 'components/table.css', 'components/tags.css', 'components/hero.css', 'components/how-it-works.css', 'components/toast.css', 'components/install.css', 'components/skeleton.css',
     'layout/header.css', 'layout/footer.css', 'layout/account-menu.css',
-    'pages/home.css', 'pages/browse.css', 'pages/organizations.css', 'pages/dashboard.css', 'pages/profile.css', 'pages/proof.css', 'pages/phone.css', 'pages/auth.css', 'pages/legal.css',
+    'pages/home.css', 'pages/browse.css', 'pages/organizations.css', 'pages/dashboard.css', 'pages/profile.css', 'pages/proof.css', 'pages/phone.css', 'pages/auth.css', 'pages/legal.css', 'pages/privacy.css',
     'base/dark.css'
 ];
 const mini = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').replace(/\s*([{};,>])\s*/g, '$1').replace(/;}/g, '}').trim();

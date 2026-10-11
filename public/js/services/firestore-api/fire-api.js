@@ -6,16 +6,21 @@
 //   users/{uid}/saved/{listing} saved listings                                       (owner)
 //   listings/{id}               jobs / internships / courses incl. cover image+logo  (approved = public; owner; staff)
 //   applications/{uid}_{listing} one application per candidate per listing           (candidate, that organization, staff)
-//   blobs/{uid}_{kind}_{i}      chunks of resume PDFs and proof documents            (owner; staff for proofs; orgs for applied resumes)
+//   blobs/{uid}_{kind}_{i}      chunks of resume PDFs and proof documents            (owner; staff for proofs)
+//   blobs/ar_{appId}_{i}        the resume copy shared by ONE application            (candidate, that organization; deleted with the application)
 //   phones/{digits}             one verified phone number belongs to one account
 //   staff/{email}               admin / moderator roles
 import { fs, friendly } from './fire.js';
 import { staffOf, staffMap, setStaff } from '../cloud/cloud.js';
 import { phoneClientId, lookupPhone } from '../phone-email/phone-email.js';
-import { putBlob, dropBlob, getBlob } from './blobs.js';
+import { putBlob, dropBlob, getBlob, putAppBlob, dropAppBlob, getAppBlob } from './blobs.js';
+import { expiredApps } from './retention.js';
+import { POLICY_VERSION } from '../../features/legal/constants.js';
 import { ADMIN_EMAILS } from './config.js';
 import { QUAL, EXP, JT, ORG_TYPES, IMG_MAX, now, lc, bad, isMain, isFree, gmailAllowed, pub, meOf, completion, cleanExtras, need, imgOk, filterListings, adminData } from './helpers.js';
 
+const sweep = { t: 0 }; // last time expired applications were cleaned up (admin dashboard)
+const agreed = v => v === true || v === 'on';
 const memo = { listings: null }; // approved listings kept for a short while so tab changes do not re-download the images
 const LIFE = 30e3;
 const digits = p => String(p || '').replace(/\D/g, '');
@@ -48,6 +53,17 @@ async function run(path, method, b, fu) {
         return s.exists() ? { id: s.id, ...s.data() } : null;
     };
     // Deletes in groups (a batch holds at most 500 writes).
+    // Deletes applications together with the resume copy each one carries (the organization loses access at the same moment).
+    const dropApps = async list => {
+        for (let i = 0; i < list.length; i += 50) {
+            const bt = m.writeBatch(db);
+            for (const a of list.slice(i, i + 50)) {
+                await dropAppBlob(bt, a.id, a.snapChunks || 0);
+                bt.delete(ref('applications', a.id));
+            }
+            await bt.commit();
+        }
+    };
     const wipe = async refs => {
         for (let i = 0; i < refs.length; i += 400) {
             const bt = m.writeBatch(db);
@@ -70,6 +86,9 @@ async function run(path, method, b, fu) {
         if (await loadUser(fu.uid)) {
             bad('Profile already exists');
         }
+        if (!agreed(b.agree)) {
+            bad('Please accept the Terms and Privacy Policy to create an account', 'CONSENT');
+        }
         const role = b.role === 'org' ? 'org' : 'user';
         if (role === 'org') {
             need(b, 'orgName');
@@ -81,7 +100,7 @@ async function run(path, method, b, fu) {
             }
         }
         const u = {
-            name: String(b.name || fu.displayName || (fu.email || '').split('@')[0]).trim().slice(0, 80), email: lc(fu.email), role, verified: false, sharedWith: [], created: now()
+            name: String(b.name || fu.displayName || (fu.email || '').split('@')[0]).trim().slice(0, 80), email: lc(fu.email), role, verified: false, sharedWith: [], consent: { v: POLICY_VERSION, at: now() }, created: now()
         };
         if (role === 'org') {
             u.orgName = b.orgName.trim().slice(0, 80);
@@ -110,6 +129,25 @@ async function run(path, method, b, fu) {
         }
     };
     const patchMe = fields => m.updateDoc(ref('users', fu.uid), fields);
+    // Removes an account and everything that hangs off it: applications (with their resume copies), listings, saved items, files, phone claim.
+    const purge = async u => {
+        const org = u.role === 'org';
+        const [ls, ap, sv] = await Promise.all([
+            org ? m.getDocs(m.query(col('listings'), m.where('orgId', '==', u.id))) : { docs: [] },
+            m.getDocs(m.query(col('applications'), m.where(org ? 'orgId' : 'userId', '==', u.id))),
+            m.getDocs(m.collection(db, 'users', u.id, 'saved'))
+        ]);
+        await dropApps(rows(ap));
+        const bt = m.writeBatch(db);
+        await dropBlob(bt, u.id, 'resume', u.resume?.chunks || 0);
+        await dropBlob(bt, u.id, 'proof', u.proof?.chunks || 0);
+        await bt.commit();
+        const refs = [...ls.docs.map(x => x.ref), ...sv.docs.map(x => x.ref)];
+        if (u.phone) {
+            refs.push(ref('phones', digits(u.phone)));
+        }
+        await wipe([...refs, ref('users', u.id)]);
+    };
 
     const om = p.match(/^\/org\/applications\/([^/]+)\/resume$/);
     if (method === 'GET' && om) {
@@ -119,6 +157,22 @@ async function run(path, method, b, fu) {
         if (!a || a.orgId !== user.id) {
             bad('Not found');
         }
+        if (a.snapChunks) { // the copy the candidate chose to share when applying
+            const raw = await getAppBlob(om[1], a.snapChunks);
+            if (a.resumeType === 'own') {
+                return { type: 'own', mime: 'application/pdf', data: raw };
+            }
+            let c;
+            try {
+                c = JSON.parse(raw);
+            } catch {
+                bad('This resume copy is damaged');
+            }
+            return {
+                type: 'site', name: c.name, email: c.email, phone: c.phone || null, photo: c.photo || null, profile: c.profile || {}
+            };
+        }
+        // Applications made before resume copies existed: read the candidate's current details (access came from users/{uid}.sharedWith).
         const u = await loadUser(a.userId);
         if (!u) {
             bad('Candidate not found');
@@ -133,6 +187,49 @@ async function run(path, method, b, fu) {
 
     switch (k) {
         case 'GET /me': return meOf(user);
+        case 'POST /consent': {
+            if (!agreed(b.agree)) {
+                bad('Please tick the box to continue', 'CONSENT');
+            }
+            const consent = { v: POLICY_VERSION, at: now() };
+            await patchMe({ consent });
+            return meOf({ ...user, consent });
+        }
+        case 'GET /account/export': {
+            only('user', 'org');
+            const acct = {
+                id: user.id, name: doc0.name, email: doc0.email, role: doc0.role, phone: doc0.phone || null, created: doc0.created, consent: doc0.consent || null
+            };
+            if (doc0.role === 'org') {
+                const [ls, ap] = await Promise.all([m.getDocs(m.query(col('listings'), m.where('orgId', '==', user.id))), m.getDocs(m.query(col('applications'), m.where('orgId', '==', user.id)))]);
+                return {
+                    exportedAt: now(), service: 'Fyndr', account: {
+                        ...acct, orgName: doc0.orgName, orgType: doc0.orgType, website: doc0.website || '', verified: !!doc0.verified, proof: doc0.proof ? { portal: doc0.proof.portal, status: doc0.proof.status, name: doc0.proof.name, size: doc0.proof.size, at: doc0.proof.at } : null
+                    },
+                    listings: rows(ls).map(({ image, logo, ...l }) => ({ ...l, hasImage: !!image, hasLogo: !!logo })),
+                    applicationsReceived: rows(ap).map(a => ({
+                        id: a.id, listingId: a.listingId, title: a.title, type: a.type, candidateName: a.name, candidateEmail: a.email, status: a.status, resumeType: a.resumeType, created: a.created
+                    }))
+                };
+            }
+            const [sv, ap] = await Promise.all([m.getDocs(m.collection(db, 'users', user.id, 'saved')), m.getDocs(m.query(col('applications'), m.where('userId', '==', user.id)))]);
+            return {
+                exportedAt: now(), service: 'Fyndr', account: { ...acct, photo: doc0.photo || null }, profile: doc0.profile || {},
+                uploadedResume: doc0.resume ? { name: doc0.resume.name, size: doc0.resume.size, at: doc0.resume.at, mime: 'application/pdf', base64: await getBlob(user.id, 'resume', doc0.resume.chunks || 1) } : null,
+                documentCheck: doc0.proof ? { status: doc0.proof.status, name: doc0.proof.name, size: doc0.proof.size, at: doc0.proof.at } : null,
+                applications: rows(ap).map(a => ({
+                    id: a.id, listingId: a.listingId, title: a.title, organization: a.orgName, type: a.type, status: a.status, resumeShared: a.resumeType === 'own' ? 'uploaded PDF' : 'website resume', sharedAt: a.consentAt || a.created, created: a.created
+                })).sort((x, y) => String(y.created).localeCompare(String(x.created))),
+                savedListings: sv.docs.map(x => x.id)
+            };
+        }
+        case 'DELETE /account': {
+            if (user.role !== doc0.role || !['user', 'org'].includes(doc0.role)) {
+                bad('Admin and moderator accounts cannot be deleted here. Ask the main admin to change your role first.');
+            }
+            await purge(doc0);
+            return { ok: 1 };
+        }
         case 'POST /proof': {
             only('user', 'org');
             let r;
@@ -227,6 +324,9 @@ async function run(path, method, b, fu) {
         case 'POST /apply/:id': {
             only('user');
             onboarded();
+            if (b.consent !== true) {
+                bad('Please confirm that you agree to share your resume with the organization', 'CONSENT');
+            }
             const rt = b.resume === 'own' ? 'own' : 'site';
             if (rt === 'own' && !user.resume) {
                 bad('Upload your resume first');
@@ -243,12 +343,37 @@ async function run(path, method, b, fu) {
             if (mine.docs.some(x => x.data().listingId === id)) {
                 bad('Already applied');
             }
-            const bt = m.writeBatch(db);
-            bt.set(ref('applications', user.id + '_' + id), {
-                userId: user.id, listingId: id, orgId: l.orgId, orgName: l.orgName, title: l.title, type: l.type, name: user.name, email: user.email, status: 'applied', resumeType: rt, created: now()
+            // The organization gets a COPY of what the candidate chose to share (the PDF, or the website-resume details as they are now).
+            // It lives and dies with the application, so withdrawing the application ends the organization's access.
+            const appId = user.id + '_' + id;
+            const copy = rt === 'own' ? await getBlob(user.id, 'resume', user.resume.chunks || 1) : JSON.stringify({
+                name: user.name, email: user.email, phone: user.phone || null, photo: user.photo || null, profile: user.profile || {}
             });
-            bt.update(ref('users', user.id), { sharedWith: m.arrayUnion(l.orgId) }); // lets this organization (and only it) read the profile and resume
+            const bt = m.writeBatch(db);
+            const snapChunks = await putAppBlob(bt, user.id, l.orgId, appId, copy);
+            bt.set(ref('applications', appId), {
+                userId: user.id, listingId: id, orgId: l.orgId, orgName: l.orgName, title: l.title, type: l.type, name: user.name, email: user.email, status: 'applied', resumeType: rt, consentAt: now(), snapChunks, created: now()
+            });
             await bt.commit();
+            return { ok: 1 };
+        }
+        case 'DELETE /applications/:id': { // the candidate withdraws an application
+            only('user');
+            if (!id.startsWith(user.id + '_')) {
+                bad('Not found');
+            }
+            const as = await m.getDoc(ref('applications', id));
+            const a = as.exists() ? as.data() : null;
+            if (!a || a.userId !== user.id) {
+                bad('Not found');
+            }
+            await dropApps([{ id, ...a }]);
+            if (!a.snapChunks) { // an older application: also end that organization's access to the live profile
+                const left = await m.getDocs(m.query(col('applications'), m.where('userId', '==', user.id)));
+                if (!left.docs.some(x => x.data().orgId === a.orgId)) {
+                    await patchMe({ sharedWith: m.arrayRemove(a.orgId) });
+                }
+            }
             return { ok: 1 };
         }
         case 'POST /save/:id': {
@@ -399,7 +524,8 @@ async function run(path, method, b, fu) {
             }
             // An organization may only query its own applications; staff may query by listing.
             const ap = user.role === 'org' ? await m.getDocs(m.query(col('applications'), m.where('orgId', '==', user.id))) : await m.getDocs(m.query(col('applications'), m.where('listingId', '==', id)));
-            await wipe([...ap.docs.filter(x => x.data().listingId === id).map(x => x.ref), ref('listings', id)]);
+            await dropApps(rows(ap).filter(x => x.listingId === id));
+            await m.deleteDoc(ref('listings', id));
             return { ok: 1 };
         }
 
@@ -407,7 +533,23 @@ async function run(path, method, b, fu) {
             only('admin', 'moderator');
             const [us, ls, ap] = await Promise.all([m.getDocs(col('users')), m.getDocs(col('listings')), m.getDocs(col('applications'))]);
             const users = rows(us);
-            const d = adminData(users, rows(ls), rows(ap));
+            let apps = rows(ap);
+            let cleaned = 0;
+            // Retention housekeeping: admins' dashboard loads remove expired applications (at most once an hour).
+            if (user.role === 'admin' && Date.now() - sweep.t > 3600e3) {
+                sweep.t = Date.now();
+                try {
+                    const old = expiredApps(apps, rows(ls));
+                    await dropApps(old);
+                    const gone = new Set(old.map(a => a.id));
+                    apps = apps.filter(a => !gone.has(a.id));
+                    cleaned = old.length;
+                } catch (e) {
+                    console.warn('Retention cleanup skipped:', e.code || e.message);
+                }
+            }
+            const d = adminData(users, rows(ls), apps);
+            d.cleaned = cleaned;
             if (user.role !== 'admin') {
                 return d; // moderators do not see the Team tab
             }
@@ -429,6 +571,14 @@ async function run(path, method, b, fu) {
                 d.teamError = friendly(e).message;
             }
             return d;
+        }
+        case 'POST /admin/cleanup': {
+            only('admin');
+            const [ls, ap] = await Promise.all([m.getDocs(col('listings')), m.getDocs(col('applications'))]);
+            const old = expiredApps(rows(ap), rows(ls));
+            await dropApps(old);
+            sweep.t = Date.now();
+            return { removed: old.length };
         }
         case 'PATCH /admin/staff/:id': {
             only('admin');
@@ -525,21 +675,7 @@ async function run(path, method, b, fu) {
                 bad('Not found');
             }
             // Remove everything that belongs to the account. (The sign-in itself stays in Firebase Authentication; delete it in the console if needed.)
-            const [ls, ap, sv] = await Promise.all([m.getDocs(col('listings')), m.getDocs(col('applications')), m.getDocs(m.collection(db, 'users', id, 'saved'))]);
-            const mineL = new Set(ls.docs.filter(x => x.data().orgId === id).map(x => x.id));
-            const refs = [
-                ...ls.docs.filter(x => mineL.has(x.id)).map(x => x.ref),
-                ...ap.docs.filter(x => x.data().userId === id || x.data().orgId === id || mineL.has(x.data().listingId)).map(x => x.ref),
-                ...sv.docs.map(x => x.ref)
-            ];
-            const bt = m.writeBatch(db);
-            await dropBlob(bt, id, 'resume', u.resume?.chunks || 0);
-            await dropBlob(bt, id, 'proof', u.proof?.chunks || 0);
-            await bt.commit();
-            if (u.phone) {
-                refs.push(ref('phones', digits(u.phone)));
-            }
-            await wipe([...refs, ref('users', id)]);
+            await purge(u);
             return { ok: 1 };
         }
     }

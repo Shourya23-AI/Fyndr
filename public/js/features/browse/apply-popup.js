@@ -2,8 +2,9 @@ import { S } from '../../core/state.js';
 import { esc, toast } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { buildResume } from '../dashboard/resume.js';
-// Popup shown when you press Apply: send the website-built resume or your own PDF. Resolves {resume:'site'|'own'} or null (cancelled).
-export function applyPopup() {
+// Popup shown when you press Apply: send the website-built resume or your own PDF. Resolves {resume:'site'|'own', consent:true} or null (cancelled).
+// Pressing Apply is the person's consent to share, so the line above the button names who will see the resume.
+export function applyPopup(orgName) {
     return new Promise(async (res) => {
         let d;
         try {
@@ -31,6 +32,7 @@ export function applyPopup() {
 <button class="rs-opt ${pick === 'site' ? 'on' : ''}" data-p="site"><b>Fyndr website resume</b><span>Built from your profile details</span></button>
 <button class="rs-opt ${pick === 'own' ? 'on' : ''}" data-p="own"><b>My own resume</b><span>${pending ? esc(pending.name) : d.resume ? esc(d.resume.name) : 'Upload a PDF (max 2 MB)'}</span></button>
 ${pick === 'site' ? `<div class="ap-prev">${buildResume({ ...d, profile: d.profile })}</div>` : `<label class="fld" style="margin-top:12px"><span class="desc">${d.resume || pending ? 'Replace with another PDF' : 'Choose your PDF'}</span><input type="file" id="apfile" accept="application/pdf"></label>`}
+<p class="ap-consent">Your resume will be shared with <b>${esc(orgName || 'this organization')}</b> and Fyndr admins. <a href="#/privacy" target="_blank" rel="noopener">Privacy Policy</a></p>
 <div class="ap-acts"><button class="button button-small" data-c>Cancel</button><button class="button button-dark button-small" data-go>Apply</button></div></div>`;
         };
         el.addEventListener('click', async (e) => {
@@ -53,7 +55,7 @@ ${pick === 'site' ? `<div class="ap-prev">${buildResume({ ...d, profile: d.profi
                         return toast(x.message);
                     }
                 }
-                done({ resume: pick });
+                done({ resume: pick, consent: true });
             }
         });
         el.addEventListener('change', e => {

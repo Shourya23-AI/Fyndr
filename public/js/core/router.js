@@ -16,6 +16,7 @@ import { phoneView } from '../features/phone/phone.page.js';
 import { dashboard } from '../features/dashboard/dashboard.js';
 import { resetView } from '../features/password-reset/reset.view.js';
 import { termsView, privacyView, contactView } from '../features/legal/legal.view.js';
+import { consentView } from '../features/privacy/consent.view.js';
 // Hash router: '#/organizations', '#/dashboard', ... Decides which page to draw and redirects people who are signed out or not set up yet.
 export async function route() {
     const rid = route.n = (route.n || 0) + 1;
@@ -73,6 +74,10 @@ export async function route() {
     if (S.me && r === '') {
         r = isStaff(S.me) ? 'dashboard' : 'jobs';
     }
+    // Accounts that have not accepted the current Terms and Privacy Policy accept once before continuing (they can still read the policy pages).
+    if (S.me?.needsConsent && !['terms', 'privacy', 'contact'].includes(r)) {
+        r = 'consent';
+    }
     markNav(r);
     document.title = 'Fyndr: internships and jobs, checked before you see them';
     try {
@@ -86,7 +91,7 @@ export async function route() {
             }, register: () => {
                 home();
                 openAuth('signup');
-            }, jobs: () => browse('jobs'), courses: () => browse('courses'), organizations: orgPage, proof: proofView, forgot: () => authView('forgot'), verify: () => authView('verify'), setup: () => authView('setup'), dashboard, profile: profileView, phone: phoneView, terms: termsView, privacy: privacyView, contact: contactView, reset: resetView
+            }, jobs: () => browse('jobs'), courses: () => browse('courses'), organizations: orgPage, proof: proofView, forgot: () => authView('forgot'), verify: () => authView('verify'), setup: () => authView('setup'), dashboard, profile: profileView, phone: phoneView, terms: termsView, privacy: privacyView, contact: contactView, reset: resetView, consent: consentView
         }[r] || home)();
     } catch (e) {
         toast(e.message);

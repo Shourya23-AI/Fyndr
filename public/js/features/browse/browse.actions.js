@@ -44,7 +44,7 @@ async function saveOrApply(b, id) {
             location.hash = '#/phone';
             return;
         }
-        body = await applyPopup();
+        body = await applyPopup(S.lmap[id]?.orgName);
         if (!body) {
             return;
         }

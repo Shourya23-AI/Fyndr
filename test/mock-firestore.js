@@ -14,6 +14,8 @@ export function createMock() {
             delete c[ks.at(-1)];
         } else if (v && v.__union) {
             c[ks.at(-1)] = [...new Set([...(c[ks.at(-1)] || []), ...v.__union])];
+        } else if (v && v.__remove) {
+            c[ks.at(-1)] = (c[ks.at(-1)] || []).filter(x => !v.__remove.includes(x));
         } else {
             c[ks.at(-1)] = v;
         }
@@ -60,6 +62,7 @@ export function createMock() {
             return b;
         },
         arrayUnion: (...v) => ({ __union: v }),
+        arrayRemove: (...v) => ({ __remove: v }),
         deleteField: () => DEL
     };
     return { m, db: {}, store };

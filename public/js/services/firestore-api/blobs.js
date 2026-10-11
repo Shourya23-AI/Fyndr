@@ -31,3 +31,31 @@ export async function getBlob(owner, kind, n = 1) {
     }
     return parts.map(p => p.data().data).join('');
 }
+
+// ---- Application copies --------------------------------------------------------------------------------------------
+// When a candidate applies, the resume they chose is COPIED into the application: blobs/ar_{appId}_{i}  (appId = {uid}_{listingId}).
+// The organization reads only that copy, so it sees exactly what the candidate chose to share, and deleting the application
+// (withdraw, close, retention cleanup, account deletion) removes the organization's access with it.
+export const appBlobId = (appId, i) => `ar_${appId}_${i}`;
+export async function putAppBlob(batch, owner, orgId, appId, text) {
+    const { m, db } = await fs();
+    const n = Math.max(1, Math.ceil(text.length / CHUNK));
+    for (let i = 0; i < n; i++) {
+        batch.set(m.doc(db, 'blobs', appBlobId(appId, i)), { owner, kind: 'appresume', i, appId, orgId, data: text.slice(i * CHUNK, (i + 1) * CHUNK) });
+    }
+    return n;
+}
+export async function dropAppBlob(batch, appId, n = 0) {
+    const { m, db } = await fs();
+    for (let i = 0; i < n; i++) {
+        batch.delete(m.doc(db, 'blobs', appBlobId(appId, i)));
+    }
+}
+export async function getAppBlob(appId, n = 1) {
+    const { m, db } = await fs();
+    const parts = await Promise.all(Array.from({ length: n }, (_, i) => m.getDoc(m.doc(db, 'blobs', appBlobId(appId, i)))));
+    if (parts.some(p => !p.exists())) {
+        throw new Error('File not found');
+    }
+    return parts.map(p => p.data().data).join('');
+}
