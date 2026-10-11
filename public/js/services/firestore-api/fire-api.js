@@ -10,7 +10,7 @@
 //   blobs/ar_{appId}_{i}        the resume copy shared by ONE application            (candidate, that organization; deleted with the application)
 //   phones/{digits}             one verified phone number belongs to one account
 //   staff/{email}               admin / moderator roles
-import { fs, friendly } from './fire.js';
+import { fs, friendly, SITE_VERSION } from './fire.js';
 import { staffOf, staffMap, setStaff } from '../cloud/cloud.js';
 import { phoneClientId, lookupPhone } from '../phone-email/phone-email.js';
 import { putBlob, dropBlob, getBlob, putAppBlob, dropAppBlob, getAppBlob } from './blobs.js';
@@ -19,6 +19,8 @@ import { POLICY_VERSION } from '../../features/legal/constants.js';
 import { ADMIN_EMAILS } from './config.js';
 import { QUAL, EXP, JT, ORG_TYPES, IMG_MAX, now, lc, bad, isMain, isFree, gmailAllowed, pub, meOf, completion, cleanExtras, need, imgOk, filterListings, adminData } from './helpers.js';
 
+export const tuning = { selfTtl: 8000 }; // how long (ms) your own profile document is reused between calls (0 = always re-read)
+const selfMemo = { uid: null, t: 0, d: null };
 const sweep = { t: 0 }; // last time expired applications were cleaned up (admin dashboard)
 const agreed = v => v === true || v === 'on';
 const memo = { listings: null }; // approved listings kept for a short while so tab changes do not re-download the images
@@ -30,12 +32,14 @@ const rows = s => s.docs.map(x => ({ id: x.id, ...x.data() }));
 export async function fireApi(path, method, b = {}, fu) {
     try {
         const r = await run(path, method, b, fu);
-        if (method !== 'GET') {
-            memo.listings = null;
-        }
         return r;
     } catch (e) {
         throw friendly(e);
+    } finally {
+        if (method !== 'GET') {
+            memo.listings = null;
+            selfMemo.d = null;
+        }
     }
 }
 
@@ -111,7 +115,14 @@ async function run(path, method, b, fu) {
         return pub({ id: fu.uid, ...u, role });
     }
 
-    const doc0 = await loadUser(fu.uid);
+    // Every call used to re-read the profile; reuse it for a few seconds (any change clears it).
+    let doc0;
+    if (tuning.selfTtl && selfMemo.d && selfMemo.uid === fu.uid && Date.now() - selfMemo.t < tuning.selfTtl) {
+        doc0 = selfMemo.d;
+    } else {
+        doc0 = await loadUser(fu.uid);
+        Object.assign(selfMemo, { uid: fu.uid, t: Date.now(), d: doc0 });
+    }
     if (!doc0) {
         bad('no profile');
     }
@@ -301,16 +312,25 @@ async function run(path, method, b, fu) {
                 bad('Phone verification failed or expired. Please try again.', 'PHONE_FAILED');
             }
             const pr = ref('phones', digits(ph));
-            const owner = await m.getDoc(pr);
+            const step = async (what, f) => {
+                try {
+                    return await f();
+                } catch (e) {
+                    if (e && e.code === 'permission-denied') {
+                        throw Object.assign(new Error('Firestore rules refused this step: ' + what + '. Publish the latest firestore.rules (Firebase Console > Firestore Database > Rules), then try again. (site ' + SITE_VERSION + ')'), { code: 'DENIED' });
+                    }
+                    throw e;
+                }
+            };
+            const owner = await step('checking the number is free', () => m.getDoc(pr));
             if (owner.exists() && owner.data().uid !== user.id) {
                 bad('This phone number is already used by another account', 'PHONE_TAKEN');
             }
-            const bt = m.writeBatch(db);
+            // Two plain writes (no batch): 1) claim the number, 2) save it on the account. A retry after a half-done attempt just continues.
             if (!owner.exists()) {
-                bt.set(pr, { uid: user.id, at: now() });
+                await step('claiming the number', () => m.setDoc(pr, { uid: user.id, at: now() }));
             }
-            bt.update(ref('users', user.id), { phone: ph });
-            await bt.commit();
+            await step('saving the verified number', () => m.updateDoc(ref('users', user.id), { phone: ph, phoneId: digits(ph) }));
             return meOf({ ...user, phone: ph });
         }
         case 'GET /my': {

@@ -7,6 +7,7 @@ import { nav } from './features/layout/nav.js';
 import { dashboard } from './features/dashboard/dashboard.js';
 import { clearApiCache } from './core/api.js';
 import { cachedMe } from './features/auth/load-me.js';
+import { initReveal } from './core/reveal.js';
 // Entry point. Draw the shell INSTANTLY from what this device remembers (header + page-shaped placeholders),
 // then wire up events and let route() fill in the real page as soon as Firebase and the server have answered.
 const hint = cachedMe();
@@ -16,10 +17,11 @@ if (hint) {
 nav();
 $('#app').innerHTML = skeleton(skeletonFor(location.hash.slice(2), !!hint));
 bindEvents();
+initReveal();
 addEventListener('hashchange', route);
 route();
 
-// Keep dashboards current: refetch when you come back to the tab and every 20 seconds while one is open.
+// Keep dashboards current: refetch when you come back to the tab and every minute while one is open.
 // Skipped while you are typing or choosing something, so it never interrupts an edit.
 const refreshDashboard = () => {
     const el = document.activeElement;
@@ -33,4 +35,4 @@ const refreshDashboard = () => {
 };
 document.addEventListener('visibilitychange', refreshDashboard);
 addEventListener('focus', refreshDashboard);
-setInterval(refreshDashboard, 20000);
+setInterval(refreshDashboard, 60000); // (was 20 s: every refresh re-downloaded the dashboard data)

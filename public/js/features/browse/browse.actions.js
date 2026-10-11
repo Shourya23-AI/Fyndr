@@ -2,7 +2,7 @@ import { S } from '../../core/state.js';
 import { api } from '../../core/api.js';
 import { toast } from '../../core/dom.js';
 import { openAuth } from '../auth/auth-modal.js';
-import { loadListings } from './listings.js';
+import { loadListings, drawListings } from './listings.js';
 import { browse } from './browse.js';
 import { dashboard } from '../dashboard/dashboard.js';
 import { applyPopup } from './apply-popup.js';
@@ -19,6 +19,9 @@ export const actions = {
             type: '', q: '', loc: ''
         };
         browse(S.scope);
+    },
+    more() {
+        drawListings((S.lshown || 24) + 24);
     },
     view(b, id) {
         openDetail(id);

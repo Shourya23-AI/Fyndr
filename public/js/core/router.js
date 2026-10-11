@@ -16,15 +16,25 @@ import { phoneView } from '../features/phone/phone.page.js';
 import { dashboard } from '../features/dashboard/dashboard.js';
 import { resetView } from '../features/password-reset/reset.view.js';
 import { termsView, privacyView, contactView } from '../features/legal/legal.view.js';
+import { cachedMe } from '../features/auth/load-me.js';
 import { consentView } from '../features/privacy/consent.view.js';
 // Hash router: '#/organizations', '#/dashboard', ... Decides which page to draw and redirects people who are signed out or not set up yet.
 export async function route() {
     const rid = route.n = (route.n || 0) + 1;
     // Returning from phone.email: grab the token from the address bar right away (before any redirect below can lose it).
     capturePhoneToken();
+    // Signed-out visitors (nothing remembered on this device) see public pages at once, without waiting for Firebase to start.
+    const raw = (location.hash.slice(2) || '').split('?')[0];
+    const PUBLIC = { '': home, organizations: orgPage, terms: termsView, privacy: privacyView, contact: contactView };
+    const early = !S.me && !cachedMe() && PUBLIC[raw] && !new URLSearchParams(location.search).get('oobCode');
+    if (early) {
+        nav();
+        markNav(raw);
+        PUBLIC[raw]();
+    }
     // If the user check takes more than a blink, show a placeholder shaped like the page instead of a blank screen.
     const wait = setTimeout(() => {
-        if (rid === route.n) {
+        if (rid === route.n && !early) {
             $('#app').innerHTML = skeleton(skeletonFor(location.hash.slice(2), !!S.me));
         }
     }, 120);
@@ -39,6 +49,9 @@ export async function route() {
         return;
     }
     nav();
+    if (early && !S.me && gate === 'login') {
+        return; // already showing the right public page
+    }
     if (S.me || gate === 'verify') {
         closeAuth();
     }

@@ -6,12 +6,12 @@ import { fireApi } from '../services/firestore-api/fire-api.js';
 // Client data cache: GET requests for the lists below are kept in memory for a few seconds, so moving between pages and tabs
 // does not hit the network each time. Identical requests made at the same moment share one network call.
 // Any change (POST / PUT / PATCH / DELETE) or sign-out empties the cache, so you never see your own edits stale.
-const FRESH = [[/^\/me$/, 30e3], [/^\/listings(\?|$)/, 45e3], [/^\/my$/, 15e3], [/^\/admin\/data$/, 10e3], [/^\/profile$/, 20e3], [/^\/org\/(listings|applications)$/, 10e3]];
+const FRESH = [[/^\/me$/, 30e3], [/^\/listings(\?|$)/, 120e3], [/^\/my$/, 15e3], [/^\/admin\/data$/, 10e3], [/^\/profile$/, 20e3], [/^\/org\/(listings|applications)$/, 10e3]];
 const mem = new Map(); // key -> { t, d } | { p } (in flight)
 const PERSIST = /^\/listings(\?|$)/; // listings are also kept on this device so a reload can draw them instantly
 const ttl = p => (FRESH.find(([re]) => re.test(p)) || [])[1] || 0;
 const uidKey = () => fb.user()?.uid || fb.user()?.email || 'anon';
-const clone = d => JSON.parse(JSON.stringify(d));
+const clone = d => (typeof structuredClone === 'function' ? structuredClone(d) : JSON.parse(JSON.stringify(d)));
 export function clearApiCache() {
     mem.clear();
 }
@@ -45,22 +45,20 @@ async function call(p, m, b) {
 }
 export async function api(p, m = 'GET', b) {
     await fb.ready();
-    if (fb.local) {
-        const u = fb.user();
-        return fireApi(p, m, b, u && {
-            uid: u.uid, email: u.email, displayName: u.displayName, phoneNumber: u.phoneNumber
-        });
-    }
+    const u = fb.user();
+    const net = fb.local ? (p2, m2, b2) => fireApi(p2, m2, b2, u && {
+        uid: u.uid, email: u.email, displayName: u.displayName, phoneNumber: u.phoneNumber
+    }) : call;
     if (m !== 'GET') {
         try {
-            return await call(p, m, b);
+            return await net(p, m, b);
         } finally {
             clearApiCache();
         }
     }
     const life = ttl(p);
     if (!life) {
-        return call(p, m, b);
+        return net(p, m, b);
     }
     const key = uidKey() + p;
     const hit = mem.get(key);
@@ -70,12 +68,12 @@ export async function api(p, m = 'GET', b) {
     if (hit && Date.now() - hit.t < life) {
         return clone(hit.d);
     }
-    const pr = call(p, m, b);
+    const pr = net(p, m, b);
     mem.set(key, { p: pr });
     try {
         const d = await pr;
         mem.set(key, { t: Date.now(), d });
-        if (PERSIST.test(p)) {
+        if (!fb.local && PERSIST.test(p)) { // (not in Firestore mode: listings carry pictures, too big for localStorage)
             try {
                 localStorage.setItem('fyndr-c:' + key.split('/')[0] + p, JSON.stringify({ t: Date.now(), d }));
             } catch { } // storage full or blocked: fine, it is only a speed-up

@@ -13,6 +13,7 @@ const { useFs } = await import('../public/js/services/firestore-api/fire.js');
 const { createMock } = await import('./mock-firestore.js');
 const { fireApi } = await import('../public/js/services/firestore-api/fire-api.js');
 const mock = createMock();
+(await import('../public/js/services/firestore-api/fire-api.js')).tuning.selfTtl = 0;
 useFs(mock);
 
 let pass = 0, fail = 0;

@@ -15,6 +15,7 @@ export async function fs() {
     return cache;
 }
 // Tests can swap in a fake Firestore.
+export const SITE_VERSION = 'phone-2'; // shown in permission errors so you can tell which site files are running
 export const useFs = x => {
     cache = x;
 };
@@ -23,7 +24,7 @@ export const useFs = x => {
 export function friendly(e) {
     const c = e && e.code;
     if (c === 'permission-denied') {
-        return Object.assign(new Error('Not allowed. If you are the site owner: publish the latest firestore.rules in Firebase Console > Firestore Database > Rules.'), { code: 'DENIED' });
+        return Object.assign(new Error('Not allowed (site ' + SITE_VERSION + '). If you are the site owner: publish the latest firestore.rules in Firebase Console > Firestore Database > Rules.'), { code: 'DENIED' });
     }
     if (c === 'failed-precondition' || c === 'unavailable' || c === 'not-found') {
         return Object.assign(new Error('The cloud database is not reachable or not enabled yet. Site owner: Firebase Console > Build > Firestore Database > Create database.'), { code: 'NO_DB' });

@@ -90,15 +90,22 @@ service cloud.firestore {
       allow update: if signedIn() && (
         // the person themselves: never role, email, verified, orgType, gmailOk
         (userId == me()
-          && changed().hasOnly(['name', 'website', 'profile', 'resume', 'photo', 'proof', 'phone', 'sharedWith', 'consent'])
+          && changed().hasOnly(['name', 'website', 'profile', 'resume', 'photo', 'proof', 'phone', 'phoneId', 'sharedWith', 'consent'])
           && (!changed().hasAny(['consent'])
               || (request.resource.data.consent.keys().hasOnly(['v', 'at']) && request.resource.data.consent.v is string && request.resource.data.consent.at is string))
           && request.resource.data.get('photo', '').size() <= 120000
           && request.resource.data.get('sharedWith', []).size() < 500
           && (!changed().hasAny(['proof']) || request.resource.data.proof.status == 'pending')
-          // a phone number is only accepted together with its phones/{digits} claim (one number, one account)
-          && (!changed().hasAny(['phone'])
-              || getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phone.replace('[+]', ''))).data.uid == me()))
+          // a phone number is only accepted together with its phones/{phoneId} claim (one number, one account).
+          // phoneId is the number's digits; it must equal the phone without its '+', and the claim must belong to this person.
+          && (!changed().hasAny(['phone', 'phoneId'])
+              // current site: phoneId = the number's digits, tied to phone by plain concatenation
+              || (request.resource.data.get('phoneId', '') != ''
+                  && request.resource.data.phone == '+' + request.resource.data.phoneId
+                  && getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phoneId)).data.uid == me())
+              // older site files (no phoneId): still accepted so a cached page does not break
+              || (request.resource.data.get('phoneId', '') == ''
+                  && getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phone.replace('[+]', ''))).data.uid == me())))
         // moderators and admins: verify organizations and proof documents
         || (isStaff() && changed().hasOnly(['verified', 'proof']))
         // admins only: organization size and the Gmail-posting override
@@ -120,8 +127,7 @@ service cloud.firestore {
       allow create: if signedIn()
         && digits.matches('[0-9]{8,15}')
         && request.resource.data.keys().hasOnly(['uid', 'at'])
-        && request.resource.data.uid == me()
-        && getAfter(/databases/$(database)/documents/users/$(me())).data.get('phone', '') == '+' + digits;
+        && request.resource.data.uid == me();
       allow delete: if isAdmin() || (signedIn() && resource.data.uid == me());
     }
 

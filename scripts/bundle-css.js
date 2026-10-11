@@ -7,7 +7,7 @@ const CSS = path.join(__dirname, '..', 'public', 'css');
 // Order matters (later files win). dark.css must stay last.
 const ORDER = [
     'base/theme.css', 'base/reset.css',
-    'components/logo.css', 'components/buttons.css', 'components/forms.css', 'components/panel.css', 'components/table.css', 'components/tags.css', 'components/hero.css', 'components/how-it-works.css', 'components/toast.css', 'components/install.css', 'components/skeleton.css',
+    'components/logo.css', 'components/buttons.css', 'components/forms.css', 'components/panel.css', 'components/table.css', 'components/tags.css', 'components/hero.css', 'components/how-it-works.css', 'components/toast.css', 'components/install.css', 'components/skeleton.css', 'components/reveal.css',
     'layout/header.css', 'layout/footer.css', 'layout/account-menu.css',
     'pages/home.css', 'pages/browse.css', 'pages/organizations.css', 'pages/dashboard.css', 'pages/profile.css', 'pages/proof.css', 'pages/phone.css', 'pages/auth.css', 'pages/legal.css', 'pages/privacy.css',
     'base/dark.css'
