@@ -35,4 +35,17 @@ const refreshDashboard = () => {
 };
 document.addEventListener('visibilitychange', refreshDashboard);
 addEventListener('focus', refreshDashboard);
+// Left open in a tab? When you come back after a few minutes, the job list reloads so jobs and courses the importer added meanwhile show up.
+let leftAt = 0;
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        leftAt = Date.now();
+        return;
+    }
+    if (leftAt && Date.now() - leftAt > 3 * 60e3 && /^(#\/?|#\/browse.*)?$/.test(location.hash)) {
+        clearApiCache();
+        route();
+    }
+    leftAt = 0;
+});
 setInterval(refreshDashboard, 60000); // (was 20 s: every refresh re-downloaded the dashboard data)

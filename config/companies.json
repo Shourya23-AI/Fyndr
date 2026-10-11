@@ -1,5 +1,6 @@
 [
   {"name": "Fyndr picked courses", "type": "catalog", "file": "courses.json"},
+  {"name": "Microsoft Learn (new free courses)", "type": "mslearn", "levels": ["beginner"], "limit": 40},
   {"name": "Adzuna India (internships and fresher jobs)", "type": "adzuna", "country": "in", "queries": ["intern", "fresher", "trainee", "entry level"], "where": "India", "pages": 1},
   {"name": "Postman", "type": "greenhouse", "board": "postman"},
   {"name": "BrowserStack", "type": "greenhouse", "board": "browserstack"},

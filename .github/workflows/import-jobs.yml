@@ -1,11 +1,21 @@
-# Runs the importer every day. Needs ONE secret: Settings > Secrets and variables > Actions > New repository secret
+# Keeps the site's jobs, internships and courses fresh BY ITSELF. Nobody has to run anything.
+#   - every 3 hours (GitHub may start it a few minutes late)
+#   - right after you change config/companies.json, config/courses.json or config/import-settings.json
+#   - any time you click Actions > Import jobs > Run workflow
+# Needs ONE secret, set once: Settings > Secrets and variables > Actions > New repository secret
 #   name: FIREBASE_SERVICE_ACCOUNT   value: the whole service-account JSON (Firebase Console > Project settings > Service accounts > Generate new private key)
 # Never commit that key to the repository. If it ever leaks, delete it in Google Cloud Console and make a new one.
 name: Import jobs
 on:
   schedule:
-    - cron: '30 */6 * * *'
+    - cron: '15 */3 * * *'
   workflow_dispatch: {}
+  push:
+    branches: [main, master]
+    paths:
+      - 'config/companies.json'
+      - 'config/courses.json'
+      - 'config/import-settings.json'
 permissions:
   contents: read
 concurrency:
@@ -14,13 +24,21 @@ concurrency:
 jobs:
   import:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm install --no-save --ignore-scripts firebase-admin@12
+          node-version: 22
+      - name: Is the secret set?
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::The FIREBASE_SERVICE_ACCOUNT secret is missing. Settings > Secrets and variables > Actions > New repository secret (see README: 'No command line needed')."
+            exit 1
+          fi
+      - run: npm install --no-save --ignore-scripts --no-audit --no-fund firebase-admin@12
       - run: node scripts/import-to-firestore.js
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

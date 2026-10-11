@@ -8,7 +8,7 @@ import { suggestFor } from './engine.js';
 
 // true = only candidates whose qualification document was verified see suggestions (the original rule).
 // false = everyone who has finished their profile sees them.
-export const NEEDS_VERIFIED_DOCUMENT = true;
+export const NEEDS_VERIFIED_DOCUMENT = false; // (was true: only document-verified candidates saw suggestions, so most people saw none)
 const FIRST = 6; // picks shown at first
 const STEP = 6; // more per click
 
@@ -17,7 +17,7 @@ const nudge = (title, text, href, label) => `<div class="nudge"><div><h3>${title
 // "New since your last visit": the time of the previous visit is kept on this device. It is read once per page load,
 // so a re-draw after a save or apply does not make the NEW tags vanish.
 let visit = { uid: null, at: 0 };
-function lastVisit(uid) {
+export function lastVisit(uid) {
     if (visit.uid !== uid) {
         let at = 0;
         try {
@@ -70,7 +70,7 @@ function paint() {
     const shown = r.picks.slice(0, n);
     const newTag = r.newCount ? `<span class="sg-new">${r.newCount} new ${r.newCount === 1 ? 'match' : 'matches'} since your last visit</span>` : '';
     const body = shown.length ? `<div class="opportunity-grid">${cards(shown)}</div>${r.picks.length > n ? `<div class="more"><button class="button" data-act="suggmore">Show more picks (${r.picks.length - n})</button></div>` : ''}` : '<div class="empty"><b>No strong matches yet</b><p>Add more skills, or the cities you would work in, and we will look again.</p><a class="button button-dark button-small" href="#/profile">Update profile</a></div>';
-    el.innerHTML = `<div class="sg-head"><div><h2>Suggested for you</h2><p class="desc">Matched to your qualifications, skills and preferences. ${newTag}</p></div><a class="sg-edit" href="#/profile">Fine-tune</a></div>${body}${gapPanel(r)}${note}`;
+    el.innerHTML = `<div class="sg-head"><div><h2>Suggested for you</h2><p class="desc">Matched to your qualifications, skills and preferences. ${newTag}</p></div><span class="sg-links"><a class="sg-edit" data-act="fyopen" href="#/dashboard">See your full plan</a><a class="sg-edit" href="#/profile">Fine-tune</a></span></div>${body}${gapPanel(r)}${note}`;
 }
 
 export function moreSuggestions() {

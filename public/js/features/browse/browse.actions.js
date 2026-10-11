@@ -27,6 +27,9 @@ export const actions = {
     suggmore() {
         moreSuggestions();
     },
+    fyopen() {
+        S.dtab = 'foryou'; // the link then goes to the dashboard
+    },
     view(b, id) {
         openDetail(id);
     },

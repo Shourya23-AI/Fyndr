@@ -23,12 +23,27 @@ const path = require('path');
 const UA = 'FyndrImporter/1.0 (+job listing aggregator; respects robots.txt)';
 const strip = h => String(h || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/<\/(p|div|li|h\d|br)>/gi, '\n').replace(/<li>/gi, '- ').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 const typeOf = t => /intern/i.test(t) ? 'Internship' : /course|bootcamp|training programme|certificate/i.test(t) ? 'Course' : 'Job';
-const get = async (url, json) => {
-    const r = await fetch(url, { headers: { 'User-Agent': UA, Accept: json ? 'application/json' : 'text/html' }, redirect: 'follow' });
-    if (!r.ok) {
-        throw new Error(r.status + ' ' + String(url).split('?')[0]); // never print the query string (it can hold an API key)
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Every download has a time limit that also covers reading the answer (it used to wait for ever on a slow site, which looked like the
+// import "never finishing"). A normal timer is used on purpose: AbortSignal.timeout() does not keep the program alive.
+const TIMEOUT = { ms: 20000 };
+const get = async (url, json, ms = TIMEOUT.ms) => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), ms);
+    try {
+        const r = await fetch(url, { headers: { 'User-Agent': UA, Accept: json ? 'application/json' : 'text/html' }, redirect: 'follow', signal: ctl.signal });
+        if (!r.ok) {
+            throw new Error(r.status + ' ' + String(url).split('?')[0]); // never print the query string (it can hold an API key)
+        }
+        return json ? await r.json() : await r.text();
+    } catch (e) {
+        if (ctl.signal.aborted) {
+            throw new Error('timed out after ' + Math.round(ms / 1000) + 's: ' + String(url).split('?')[0]);
+        }
+        throw e;
+    } finally {
+        clearTimeout(timer);
     }
-    return json ? r.json() : r.text();
 };
 // Minimal robots.txt check: the rules for "*" (or our name), longest matching Allow/Disallow wins.
 // robotsAllows(text of robots.txt, "/path?query") is pure, so the brand finder can reuse it with its own safe downloader.
@@ -115,7 +130,7 @@ const yearsMin = t => {
     return m ? +m[1] : null;
 };
 function studentFriendly(it) {
-    if (it.source === 'catalog') {
+    if (it.source === 'catalog' || it.type === 'Course') {
         return true;
     }
     const title = String(it.title || '');
@@ -126,7 +141,7 @@ function studentFriendly(it) {
     return ENTRY.test(title) || ENTRY.test(String(it.description || '').slice(0, 700)) || (years !== null && years <= 1);
 }
 function placeOk(it, keep) {
-    if (it.source === 'catalog' || !keep || !keep.length) {
+    if (it.source === 'catalog' || it.type === 'Course' || !keep || !keep.length) {
         return true;
     }
     const loc = String(it.location || '').toLowerCase();
@@ -238,18 +253,18 @@ const slugsOf = name => {
     return [...new Set([w.join(''), w.join('-')])].filter(x => x && x.length >= 2);
 };
 const PROBES = {
-    greenhouse: async (slug, name) => nameMatch((await get(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(slug)}`, true)).name, name),
+    greenhouse: async (slug, name) => nameMatch((await get(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(slug)}`, true, Math.min(8000, TIMEOUT.ms))).name, name),
     smartrecruiters: async (slug, name) => {
-        const d = await get(`https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings?limit=5`, true);
+        const d = await get(`https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings?limit=5`, true, Math.min(8000, TIMEOUT.ms));
         const c = (d.content || [])[0];
         return !!c && d.totalFound > 0 && nameMatch(c.company && c.company.name, name);
     },
     lever: async (slug, name) => {
-        const d = await get(`https://api.lever.co/v0/postings/${encodeURIComponent(slug)}?mode=json&limit=10`, true);
+        const d = await get(`https://api.lever.co/v0/postings/${encodeURIComponent(slug)}?mode=json&limit=10`, true, Math.min(8000, TIMEOUT.ms));
         return Array.isArray(d) && d.length > 0 && mentions(d.flatMap(j => [j.descriptionPlain, j.additionalPlain]), name);
     },
     ashby: async (slug, name) => {
-        const jobs = (await get(`https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(slug)}`, true)).jobs || [];
+        const jobs = (await get(`https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(slug)}`, true, Math.min(8000, TIMEOUT.ms))).jobs || [];
         return jobs.length > 0 && mentions(jobs.slice(0, 10).map(j => j.descriptionPlain), name);
     }
 };
@@ -282,15 +297,42 @@ async function resolveAuto(c, opts, log) {
     }
     return found ? { ...c, ...found } : null;
 }
-const SOURCES = { greenhouse: fromGreenhouse, lever: fromLever, ashby: fromAshby, smartrecruiters: fromSmartRecruiters, page: fromPage, catalog: fromCatalog, adzuna: fromAdzuna };
+// Microsoft Learn's public catalog (an official, key-free API for showing its free learning paths elsewhere). The newest ones first, so NEW courses appear by themselves.
+// { "type": "mslearn", "levels": ["beginner"], "limit": 40 }
+async function fromMsLearn(c) {
+    const d = await get('https://learn.microsoft.com/api/catalog/?type=learningPaths&locale=en-us', true, 40000);
+    const want = (c.levels || []).map(x => String(x).toLowerCase());
+    const rows = (d.learningPaths || []).filter(p => p && p.title && p.url && (!want.length || (p.levels || []).some(l => want.includes(String(l).toLowerCase()))))
+        .sort((a, b) => String(b.last_modified).localeCompare(String(a.last_modified))).slice(0, c.limit || 40);
+    return rows.map(p => {
+        let url = '';
+        try {
+            const u = new URL(p.url, 'https://learn.microsoft.com');
+            u.search = '';
+            u.hash = '';
+            url = u.toString();
+        } catch { }
+        const mins = +p.duration_in_minutes || 0;
+        return {
+            orgName: 'Microsoft Learn', title: p.title, type: 'Course', location: 'Online', pay: 'Free', applyUrl: url, source: 'mslearn',
+            duration: (mins >= 120 ? 'About ' + Math.round(mins / 60) + ' hours' : mins ? 'About ' + mins + ' minutes' : 'At your own pace') + (mins ? ', at your own pace' : ''),
+            description: [strip(p.summary), '', (p.levels || []).length ? 'Level: ' + p.levels.join(', ') : '', (p.roles || []).length ? 'Roles: ' + p.roles.slice(0, 4).join(', ') : '', 'Free to learn on Microsoft Learn.'].filter((v, i, a) => v || (a[i - 1] && a[i + 1])).join('\n').trim()
+        };
+    });
+}
+const SOURCES = { mslearn: fromMsLearn, greenhouse: fromGreenhouse, lever: fromLever, ashby: fromAshby, smartrecruiters: fromSmartRecruiters, page: fromPage, catalog: fromCatalog, adzuna: fromAdzuna };
 const COMPLETE = new Set(['greenhouse', 'lever', 'ashby', 'smartrecruiters', 'page', 'catalog']); // sources that return a company's WHOLE list (not a sample)
 const keyOf = c => `${c.type}:${c.board || c.url || c.file || c.country || c.name}`;
 // report.complete = keys of sources fetched fully this run (the scheduled importer closes listings that vanished from them);
 // report.failed / report.skipped = names, for the summary at the end.
 async function collect(list, log = console.log, report = { complete: new Set(), failed: [], skipped: [] }, opts = {}) {
     const cfg = SETTINGS();
-    const all = [];
-    for (const c of list) {
+    const results = new Array(list.length).fill(null);
+    let next = 0;
+    let finished = 0;
+    // opts.deadline (a time in ms): companies not started by then are left for the next run, so one slow day can never hang the whole import.
+    const one = async c => {
+        const all = [];
         try {
             let src = c;
             if (c.type === 'auto') {
@@ -332,22 +374,41 @@ async function collect(list, log = console.log, report = { complete: new Set(), 
                 report.failed.push(c.name);
             }
         }
-        await new Promise(r => setTimeout(r, 800)); // be gentle with every site
-    }
-    return all;
+        return all;
+    };
+    const worker = async () => {
+        while (next < list.length) {
+            const i = next++;
+            if (opts.deadline && Date.now() > opts.deadline) {
+                log(`${list[i].name}: not started (time limit reached, it will be tried on the next run)`);
+                continue;
+            }
+            results[i] = await one(list[i]);
+            if (++finished % 10 === 0) {
+                log(`... ${finished} of ${list.length} sources done`);
+            }
+            await sleep(opts.pause === undefined ? 300 : opts.pause); // gentle with every site
+        }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(opts.concurrency || 5, list.length)) }, worker));
+    return results.flat().filter(Boolean);
 }
 async function main() {
     const cfg = path.resolve(process.argv[2] || path.join(__dirname, '..', 'config', 'companies.json'));
     const out = path.resolve(process.argv[3] || path.join(__dirname, '..', 'imports', 'jobs.json'));
     const cacheFile = path.join(path.dirname(out), 'ats-cache.json');
     const atsCache = (() => { try { return JSON.parse(fs.readFileSync(cacheFile, 'utf8')); } catch { return {}; } })();
-    const all = await collect(JSON.parse(fs.readFileSync(cfg, 'utf8')), console.log, undefined, { atsCache });
+    const all = await collect(JSON.parse(fs.readFileSync(cfg, 'utf8')), console.log, undefined, { atsCache, deadline: Date.now() + 8 * 60e3 });
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(cacheFile, JSON.stringify(atsCache, null, 1));
     fs.writeFileSync(out, JSON.stringify(all, null, 1));
     console.log(`\nWrote ${all.length} listing(s) to ${out}\nNext: Dashboard > Listings > Import jobs and courses, then choose that file.`);
 }
 if (require.main === module) {
-    main();
+    // Always ends by itself (success or not), so the window never sits there waiting.
+    main().then(() => process.exit(0), e => {
+        console.error('Import failed:', e.message);
+        process.exit(1);
+    });
 }
-module.exports = { collect, jobPostings, allowed, robotsAllows, detectAts, slugsOf, nameMatch, mentions, strip, typeOf, studentFriendly, placeOk, fromCatalog };
+module.exports = { TIMEOUT, collect, jobPostings, allowed, robotsAllows, detectAts, slugsOf, nameMatch, mentions, strip, typeOf, studentFriendly, placeOk, fromCatalog };

@@ -1,5 +1,49 @@
 # Fyndr
 
+## Update: job suggester + course suggester with a "For you" page (more confidence for candidates)
+
+**Why candidates saw nothing:** the suggestions only appeared after a qualification document was verified (`NEEDS_VERIFIED_DOCUMENT = true`). Now everyone who has finished their profile gets them. (Set it back to `true` in `features/suggestions/suggest.js` if you want the old rule.)
+
+**New: Dashboard > For you** (the first tab, opened by default). Everything is worked out on the candidate's device from what they typed; no resume is read and no AI is involved. It shows:
+- **Where you stand:** how many open roles are a strong or good match, in plain words ("You are a strong match for 3 open roles right now"). A weak profile is never called strong.
+- **Your strengths:** skills they have that their best matches keep asking for.
+- **Closest to ready:** the role that needs the fewest extra skills, and exactly which ones ("You only need SQL and Git").
+- **Jobs and internships for you** with the reasons for each match (and what is missing), **Show more** to see all of them.
+- **Your learning roadmap:** the skills that would open the most matches, in order, each with the courses that teach it. Courses found by the importer (Microsoft Learn, your hand-picked list) appear here automatically.
+- **More courses picked for you**, and **tips** to improve the profile (only what is actually missing: skills, cities, job types, projects, headline).
+- The browse page's "Suggested for you" now links to this page ("See your full plan").
+
+**Files:** `features/suggestions/insights.js` (the confidence summary, pure), `features/suggestions/foryou.js` (the page), `test/confidence.test.js` (25 checks). The matching engine itself (`engine.js`) is unchanged. All suites: `node test/run.test.js` (118), `brand.test.js` (65), `suggest.test.js` (61), `import-live.test.js` (18), `confidence.test.js` (25).
+
+**Honest notes:** a match is a guide, not a promise, and the page says so. Matching is only as good as the profile (skills typed, projects, cities). Not checked on a real phone or browser in my build environment (no Firebase there); the logic and the page's HTML are tested.
+
+## Update: jobs and courses update by themselves (no PowerShell, no importing files)
+
+**What was wrong:** (1) the importers had no time limit, so one slow website made them wait for ever, and the Firebase importer never closed its connection, so it never "finished"; (2) imported jobs waited for an admin (`autoPublish` was `false`); (3) you had to run the script yourself and then upload the file in the dashboard.
+
+**What it does now:** a GitHub workflow (`.github/workflows/import-jobs.yml`) collects jobs, internships and courses **every 3 hours**, **right after you edit** `config/companies.json`, `config/courses.json` or `config/import-settings.json`, and whenever you click *Run workflow*. Trusted ones (score 50+) go live at once; unsure ones wait in your review queue; scams are dropped; jobs that disappear from the employer's page are closed. Visitors who leave the site open get the fresh list when they come back.
+
+### One-time setup (all clicks, no command line)
+1. Put the whole project on GitHub (GitHub Desktop: drag the files into the repository folder, *Commit*, *Push*). Do not upload `data/` or `imports/`.
+2. Firebase Console > gear icon > **Project settings** > **Service accounts** > **Generate new private key**. Open the downloaded `.json` file in Notepad and copy ALL of it.
+3. GitHub repository > **Settings** > **Secrets and variables** > **Actions** > **New repository secret**. Name: `FIREBASE_SERVICE_ACCOUNT`, value: paste. Save. (Never put this file in the repository.)
+4. Firebase Console > Firestore > **Rules**: paste `firestore.rules` and **Publish**.
+5. GitHub > **Actions** > **Import jobs** > **Run workflow**. Watch it finish (a few minutes). From then on it runs by itself. If the secret is missing the run stops at once and says so in red.
+
+Optional: free keys from developer.adzuna.com as secrets `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` (more internships and fresher jobs in India).
+
+### What changed in the files
+- `scripts/import-jobs.js`: every download is cut off after 20 s (8 s for board guesses); several companies are fetched at once (5) instead of one by one; a time limit for the whole run (companies not reached are tried next time); it always ends by itself; **new source `mslearn`**: Microsoft Learn's public catalog, newest free beginner learning paths first, so **new courses appear by themselves** (`{ "type": "mslearn", "levels": ["beginner"], "limit": 40 }` in `config/companies.json`). Hand-picked courses stay in `config/courses.json`; push an edit and it is live minutes later.
+- `scripts/import-to-firestore.js`: closes its connection and exits; remembers which job board each `auto` company uses (in the database, document `meta/atsCache`) so every run no longer guesses all of them again; checks existing listings in batches of 100; loads the site's modules in a way that also works on Windows.
+- `config/import-settings.json`: `"autoPublish": true`. To go back to approving everything by hand, set it to `false`.
+- `public/js/package.json` (`{"type":"module"}`): lets Node read the site's shared modules on any Node version.
+- `test/import-live.test.js` (18 checks): timeouts, parallel fetching, deadline, Microsoft Learn mapping, publish-on-first-sight and refresh-on-second. Run all: `node test/run.test.js`, `node test/brand.test.js`, `node test/suggest.test.js`, `node test/import-live.test.js`.
+
+### Honest notes
+- Not tested against the real internet (my build environment has none). The Microsoft Learn source follows its documented catalog format; if Microsoft changes it, that source shows as "failed" in the log and the rest carry on. Read the first run's log in GitHub > Actions.
+- GitHub may start a scheduled run a few minutes late, and pauses schedules on repositories with no activity for 60 days (a push or *Run workflow* wakes them).
+- If you run `node server.js` yourself it is a server and keeps running on purpose; you do not need it for updates any more. On a host that runs it all the time (Render) it also imports by itself (`IMPORT=0` turns that off).
+
 ## Update: real company logos, cover pictures and many more companies (found by the system, nothing hardcoded)
 
 **Why the posts looked green and empty:** imported jobs were saved with no logo and no picture, and the page only draws pictures that were uploaded as data. Now the server looks them up itself.

@@ -28,7 +28,7 @@
     "lucknow"
   ],
   "maxPerSource": 60,
-  "autoPublish": false,
+  "autoPublish": true,
   "brands": true,
   "brandBlocklist": []
 }

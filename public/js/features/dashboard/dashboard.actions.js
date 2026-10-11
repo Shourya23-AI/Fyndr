@@ -88,6 +88,10 @@ Object.assign(actions, {
         ST.dtab = id;
         dashboard();
     },
+    fymore() {
+        ST.fyn = (ST.fyn || 6) + 6;
+        dashboard();
+    },
     async atab(b, id) {
         ST.atab = id;
         await dashboard();

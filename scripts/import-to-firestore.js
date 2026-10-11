@@ -11,6 +11,7 @@
 // The service account bypasses security rules, so this script re-checks everything itself (https links only, trust score, size limits).
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const { collect } = require('./import-jobs');
 // db = a Firestore (firebase-admin) object; items = what collect() returned; deps = { trustScore, decide, cleanImport, hash, LIFE_DAYS }
 async function run(db, items, deps, report = { complete: new Set() }, nowMs = Date.now(), log = console.log) {
@@ -18,6 +19,16 @@ async function run(db, items, deps, report = { complete: new Set() }, nowMs = Da
     const out = { published: 0, review: 0, skipped: 0, duplicates: 0, invalid: 0, refreshed: 0, gone: 0, closed: 0 };
     const now = new Date(nowMs).toISOString();
     const seen = new Set();
+    const snaps = new Map();
+    if (typeof db.getAll === 'function') {
+        const refs = [...new Set(items.map(it => {
+            const l = cleanImport(it);
+            return l ? 'imp_' + hash(l.applyUrl) : '';
+        }).filter(Boolean))].map(id => db.collection('listings').doc(id));
+        for (let i = 0; i < refs.length; i += 100) {
+            (await db.getAll(...refs.slice(i, i + 100))).forEach(s => snaps.set(s.id, s));
+        }
+    }
     for (const it of items) {
         const l = cleanImport(it);
         if (!l) {
@@ -31,7 +42,7 @@ async function run(db, items, deps, report = { complete: new Set() }, nowMs = Da
         }
         seen.add(id);
         const ref = db.collection('listings').doc(id);
-        const snap = await ref.get();
+        const snap = snaps.get(id) || await ref.get();
         if (snap.exists) {
             if (snap.data().status === 'approved') {
                 await ref.update({ lastSeen: now });
@@ -95,9 +106,10 @@ async function main() {
     admin.initializeApp({ credential: admin.credential.cert(key) });
     const db = admin.firestore();
     const root = path.join(__dirname, '..', 'public', 'js');
-    const { trustScore, decide: decideTrust } = await import(path.join(root, 'features/trust/trust.js'));
-    const { cleanImport, hash } = await import(path.join(root, 'services/firestore-api/helpers.js'));
-    const { LIFE_DAYS } = await import(path.join(root, 'features/listings/expiry.js'));
+    const load = rel => import(pathToFileURL(path.join(root, rel)).href);
+    const { trustScore, decide: decideTrust } = await load('features/trust/trust.js');
+    const { cleanImport, hash } = await load('services/firestore-api/helpers.js');
+    const { LIFE_DAYS } = await load('features/listings/expiry.js');
     const list = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'companies.json'), 'utf8'));
     let settings = {};
     try {
@@ -105,7 +117,18 @@ async function main() {
     } catch { }
     const decide = r => (r.scam ? 'hidden' : settings.autoPublish === true ? decideTrust(r) : 'pending');
     const report = { complete: new Set(), failed: [], skipped: [] };
-    const items = await collect(list, console.log, report);
+    const cacheRef = db.collection('meta').doc('atsCache');
+    let atsCache = {};
+    try {
+        const c = await cacheRef.get();
+        atsCache = c.exists ? JSON.parse(c.data().json || '{}') : {};
+    } catch { }
+    const items = await collect(list, console.log, report, { atsCache, deadline: Date.now() + 9 * 60e3 });
+    try {
+        await cacheRef.set({ json: JSON.stringify(atsCache), at: new Date().toISOString() });
+    } catch (e) {
+        console.log('Could not save the board memory (not serious):', e.message);
+    }
     const out = await run(db, items, { trustScore, decide, cleanImport, hash, LIFE_DAYS }, report);
     console.log('Import finished:', JSON.stringify(out));
     if (report.failed.length) {
@@ -119,7 +142,8 @@ async function main() {
     }
 }
 if (require.main === module) {
-    main().catch(e => {
+    // firebase-admin keeps a network connection open, so without process.exit() this program never ends by itself.
+    main().then(() => process.exit(0), e => {
         console.error(e.message);
         process.exit(1);
     });

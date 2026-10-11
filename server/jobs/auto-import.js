@@ -107,7 +107,7 @@ async function runOnce(log = console.log) {
         const list = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'companies.json'), 'utf8'));
         const report = { complete: new Set(), failed: [], skipped: [] };
         db.atsCache = db.atsCache || {};
-        const items = await collect(list, log, report, { atsCache: db.atsCache });
+        const items = await collect(list, log, report, { atsCache: db.atsCache, deadline: Date.now() + 9 * 60e3 });
         save(); // remembers which job board each "auto" company uses
         if (!items.length) {
             log('Auto import: nothing was collected from any source (network or source problem). Nothing changed.');

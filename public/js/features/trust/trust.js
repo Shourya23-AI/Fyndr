@@ -57,7 +57,7 @@ export function trustScore(l) {
             reasons.push('Apply link is not a valid address');
         }
     }
-    if (['api', 'greenhouse', 'lever', 'catalog'].includes(l.origin || l.source)) {
+    if (['api', 'greenhouse', 'lever', 'catalog', 'mslearn'].includes(l.origin || l.source)) {
         score += 8;
     }
     score = Math.max(0, Math.min(100, Math.round(score)));

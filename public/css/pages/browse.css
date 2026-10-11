@@ -826,3 +826,150 @@ body.dt-lock {
 .lc-trust[data-band="strong"] { background: color-mix(in srgb, #1f9d6b 18%, transparent); color: #1f9d6b; }
 .lc-trust[data-band="good"] { background: color-mix(in srgb, #2f7fd1 16%, transparent); color: #2f7fd1; }
 .lc-trust[data-band="low"] { background: color-mix(in srgb, #d98a00 20%, transparent); color: #d98a00; }
+
+/* ---- Dashboard > For you (features/suggestions/foryou.js) ---- */
+.sg-links {
+  display: flex;
+  flex: none;
+  gap: 18px;
+}
+
+.fy-hero {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  margin: 0 0 16px;
+}
+
+.fy-hero h3 {
+  margin: 0 0 6px;
+}
+
+.fy-ring {
+  display: grid;
+  flex: none;
+  place-content: center;
+  width: 104px;
+  height: 104px;
+  border: 7px solid var(--c, var(--green));
+  border-radius: 50%;
+  text-align: center;
+}
+
+.fy-ring b {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.fy-ring span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.fy-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 10px 0 0;
+}
+
+.fy-line > span {
+  min-width: 96px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fy-line i {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: normal;
+}
+
+.fy-closest {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  border-color: var(--green);
+}
+
+.fy-closest h3 {
+  margin: 0 0 4px;
+}
+
+.fy-closest p {
+  margin: 2px 0;
+}
+
+.fy-h {
+  margin: 28px 0 6px;
+  font-size: 19px;
+}
+
+.fy-h + .desc {
+  margin: 0 0 12px;
+}
+
+.fy-step {
+  margin: 0 0 22px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.fy-step-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 12px;
+}
+
+.fy-step-head .desc {
+  margin: 0;
+}
+
+.fy-num {
+  display: grid;
+  flex: none;
+  place-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-weight: 800;
+}
+
+.fy-nocourse {
+  margin: 0;
+}
+
+.fy-tips {
+  margin: 28px 0 0;
+}
+
+.fy-tips ul {
+  margin: 8px 0 14px;
+  padding-left: 20px;
+}
+
+.fy-tips li {
+  margin: 4px 0;
+}
+
+@media (max-width: 640px) {
+  .fy-hero,
+  .fy-closest {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sg-links {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
