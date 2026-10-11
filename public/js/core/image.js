@@ -1,3 +1,4 @@
+import { API_BASE } from './api-base.js';
 // Shrinks a picture the organization chose, in the browser, so it can be stored inside the listing (no paid file storage needed).
 //   cover: 480x270 (16:9), cropped to fill   -> WebP (JPEG if the browser cannot write WebP), kept under ~30 KB
 //   logo : 96x96 square, whole logo shown on white -> WebP (JPEG fallback), kept under ~8 KB
@@ -49,5 +50,15 @@ export async function shrinkImage(file, kind) {
     }
     throw new Error('That picture is too detailed. Try a simpler one.');
 }
-// Only ever put our own kind of data URL into an <img src>.
-export const safeImg = s => typeof s === 'string' && s.startsWith('data:image/') && !/["'<>\s]/.test(s) ? s : '';
+// Only ever put one of two kinds of address into an <img src>: our own data URL (a picture an organization uploaded), or a company picture the
+// server found by itself (/api/brand/<id>/logo|cover, served from the Fyndr server; see server/jobs/brand.js). Anything else becomes ''.
+const BRAND = /^\/api\/brand\/[a-z0-9-]{1,60}\/(logo|cover)$/;
+export const safeImg = s => {
+    if (typeof s !== 'string') {
+        return '';
+    }
+    if (s.startsWith('data:image/')) {
+        return !/["'<>\s]/.test(s) ? s : '';
+    }
+    return BRAND.test(s) && !/["'<>\s]/.test(API_BASE) ? API_BASE + s : '';
+};

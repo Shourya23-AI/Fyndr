@@ -1,5 +1,26 @@
 # Fyndr
 
+## Update: real company logos, cover pictures and many more companies (found by the system, nothing hardcoded)
+
+**Why the posts looked green and empty:** imported jobs were saved with no logo and no picture, and the page only draws pictures that were uploaded as data. Now the server looks them up itself.
+
+- **Brand finder** (`server/jobs/brand.js`). For every company with listings it finds the official website, then that site's own logo, cover picture and brand colour:
+  1. a `"site"` you wrote in `config/companies.json` (optional), else Wikidata's "official website" entry, else guesses from the name (name.com, name.in, name.io ...);
+  2. a site is accepted only if its own page title / schema.org name contains the company name (parked "domain for sale" pages are refused);
+  3. logo: schema.org logo, then apple-touch-icon, SVG icon, web-app-manifest icons, other icons; cover: the og:image, only if it is wide enough to be a banner (a square logo is not used as a background); colour: `theme-color`.
+  - Only pages and files the site's `robots.txt` allows are read. Everything is stored in `DATA_DIR/brands` and shown from your own server (`/api/brand/<id>/logo|cover`), so visitors never contact the company's servers.
+  - Cards with no cover now show the company's colour with its logo in the middle (the old green is the last fallback).
+  - Results are remembered: refreshed every 30 days, failed lookups retried after 3 days, at most 40 new lookups per run.
+  - Switch off: `"brands": false` in `config/import-settings.json`. A company that asks not to be shown: add its domain to `"brandBlocklist"`.
+  - Safety: the downloader (`server/jobs/net.js`) is https-only, refuses internal addresses even after redirects or DNS tricks, limits size and time, and recognises files by their bytes (SVGs with scripts are refused; pictures are served with a sandboxing header).
+- **New job sources** in `scripts/import-jobs.js`: `ashby`, `smartrecruiters`, and **`auto`**: write only `{ "name": "Stripe", "type": "auto" }` and the system finds the company's public job board (Greenhouse, SmartRecruiters, Lever, Ashby) by itself, checks that it really is that company, remembers it, and logs what it picked. If none is found the company is skipped quietly and tried again after a week.
+- `config/companies.json` now lists about 65 more companies as `auto`. Your six hand-written boards are unchanged.
+- Not integrated on purpose: Google, Amazon, Microsoft, Apple, Meta, Netflix and similar run their own career sites with no public job feed. "Anyone can open the page" is not the same as "automated copying is allowed" (their terms and robots.txt decide), so they are not scraped. Adzuna (already here, needs its free key) is the legitimate way to get many of those postings.
+- Only works in **Node server mode** (the importer and the pictures live on the server). The GitHub Pages + Firebase-only mode is unchanged.
+- **Not tested against the real internet** (my build environment has none). `node test/brand.test.js` (65 checks) uses a pretend internet; `node test/run.test.js` still passes (118). Read the first import log: it says which company got which board and which got a logo.
+- Imported listings still wait for an admin by default (`"autoPublish": false`), so the browse page only shows approved ones.
+
+
 ## Update: job search runs inside the Node server (no GitHub, no Firebase key)
 
 - `server/jobs/auto-import.js` starts with `node server.js`: it fetches jobs, internships and courses 15 seconds after start and then every 6 hours, scores them (everything waits for an admin by default; scams are dropped), refreshes the ones still open, and closes the ones gone from the employer's page or unseen for 45 days.

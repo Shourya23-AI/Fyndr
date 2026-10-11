@@ -1,10 +1,11 @@
 const { R, bad, need } = require('../lib/router');
 const { db, save } = require('../db/store');
 const { uid } = require('../lib/helpers');
+const { brandFields } = require('../jobs/brand');
 // Candidate actions: my applications/saved, apply, save.
 R('GET', '/api/my', ['user'], ({ user }) => ({
     saved: db.saved.filter(s => s.userId === user.id).map(s => s.listingId),
-    applications: db.applications.filter(a => a.userId === user.id).map(a => ({ ...a, listing: db.listings.find(l => l.id === a.listingId) }))
+    applications: db.applications.filter(a => a.userId === user.id).map(a => ({ ...a, listing: (l => l && { ...l, ...brandFields(db, l) })(db.listings.find(l => l.id === a.listingId)) }))
 }));
 const onboarded = u => {
     if (!u.profile?.done) {

@@ -10,6 +10,7 @@ const ROOT = path.join(__dirname, '..', '..');
 const PUBJS = path.join(ROOT, 'public', 'js');
 const load = async rel => import(require('url').pathToFileURL(path.join(PUBJS, rel)).href); // the shared browser modules (ES modules) are reused as they are
 
+const okBrand = b => (/^[a-z0-9-]{1,60}$/.test(String(b || '')) ? String(b) : ''); // brand ids are plain slugs (see brand.js)
 // Pure part: puts collected items into `listings` (the db.listings array). Returns counts. `deps` = { trustScore, decide, cleanImport, hash, LIFE_DAYS }.
 function applyImport(listings, items, deps, report = { complete: new Set() }, nowMs = Date.now(), log = () => { }) {
     const { trustScore, decide, cleanImport, hash, LIFE_DAYS } = deps;
@@ -31,6 +32,9 @@ function applyImport(listings, items, deps, report = { complete: new Set() }, no
         seen.add(id);
         const old = byId.get(id);
         if (old) {
+            if (!old.brand && okBrand(it.brand)) {
+                old.brand = okBrand(it.brand); // listings imported before the brand finder existed get their logo on the next run
+            }
             if (old.status === 'approved') {
                 old.lastSeen = now;
                 out.refreshed++;
@@ -45,7 +49,7 @@ function applyImport(listings, items, deps, report = { complete: new Set() }, no
             out.skipped++;
             continue;
         }
-        const row = { ...l, id, trust: t.score, trustReasons: t.reasons, status, created: now, lastSeen: now, srcKey: it.srcKey || '' };
+        const row = { ...l, id, trust: t.score, trustReasons: t.reasons, status, created: now, lastSeen: now, srcKey: it.srcKey || '', brand: okBrand(it.brand) };
         listings.push(row);
         byId.set(id, row);
         status === 'approved' ? out.published++ : out.review++;
@@ -102,10 +106,35 @@ async function runOnce(log = console.log) {
         const { LIFE_DAYS } = await load('features/listings/expiry.js');
         const list = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'companies.json'), 'utf8'));
         const report = { complete: new Set(), failed: [], skipped: [] };
-        const items = await collect(list, log, report);
+        db.atsCache = db.atsCache || {};
+        const items = await collect(list, log, report, { atsCache: db.atsCache });
+        save(); // remembers which job board each "auto" company uses
         if (!items.length) {
             log('Auto import: nothing was collected from any source (network or source problem). Nothing changed.');
             return null;
+        }
+        // Logo, cover picture and colour for every company that has listings (see brand.js). Companies from config/companies.json come first,
+        // then the busiest employers from Adzuna; at most 40 new lookups per run, the rest follow on the next run.
+        if (settings.brands !== false) {
+            try {
+                const { create } = require('./brand');
+                const { DATA_DIR } = require('../config');
+                const count = new Map();
+                for (const it of items) {
+                    const k = it.orgName;
+                    const row = count.get(k) || { name: k, site: it.site || '', n: 0, listed: it.source !== 'adzuna' };
+                    row.n++;
+                    count.set(k, row);
+                }
+                const order = [...count.values()].filter(x => x.name).sort((a, b) => (b.listed - a.listed) || (b.n - a.n));
+                const brands = create({ db, save, dir: path.join(DATA_DIR, 'brands'), log, settings });
+                const ids = await brands.ensureMany(order, 40);
+                items.forEach(it => {
+                    it.brand = ids.get(it.orgName) || '';
+                });
+            } catch (e) {
+                log('Brand finder failed (listings are still imported):', e.message);
+            }
         }
         const out = applyImport(db.listings, items, { trustScore, decide, cleanImport, hash, LIFE_DAYS }, report, Date.now(), log);
         save();

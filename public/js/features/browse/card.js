@@ -14,8 +14,17 @@ const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S3.5
 export const heart = (l, sv) => `<button class="save-button ${sv ? 'saved' : ''}" data-act="save" data-id="${l.id}" aria-pressed="${sv}" aria-label="${sv ? 'Remove from saved' : 'Save'}">${HEART}</button>`;
 // Logo tile: the organization's logo, or its first letter when it did not add one.
 export const logoOf = l => safeImg(l.logo) ? `<img src="${safeImg(l.logo)}" alt="">` : `<b>${esc((l.orgName || '?')[0].toUpperCase())}</b>`;
-// Cover: the uploaded picture, or a soft gradient with the type written on it (older listings have no picture).
-export const coverOf = l => safeImg(l.image) ? `<img class="lc-img" src="${safeImg(l.image)}" alt="" loading="lazy" decoding="async">` : `<span class="lc-img lc-none" data-t="${esc(l.type)}">${esc(l.type)}</span>`;
+// Cover, best first: the picture the organization uploaded, or the company's own picture found by the server (brand.js);
+// else the company's brand colour with its logo in the middle; else a soft gradient with the type written on it.
+export const coverOf = l => {
+    const src = safeImg(l.image);
+    if (src) {
+        return `<img class="lc-img" src="${src}" alt="" loading="lazy" decoding="async">`;
+    }
+    const color = /^#[0-9a-f]{6}$/i.test(l.brandColor || '') ? l.brandColor : '';
+    const logo = safeImg(l.logo);
+    return `<span class="lc-img lc-none${color ? ' lc-brand' : ''}" data-t="${esc(l.type)}"${color ? ` style="--bc:${color}"` : ''}>${logo ? `<span class="lc-big"><img src="${logo}" alt="" loading="lazy" decoding="async"></span>` : esc(l.type)}</span>`;
+};
 // Optional match info from the suggestions engine (features/suggestions/engine.js): a score badge on the cover and the top reasons.
 const flags = m => {
     if (!m) {

@@ -10,6 +10,11 @@ try {
 }
 const handleApi = require('./http/api-handler');
 const serveStatic = require('./http/static');
+const { DATA_DIR } = require('./config');
+const { db } = require('./db/store');
+const { BRAND_URL, create: createBrands } = require('./jobs/brand');
+// Read-only helper for the picture route below (it never fetches anything; the importer does that).
+const brandFiles = createBrands({ db, save: () => { }, dir: require('path').join(DATA_DIR, 'brands') });
 // Tiny in-memory rate limiter (per IP). Behind a proxy (production) the client IP is the last X-Forwarded-For entry.
 const hits = new Map();
 const limited = (key, max, ms) => {
@@ -48,6 +53,24 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    // Company logos and cover pictures found by the importer (server/jobs/brand.js). Public on purpose: an <img> tag cannot send a login token.
+    const bm = req.method === 'GET' && u.pathname.match(BRAND_URL);
+    if (bm) {
+        if (limited('b:' + ipOf(req), 1200, 60e3)) {
+            res.writeHead(429, { 'Retry-After': '60' });
+            return res.end();
+        }
+        const a = brandFiles.asset(bm[1], bm[2]);
+        if (!a) {
+            res.writeHead(404, { 'Cache-Control': 'public, max-age=300' });
+            return res.end();
+        }
+        res.writeHead(200, {
+            'Content-Type': a.mime, 'Content-Length': a.body.length, 'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+            'Cross-Origin-Resource-Policy': 'cross-origin', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+        });
+        return res.end(a.body);
+    }
     if (u.pathname.startsWith('/api/')) {
         // CORS: lets the site on GitHub Pages (another address) call this server. Requests carry a Bearer token, not cookies,
         // so '*' is safe; set CORS_ORIGIN=https://you.github.io to allow only your site.

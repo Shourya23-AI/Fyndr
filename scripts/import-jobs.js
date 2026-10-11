@@ -7,6 +7,10 @@
 //   lever       public postings API of a company      { "type": "lever", "board": "acme" }
 //   page        a careers page that publishes schema.org JobPosting data (the same data Google Jobs reads)
 //               { "type": "page", "url": "https://acme.com/careers/" }   (robots.txt is checked first; blocked pages are skipped)
+//   ashby       Ashby's public job board API           { "type": "ashby", "board": "acme" }
+//   smartrecruiters  SmartRecruiters' public Posting API { "type": "smartrecruiters", "board": "AcmeInc" }
+//   auto        only a name: the system finds the company's Greenhouse / SmartRecruiters / Lever / Ashby board by itself
+//               { "name": "Stripe", "type": "auto" }      (optional "site": "stripe.com" tells the logo finder the official website)
 //   catalog     a hand-picked list in config/ (courses.json): { "type": "catalog", "file": "courses.json" }
 //   adzuna      Adzuna's official job search API for India (free key: env ADZUNA_APP_ID and ADZUNA_APP_KEY; skipped when missing)
 //               { "type": "adzuna", "country": "in", "queries": ["intern", "fresher"], "where": "India", "pages": 1 }
@@ -27,17 +31,11 @@ const get = async (url, json) => {
     return json ? r.json() : r.text();
 };
 // Minimal robots.txt check: the rules for "*" (or our name), longest matching Allow/Disallow wins.
-async function allowed(url) {
-    const u = new URL(url);
-    let txt = '';
-    try {
-        txt = await get(u.origin + '/robots.txt');
-    } catch {
-        return true; // no robots.txt = no restrictions stated
-    }
+// robotsAllows(text of robots.txt, "/path?query") is pure, so the brand finder can reuse it with its own safe downloader.
+function robotsAllows(txt, target) {
     let applies = false;
     const rules = [];
-    for (const line of txt.split(/\r?\n/)) {
+    for (const line of String(txt || '').split(/\r?\n/)) {
         const [k, ...v] = line.split('#')[0].split(':');
         const key = (k || '').trim().toLowerCase();
         const val = v.join(':').trim();
@@ -50,11 +48,21 @@ async function allowed(url) {
     let best = ['allow', ''];
     for (const [k, p] of rules) {
         const re = new RegExp('^' + p.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\\\$$/, '$'));
-        if (re.test(u.pathname + u.search) && p.length >= best[1].length) {
+        if (re.test(target) && p.length >= best[1].length) {
             best = [k, p];
         }
     }
     return best[0] === 'allow';
+}
+async function allowed(url) {
+    const u = new URL(url);
+    let txt = '';
+    try {
+        txt = await get(u.origin + '/robots.txt');
+    } catch {
+        return true; // no robots.txt = no restrictions stated
+    }
+    return robotsAllows(txt, u.pathname + u.search);
 }
 const jobPostings = html => {
     const out = [];
@@ -178,29 +186,141 @@ async function fromAdzuna(c) {
     }
     return out;
 }
-const SOURCES = { greenhouse: fromGreenhouse, lever: fromLever, page: fromPage, catalog: fromCatalog, adzuna: fromAdzuna };
-const COMPLETE = new Set(['greenhouse', 'lever', 'page', 'catalog']); // sources that return a company's WHOLE list (not a sample)
+// Ashby's public job board API (documented by Ashby for companies that want their jobs shown elsewhere).
+async function fromAshby(c) {
+    const d = await get(`https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(c.board)}?includeCompensation=true`, true);
+    return (d.jobs || []).filter(j => j.isListed !== false && (j.jobUrl || j.applyUrl)).map(j => ({
+        orgName: c.name, title: j.title, type: typeOf(j.title),
+        location: [j.location, ...(j.secondaryLocations || []).map(x => (x && x.location) || x)].filter(x => typeof x === 'string' && x).join('; ') || (j.isRemote ? 'Remote' : ''),
+        pay: '', description: j.descriptionPlain || strip(j.descriptionHtml), applyUrl: j.jobUrl || j.applyUrl, source: 'ashby'
+    }));
+}
+// SmartRecruiters' public Posting API. The list gives title, place, department and experience level (no long text), which is enough for the filters.
+async function fromSmartRecruiters(c) {
+    const out = [];
+    for (let offset = 0; offset < 500; offset += 100) {
+        const d = await get(`https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(c.board)}/postings?limit=100&offset=${offset}`, true);
+        for (const j of d.content || []) {
+            const l = j.location || {};
+            const country = String(l.country || '').toLowerCase() === 'in' ? 'India' : String(l.country || '').toUpperCase();
+            out.push({
+                orgName: c.name, title: j.name, type: typeOf(j.name), location: [l.city, country].filter(Boolean).join(', ') + (l.remote ? ' (Remote)' : ''), pay: '',
+                description: [j.department && j.department.label, j.experienceLevel && j.experienceLevel.label, j.typeOfEmployment && j.typeOfEmployment.label].filter(Boolean).join(' - '),
+                applyUrl: `https://jobs.smartrecruiters.com/${encodeURIComponent((j.company && j.company.identifier) || c.board)}/${encodeURIComponent(j.id)}`, source: 'smartrecruiters'
+            });
+        }
+        if ((d.content || []).length < 100) {
+            break;
+        }
+        await new Promise(r => setTimeout(r, 500));
+    }
+    return out;
+}
+// ---- "auto": give only a company name, the system finds which public job board it uses ----
+// It tries a few spellings of the name on Greenhouse, SmartRecruiters, Lever and Ashby (all four publish job feeds for exactly this purpose).
+// A board is accepted only when it clearly belongs to that company: Greenhouse and SmartRecruiters report the company name (it must match);
+// Lever and Ashby do not, so the company name must appear in the text of its postings. What it picked is written to the log and remembered
+// (imports/ats-cache.json, or the database when the server runs it), so a wrong pick is easy to see and to override by writing the board by hand.
+const SUFFIX = /\b(inc|incorporated|ltd|limited|llc|llp|pvt|private|corp|corporation|co|company|plc|gmbh|technologies|technology|software|india)\b/g;
+const nameKey = s => String(s || '').toLowerCase().replace(/&/g, ' and ').replace(SUFFIX, ' ').replace(/[^a-z0-9]+/g, '');
+// Same company? Equal after dropping "Inc", "Pvt Ltd" and the like, or one is the other plus a longer tail ("Razorpay" / "Razorpay Software ...").
+const nameMatch = (a, b) => {
+    const x = nameKey(a);
+    const y = nameKey(b);
+    return x.length >= 3 && y.length >= 3 && (x === y || (Math.min(x.length, y.length) >= 5 && (x.startsWith(y) || y.startsWith(x))));
+};
+const mentions = (texts, name) => {
+    const re = new RegExp('\\b' + String(name).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+') + '\\b', 'i');
+    return texts.some(t => re.test(String(t || '')));
+};
+const slugsOf = name => {
+    const w = String(name).toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+    return [...new Set([w.join(''), w.join('-')])].filter(x => x && x.length >= 2);
+};
+const PROBES = {
+    greenhouse: async (slug, name) => nameMatch((await get(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(slug)}`, true)).name, name),
+    smartrecruiters: async (slug, name) => {
+        const d = await get(`https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings?limit=5`, true);
+        const c = (d.content || [])[0];
+        return !!c && d.totalFound > 0 && nameMatch(c.company && c.company.name, name);
+    },
+    lever: async (slug, name) => {
+        const d = await get(`https://api.lever.co/v0/postings/${encodeURIComponent(slug)}?mode=json&limit=10`, true);
+        return Array.isArray(d) && d.length > 0 && mentions(d.flatMap(j => [j.descriptionPlain, j.additionalPlain]), name);
+    },
+    ashby: async (slug, name) => {
+        const jobs = (await get(`https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(slug)}`, true)).jobs || [];
+        return jobs.length > 0 && mentions(jobs.slice(0, 10).map(j => j.descriptionPlain), name);
+    }
+};
+async function detectAts(name) {
+    for (const type of ['greenhouse', 'smartrecruiters', 'lever', 'ashby']) {
+        for (const board of slugsOf(name)) {
+            try {
+                if (await PROBES[type](board, name)) {
+                    return { type, board };
+                }
+            } catch { /* not found on this service under this spelling */ }
+            await new Promise(r => setTimeout(r, 200));
+        }
+    }
+    return null;
+}
+async function resolveAuto(c, opts, log) {
+    const cache = opts.atsCache || (opts.atsCache = {});
+    const hit = cache[c.name];
+    if (hit && hit.type) {
+        return { ...c, type: hit.type, board: hit.board };
+    }
+    if (hit && hit.none && Date.now() - hit.at < 7 * 864e5) {
+        return null;
+    }
+    const found = await detectAts(c.name);
+    cache[c.name] = found ? { ...found, at: Date.now() } : { none: true, at: Date.now() };
+    if (found) {
+        log(`${c.name}: found its job board automatically (${found.type}: ${found.board})`);
+    }
+    return found ? { ...c, ...found } : null;
+}
+const SOURCES = { greenhouse: fromGreenhouse, lever: fromLever, ashby: fromAshby, smartrecruiters: fromSmartRecruiters, page: fromPage, catalog: fromCatalog, adzuna: fromAdzuna };
+const COMPLETE = new Set(['greenhouse', 'lever', 'ashby', 'smartrecruiters', 'page', 'catalog']); // sources that return a company's WHOLE list (not a sample)
 const keyOf = c => `${c.type}:${c.board || c.url || c.file || c.country || c.name}`;
 // report.complete = keys of sources fetched fully this run (the scheduled importer closes listings that vanished from them);
 // report.failed / report.skipped = names, for the summary at the end.
-async function collect(list, log = console.log, report = { complete: new Set(), failed: [], skipped: [] }) {
+async function collect(list, log = console.log, report = { complete: new Set(), failed: [], skipped: [] }, opts = {}) {
     const cfg = SETTINGS();
     const all = [];
     for (const c of list) {
         try {
-            const f = SOURCES[c.type];
+            let src = c;
+            if (c.type === 'auto') {
+                src = await resolveAuto(c, opts, log);
+                if (!src) {
+                    throw Object.assign(new Error('no public job board found on Greenhouse, SmartRecruiters, Lever or Ashby'), { skip: true });
+                }
+            }
+            const f = SOURCES[src.type];
             if (!f) {
                 throw new Error('unknown type ' + c.type);
             }
-            const raw = (await f(c)).filter(x => x.title && /^https:\/\//i.test(x.applyUrl || ''));
+            let raw;
+            try {
+                raw = await f(src);
+            } catch (e) {
+                if (c.type === 'auto' && opts.atsCache) {
+                    delete opts.atsCache[c.name]; // the remembered board stopped working: look again next time
+                }
+                throw e;
+            }
+            raw = raw.filter(x => x.title && /^https:\/\//i.test(x.applyUrl || ''));
             let r = raw;
             if (cfg.studentFriendlyOnly !== false) {
                 r = r.filter(studentFriendly);
             }
-            r = r.filter(x => placeOk(x, cfg.keepLocations)).slice(0, cfg.maxPerSource || 60).map(x => ({ ...x, srcKey: keyOf(c) }));
+            r = r.filter(x => placeOk(x, cfg.keepLocations)).slice(0, cfg.maxPerSource || 60).map(x => ({ ...x, srcKey: keyOf(src), site: c.site || '' }));
             log(`${c.name}: ${raw.length} found, ${r.length} kept`);
-            if (raw.length && COMPLETE.has(c.type)) {
-                report.complete.add(keyOf(c));
+            if (raw.length && COMPLETE.has(src.type)) {
+                report.complete.add(keyOf(src));
             }
             all.push(...r);
         } catch (e) {
@@ -219,12 +339,15 @@ async function collect(list, log = console.log, report = { complete: new Set(), 
 async function main() {
     const cfg = path.resolve(process.argv[2] || path.join(__dirname, '..', 'config', 'companies.json'));
     const out = path.resolve(process.argv[3] || path.join(__dirname, '..', 'imports', 'jobs.json'));
-    const all = await collect(JSON.parse(fs.readFileSync(cfg, 'utf8')));
+    const cacheFile = path.join(path.dirname(out), 'ats-cache.json');
+    const atsCache = (() => { try { return JSON.parse(fs.readFileSync(cacheFile, 'utf8')); } catch { return {}; } })();
+    const all = await collect(JSON.parse(fs.readFileSync(cfg, 'utf8')), console.log, undefined, { atsCache });
     fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(cacheFile, JSON.stringify(atsCache, null, 1));
     fs.writeFileSync(out, JSON.stringify(all, null, 1));
     console.log(`\nWrote ${all.length} listing(s) to ${out}\nNext: Dashboard > Listings > Import jobs and courses, then choose that file.`);
 }
 if (require.main === module) {
     main();
 }
-module.exports = { collect, jobPostings, allowed, strip, typeOf, studentFriendly, placeOk, fromCatalog };
+module.exports = { collect, jobPostings, allowed, robotsAllows, detectAts, slugsOf, nameMatch, mentions, strip, typeOf, studentFriendly, placeOk, fromCatalog };
