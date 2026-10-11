@@ -1,5 +1,21 @@
 # Fyndr
 
+## GitHub Pages: why devices showed different data, and how to fix it
+
+GitHub Pages only hosts static files. With no server behind it, Fyndr falls back to a **browser-only demo mode where every device keeps its own private data** (that is why your phone and laptop disagreed, and why Team roles and phone verification could not work: both need the server). The site now shows a yellow "Demo mode" bar when this happens.
+
+**To share one database across all devices**
+1. Host the Node server somewhere (this repo includes `render.yaml` for Render; any Node host works): `node server.js`. Add the environment variables `PHONE_EMAIL_CLIENT_ID` and optionally `ADMIN_EMAILS`, and make sure `config/firebase-config.json` is in the deployed copy.
+2. **Keep the data:** the server stores everything in `DATA_DIR/data.json`. On Render this needs the paid disk in `render.yaml`; on a free plan the file is erased when the service restarts. Fly.io / Railway volumes also work.
+3. In `public/index.html` set the server address (no trailing slash):
+   `<meta name="fyndr-api" content="https://your-server.onrender.com" />`
+   then commit and push so GitHub Pages republishes.
+4. Optional: set `CORS_ORIGIN=https://YOURNAME.github.io` on the server so only your site may call it (default allows any site; requests use sign-in tokens, not cookies).
+5. In the phone.email dashboard, set the Domain URL to your **GitHub Pages address** (where people open the site).
+6. In Firebase Authentication > Settings > Authorized domains, make sure `YOURNAME.github.io` is listed.
+
+Simplest alternative: skip GitHub Pages and use the server's own address as the website (it serves the pages too), then nothing above is needed.
+
 ## Latest update: speed, caching, mobile, phone verification, team roles
 
 **Speed (the reload feels instant now)**

@@ -1,11 +1,12 @@
 // phone.email helpers: read the Client ID, open the login popup, wait for the token it returns.
+import { API_BASE } from '../../core/api-base.js';
 let cid;
 export async function phoneClientId() {
     if (cid !== undefined) {
         return cid;
     }
     try {
-        const r = await fetch('api/phone-config');
+        const r = await fetch(API_BASE ? API_BASE + '/api/phone-config' : 'api/phone-config');
         if (!r.ok) {
             throw 0;
         }

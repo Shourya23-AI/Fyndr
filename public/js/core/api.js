@@ -1,4 +1,5 @@
 import { fb } from '../services/firebase/firebase-init.js';
+import { API_BASE } from './api-base.js';
 import { localApi } from '../services/local-api/local-api.js';
 // Every call to the backend goes through api(): the Node server normally, or the browser-only localApi in Live Server mode.
 //
@@ -31,7 +32,7 @@ export function forgetDeviceCache() {
 }
 async function call(p, m, b) {
     const t = await fb.token();
-    const r = await fetch('/api' + p, {
+    const r = await fetch(API_BASE + '/api' + p, {
         method: m, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: b ? JSON.stringify(b) : undefined
     });
     const d = await r.json().catch(() => ({}));

@@ -1,7 +1,8 @@
 // Firebase is loaded LAZILY: the page draws first, the SDK downloads in the background.
 // Nothing here blocks the first paint. `fb.ready()` resolves once we know who is signed in (the router waits on it).
+import { API_BASE } from '../../core/api-base.js';
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
-const CFG_KEY = 'fyndr-fbcfg';
+const CFG_KEY = 'fyndr-fbcfg:' + API_BASE; // separate per server address, so switching servers never reuses old settings
 let local = false;
 let auth = null;
 let m = null; // Firebase auth functions, filled in by init
@@ -16,7 +17,7 @@ const readCfg = () => {
 async function fetchCfg() {
     let r;
     try {
-        const res = await fetch('api/firebase-config');
+        const res = await fetch(API_BASE ? API_BASE + '/api/firebase-config' : 'api/firebase-config');
         if (!res.ok) {
             throw 0;
         }

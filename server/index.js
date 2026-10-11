@@ -49,6 +49,21 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     if (u.pathname.startsWith('/api/')) {
+        // CORS: lets the site on GitHub Pages (another address) call this server. Requests carry a Bearer token, not cookies,
+        // so '*' is safe; set CORS_ORIGIN=https://you.github.io to allow only your site.
+        const allow = process.env.CORS_ORIGIN || '*';
+        const origin = req.headers.origin;
+        if (origin && (allow === '*' || allow.split(',').map(s => s.trim()).includes(origin))) {
+            res.setHeader('Access-Control-Allow-Origin', allow === '*' ? '*' : origin);
+            res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+            res.setHeader('Access-Control-Max-Age', '86400');
+            res.setHeader('Vary', 'Origin');
+        }
+        if (req.method === 'OPTIONS') {
+            res.writeHead(204);
+            return res.end();
+        }
         const ip = ipOf(req);
         const sk = STRICT[req.method + ' ' + u.pathname];
         if (limited('a:' + ip, 300, 60e3) || (sk && limited(req.method + u.pathname + ':' + ip, sk[0], sk[1]))) {

@@ -50,7 +50,7 @@ const ROLE_LABEL = { admin: 'Admin', moderator: 'Moderator' };
 function team(d) {
     if (!Array.isArray(d.team)) {
         // The data came from something that does not know about team roles: an old copy of the server, or browser-only (Live Server) mode.
-        return head('Team', 'Team roles are not available here.') + '<div class="panel"><h3>This copy of Fyndr cannot manage the team</h3><p class="desc">Team roles need the <b>latest Node server</b>. Stop the server, make sure you are running the files from the newest zip, start it again with <b>node server.js</b>, open the site from <b>http://localhost:3000</b> (not Live Server) and reload the page twice.</p></div>';
+        return head('Team', 'Team roles are not available here.') + '<div class="panel"><h3>No server is connected</h3><p class="desc">This site is running in <b>demo mode</b> (for example on GitHub Pages without a server), where data stays inside this one browser and team roles cannot work. To use Team, host the Node server and put its address in <b>index.html</b> (<code>&lt;meta name="fyndr-api" content="https://your-server"&gt;</code>), or open the site from the server\'s own address. Steps are in the README under <b>GitHub Pages</b>.</p></div>';
     }
     d.invites = d.invites || [];
     const q = (S.tq || '').toLowerCase();

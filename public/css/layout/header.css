@@ -95,3 +95,12 @@
     height: 38px;
   }
 }
+
+.demo-banner {
+  padding: 10px 16px;
+  background: #fff3cd;
+  color: #5c4400;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
