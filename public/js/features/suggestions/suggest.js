@@ -2,7 +2,7 @@ import { S } from '../../core/state.js';
 import { $, esc } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { card } from '../browse/card.js';
-import { suggestFor } from './engine.js';
+import { suggestFor, extractSkills } from './engine.js';
 // "Suggested for you": ranks approved listings by the candidate's qualifications, skills and preferences (engine.js).
 // Everything is worked out in the browser from the profile the person typed. No resume is read and no AI is involved.
 
@@ -73,6 +73,34 @@ function paint() {
     el.innerHTML = `<div class="sg-head"><div><h2>Suggested for you</h2><p class="desc">Matched to your qualifications, skills and preferences. ${newTag}</p></div><span class="sg-links"><a class="sg-edit" data-act="fyopen" href="#/dashboard">See your full plan</a><a class="sg-edit" href="#/profile">Fine-tune</a></span></div>${body}${gapPanel(r)}${note}`;
 }
 
+// The built-in catalog is thousands of rows; scoring all of them is slow. Keep real listings as they are and, from the catalog,
+// only the rows that mention something from the person's profile (skills, field, study), at most CAP of them.
+const CAP = 400;
+export function shortlist(ls, p) {
+    const cat = ls.filter(l => typeof l.id === 'string' && l.id.startsWith('cat_'));
+    if (cat.length <= CAP) {
+        return ls;
+    }
+    const words = [...new Set([...(Array.isArray(p.skills) ? p.skills.map(x => (typeof x === 'string' ? x : x?.name || '')) : []), p.field, p.course, p.degree, p.headline].filter(Boolean).flatMap(x => String(x).toLowerCase().split(/[^a-z0-9+#.]+/)).filter(w => w.length > 2))];
+    const keys = new Set(extractSkills([p.field, p.course, p.degree, p.headline, ...(p.skills || []).map(x => (typeof x === 'string' ? x : x?.name || ''))].filter(Boolean).join(' ')));
+    const score = l => {
+        const t = (l.title + ' ' + (l.skills || []).join(' ')).toLowerCase();
+        let n = 0;
+        for (const w of words) {
+            if (t.includes(w)) {
+                n += 2;
+            }
+        }
+        for (const k of keys) {
+            if (t.includes(k)) {
+                n += 1;
+            }
+        }
+        return n;
+    };
+    const top = cat.map(l => [score(l), l]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, CAP).map(x => x[1]);
+    return ls.filter(l => !(typeof l.id === 'string' && l.id.startsWith('cat_'))).concat(top);
+}
 export function moreSuggestions() {
     view.n += STEP;
     paint();
@@ -93,7 +121,7 @@ export async function suggest(scope = 'jobs') {
     }
     const [pr, ls] = await Promise.all([api('/profile'), api('/listings')]);
     S.match = {};
-    view.r = suggestFor(pr.profile, ls, {
+    view.r = suggestFor(pr.profile, shortlist(ls, pr.profile), {
         saved: S.mine.saved, applied: S.mine.applications.map(a => a.listingId), lastSeen: lastVisit(S.me.id || S.me.email), limit: 24
     });
     view.scope = scope;

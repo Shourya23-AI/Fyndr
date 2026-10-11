@@ -1,6 +1,7 @@
 import { fb } from '../services/firebase/firebase-init.js';
 import { API_BASE } from './api-base.js';
 import { fireApi } from '../services/firestore-api/fire-api.js';
+import { loadCatalog, mergeCatalog, catSaved, toggleCatSaved } from '../features/catalog/catalog.js';
 // Every call to the backend goes through api(): the Node server normally, or Firebase Firestore directly when there is no server (GitHub Pages).
 //
 // Client data cache: GET requests for the lists below are kept in memory for a few seconds, so moving between pages and tabs
@@ -26,7 +27,7 @@ export function peekCached(p) {
 }
 export function forgetDeviceCache() {
     try {
-        Object.keys(localStorage).filter(k => k.startsWith('fyndr-c:') || k === 'fyndr-me').forEach(k => localStorage.removeItem(k));
+        Object.keys(localStorage).filter(k => k.startsWith('fyndr-c:') || k === 'fyndr-me' || k === 'fyndr-catsaved').forEach(k => localStorage.removeItem(k));
     } catch { }
     clearApiCache();
 }
@@ -43,7 +44,22 @@ async function call(p, m, b) {
     }
     return d;
 }
+// Public entry. Adds the built-in catalog to listing requests and keeps catalog saves on this device; everything else goes straight through.
 export async function api(p, m = 'GET', b) {
+    if (m === 'GET' && /^\/listings(\?|$)/.test(p)) {
+        const [rows, cat] = await Promise.all([apiCore(p, m, b), loadCatalog()]);
+        return mergeCatalog(rows, cat, p);
+    }
+    if (m === 'POST' && /^\/save\/cat_/.test(p)) {
+        return toggleCatSaved(p.slice('/save/'.length));
+    }
+    if (m === 'GET' && p === '/my') {
+        const d = await apiCore(p, m, b);
+        return d && Array.isArray(d.saved) ? { ...d, saved: d.saved.concat(catSaved()) } : d;
+    }
+    return apiCore(p, m, b);
+}
+async function apiCore(p, m = 'GET', b) {
     await fb.ready();
     const u = fb.user();
     const net = fb.local ? (p2, m2, b2) => fireApi(p2, m2, b2, u && {
