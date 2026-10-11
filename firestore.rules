@@ -94,11 +94,11 @@ service cloud.firestore {
           && (!changed().hasAny(['consent'])
               || (request.resource.data.consent.keys().hasOnly(['v', 'at']) && request.resource.data.consent.v is string && request.resource.data.consent.at is string))
           && request.resource.data.get('photo', '').size() <= 120000
-          && request.resource.data.sharedWith.size() < 500
+          && request.resource.data.get('sharedWith', []).size() < 500
           && (!changed().hasAny(['proof']) || request.resource.data.proof.status == 'pending')
           // a phone number is only accepted together with its phones/{digits} claim (one number, one account)
           && (!changed().hasAny(['phone'])
-              || getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phone.replace('+', ''))).data.uid == me()))
+              || getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phone.replace('[+]', ''))).data.uid == me()))
         // moderators and admins: verify organizations and proof documents
         || (isStaff() && changed().hasOnly(['verified', 'proof']))
         // admins only: organization size and the Gmail-posting override
