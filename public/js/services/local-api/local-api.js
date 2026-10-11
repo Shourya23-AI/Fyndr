@@ -1,4 +1,5 @@
 import { ADMIN_EMAILS } from './config.js';
+import { staffOf, publishCard, teamData, setStaff, lc } from '../cloud/cloud.js';
 import { phoneClientId, lookupPhone } from '../phone-email/phone-email.js';
 import { db, save, uid, now, bad } from './store.js';
 import { QUAL, EXP, JT, pub, completion, cleanExtras, meOf, need, listings, signals, ORG_TYPES, isFree, gmailAllowed, adminData } from './helpers.js';
@@ -8,7 +9,7 @@ export async function localApi(path, method, b = {}, fu) {
     const p = url.pathname;
     const q = url.searchParams;
     const id = p.split('/').pop();
-    const k = method + ' ' + p.replace(/^(\/(?:apply|save|listings|applications|admin\/listings|admin\/orgs|admin\/users|admin\/proof|proof\/file))\/[^/]+$/, '$1/:id');
+    const k = method + ' ' + p.replace(/^(\/(?:apply|save|listings|applications|admin\/listings|admin\/staff|admin\/orgs|admin\/users|admin\/proof|proof\/file))\/[^/]+$/, '$1/:id');
     if (!fu) {
         bad('Please log in');
     }
@@ -40,10 +41,29 @@ export async function localApi(path, method, b = {}, fu) {
     if (!user) {
         bad('no profile');
     }
-    if (user.role !== 'admin' && ADMIN_EMAILS.map(e => e.toLowerCase()).includes((fu.email || '').toLowerCase())) {
-        Object.assign(user, { role: 'admin', verified: true });
-        delete user.orgName;
-        save();
+    // Staff roles come from the shared cloud database (so they follow the person to every device). The main admin is built in.
+    const isMain = e => ADMIN_EMAILS.map(lc).includes(lc(e));
+    const level = isMain(fu.email) ? 'admin' : await staffOf(fu.email);
+    if (level !== undefined) { // undefined = cloud unreachable: keep what we have
+        if (level) {
+            if (user.role !== 'admin' && user.role !== 'moderator') {
+                user.baseRole = user.role;
+            }
+            if (user.role !== level || (isMain(fu.email) && !user.verified)) {
+                user.role = level;
+                if (isMain(fu.email)) {
+                    user.verified = true;
+                }
+                save();
+            }
+        } else if (user.role === 'admin' || user.role === 'moderator') {
+            user.role = user.baseRole || 'user';
+            delete user.baseRole;
+            save();
+        }
+    }
+    if (method === 'GET' && p === '/me') {
+        publishCard(user); // lets admins on other devices see this account (fire and forget)
     }
     const only = (...r) => {
         if (!r.includes(user.role)) {
@@ -115,13 +135,13 @@ export async function localApi(path, method, b = {}, fu) {
         }
         case 'GET /proof/file/:id': {
             const u = db.users.find(x => x.id === id);
-            if (!u?.proof || (u.id !== user.id && user.role !== 'admin')) {
+            if (!u?.proof || (u.id !== user.id && user.role !== 'admin' && user.role !== 'moderator')) {
                 bad('Not found');
             }
             return { mime: u.proof.mime, data: u.proofData };
         }
         case 'PATCH /admin/proof/:id': {
-            only('admin');
+            only('admin', 'moderator');
             const u = db.users.find(x => x.id === id);
             if (!u?.proof) {
                 bad('Not found');
@@ -319,7 +339,7 @@ export async function localApi(path, method, b = {}, fu) {
             return { ok: 1 };
         }
         case 'DELETE /listings/:id': {
-            only('org', 'admin');
+            only('org', 'moderator', 'admin');
             const l = db.listings.find(x => x.id === id);
             if (!l || (user.role === 'org' && l.orgId !== user.id)) {
                 bad('Not found');
@@ -329,9 +349,80 @@ export async function localApi(path, method, b = {}, fu) {
             save();
             return { ok: 1 };
         }
-        case 'GET /admin/data':
+        case 'GET /admin/data': {
+            only('admin', 'moderator');
+            const d = adminData(db);
+            if (user.role !== 'admin') {
+                return d; // moderators do not see the Team tab
+            }
+            // Add everyone from the shared directory (accounts created on other devices) and the team list.
+            try {
+                const { dir, staff } = await teamData();
+                const have = new Set(db.users.map(x => x.id));
+                for (const r of dir.filter(x => !have.has(x.uid))) {
+                    if (r.kind === 'org') {
+                        d.orgs.push({ id: r.uid, orgName: r.orgName || r.name, name: r.name, email: r.email, website: '', orgType: r.orgType || 'small', free: isFree(r.email), gmailOk: null, gmailAllowed: false, verified: false, proofStatus: null, listings: 0, phoneVerified: !!r.phoneVerified, created: r.created, remote: true });
+                    } else {
+                        d.candidates.push({ id: r.uid, name: r.name, email: r.email, phoneVerified: !!r.phoneVerified, completion: r.completion || 0, applications: 0, created: r.created, remote: true });
+                    }
+                }
+                d.stats.candidates = d.candidates.length;
+                d.stats.organizations = d.orgs.length;
+                const mains = ADMIN_EMAILS.map(lc);
+                const rows = dir.map(r => ({
+                    id: r.uid, name: r.name, email: r.email, kind: r.kind === 'org' ? 'Organization' : 'Candidate', staff: mains.includes(lc(r.email)) ? 'admin' : staff[lc(r.email)] || null, permanent: mains.includes(lc(r.email)), created: r.created
+                }));
+                for (const m of mains) { // the main admin always appears, even before the first sign-in
+                    if (!rows.some(r => lc(r.email) === m)) {
+                        rows.push({ id: 'main:' + m, name: 'Main admin', email: m, kind: 'Candidate', staff: 'admin', permanent: true, created: '' });
+                    }
+                }
+                d.team = rows.sort((a, b) => (b.permanent - a.permanent) || ((b.staff === 'admin') - (a.staff === 'admin')) || ((!!b.staff) - (!!a.staff)) || String(a.name).localeCompare(String(b.name)));
+                const known = new Set(rows.map(r => lc(r.email)));
+                d.invites = Object.entries(staff).filter(([e]) => !known.has(e)).map(([email, role]) => ({ email, role, at: '' }));
+            } catch (e) {
+                d.teamError = e.message;
+            }
+            return d;
+        }
+        case 'PATCH /admin/staff/:id': {
             only('admin');
-            return adminData(db);
+            const email = lc(b.email);
+            if (!email) {
+                bad('Missing email');
+            }
+            if (isMain(email)) {
+                bad('The main admin is permanent and cannot be changed');
+            }
+            if (id === user.id || email === lc(user.email)) {
+                bad("You can't change your own role");
+            }
+            if (!['admin', 'moderator', 'none'].includes(b.role)) {
+                bad('Bad role');
+            }
+            await setStaff(email, b.role, user.email);
+            return { ok: 1 };
+        }
+        case 'POST /admin/staff-invite': {
+            only('admin');
+            const email = lc(b.email);
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                bad('Enter a valid email address');
+            }
+            if (!['admin', 'moderator'].includes(b.role)) {
+                bad('Choose Admin or Moderator');
+            }
+            if (isMain(email)) {
+                bad('That account is already a permanent admin');
+            }
+            await setStaff(email, b.role, user.email);
+            return { ok: 1, applied: true };
+        }
+        case 'POST /admin/staff-invite/revoke':
+            only('admin');
+            await setStaff(b.email, 'none', user.email);
+            return { ok: 1 };
+
         case 'PATCH /admin/orgs/:id': {
             only('admin');
             const u = db.users.find(x => x.id === id && x.role === 'org');
@@ -357,7 +448,7 @@ export async function localApi(path, method, b = {}, fu) {
             return { ok: 1 };
         }
         case 'PATCH /admin/listings/:id': {
-            only('admin');
+            only('admin', 'moderator');
             const l = db.listings.find(x => x.id === id);
             if (!l) {
                 bad('Not found');
@@ -370,7 +461,7 @@ export async function localApi(path, method, b = {}, fu) {
             return { ok: 1 };
         }
         case 'PATCH /admin/users/:id': {
-            only('admin');
+            only('admin', 'moderator');
             const u = db.users.find(x => x.id === id);
             if (!u) {
                 bad('Not found');

@@ -5,6 +5,7 @@ const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const CFG_KEY = 'fyndr-fbcfg:' + API_BASE; // separate per server address, so switching servers never reuses old settings
 let local = false;
 let auth = null;
+let app = null;
 let m = null; // Firebase auth functions, filled in by init
 let configured = false;
 const readCfg = () => {
@@ -46,7 +47,8 @@ const init = (async () => {
     }
     const [{ initializeApp }, a] = await Promise.all([import(SDK + 'firebase-app.js'), import(SDK + 'firebase-auth.js')]);
     m = a;
-    auth = a.getAuth(initializeApp(cfg));
+    app = initializeApp(cfg);
+    auth = a.getAuth(app);
     return new Promise(r => a.onAuthStateChanged(auth, r));
 })();
 // Wrap an action so it waits for Firebase to be ready first (a click can arrive before the SDK has finished downloading).
@@ -57,6 +59,8 @@ const W = fn => async (...a) => {
 export const fb = {
     get local() { return local; },
     get configured() { return configured; },
+    app: () => app,
+    sdk: SDK,
     ready: () => init,
     user: () => auth?.currentUser || null,
     token: async () => {

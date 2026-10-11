@@ -16,6 +16,20 @@ GitHub Pages only hosts static files. With no server behind it, Fyndr falls back
 
 Simplest alternative: skip GitHub Pages and use the server's own address as the website (it serves the pages too), then nothing above is needed.
 
+## Roles on GitHub Pages without any server (Firebase Firestore)
+
+Admins can now make people **Admin** or **Moderator** from **Dashboard > Team** on the GitHub Pages site itself. Roles are saved in your Firebase project (Firestore), so they are shared and follow the person to every device. You can also add an email that has not signed up yet. The main admin (`admin.fyndr@gmail.com`) is permanent and the database rules refuse any change to it.
+
+**One-time setup (about 3 minutes)**
+1. Firebase Console > your project > **Build > Firestore Database > Create database** (production mode, any region).
+2. Open the **Rules** tab, paste the whole file `firestore.rules` from this folder, click **Publish**.
+3. Push these files to GitHub so Pages republishes, sign in as the main admin, open **Team**. If setup is missing, the Team tab tells you exactly what to do.
+
+**What is shared and what is not (important)**
+- Shared across all devices: staff roles, and a small "account card" (name, email, type) for every signed-in account. The admin's Candidates / Organizations lists and counts now include people who signed up on other devices (those rows are view-only).
+- Still per device in this mode: profiles, resumes, listings, applications and approvals. They live in each browser because GitHub Pages has no server. To share those too, use the hosted Node server option in the GitHub Pages section above, or ask for them to be moved to Firestore as well.
+- Moderators can sign in anywhere, but they can only moderate data that exists in their own browser until the data is shared.
+
 ## Latest update: speed, caching, mobile, phone verification, team roles
 
 **Speed (the reload feels instant now)**

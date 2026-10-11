@@ -59,7 +59,7 @@ export const onChange = async (e) => {
             if (!confirm('Change this account to: ' + name + '?')) {
                 return dashboard();
             }
-            await api('/admin/staff/' + t.staff, 'PATCH', { role: v });
+            await api('/admin/staff/' + t.staff, 'PATCH', { role: v, email: t.email });
             toast('Role updated');
             dashboard();
         } else if (t.orgtype) {

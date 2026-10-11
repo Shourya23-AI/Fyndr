@@ -26,7 +26,7 @@ function orgs(d) {
     const rows = d.orgs.map(o => {
         const ver = o.verified ? pill('verified') : o.proofStatus ? pill(o.proofStatus) : '<span class="pill">No proof</span>';
         const gm = o.free ? `${isAdmin() ? sel('data-orggm', o.id, o.gmailOk === true ? 'allow' : o.gmailOk === false ? 'block' : 'default', [['default', `Default (${o.orgType === 'small' ? 'allow' : 'block'})`], ['allow', 'Allow'], ['block', 'Block']]) + '<br>' : ''}${o.gmailAllowed ? '<span class="tag tag-verified">Can post</span>' : '<span class="tag tag-warn">Cannot post</span>'}` : '<span class="desc">Not needed</span>';
-        return `<tr><td><b>${esc(o.orgName)}</b><br><span class="desc">${esc(o.email || '—')}</span>${url(o.website)}</td><td>${isAdmin() ? sel('data-orgtype', o.id, o.orgType, Object.entries(SIZE)) : SIZE[o.orgType]}</td><td>${o.free ? '<span class="tag tag-warn">Gmail / free</span>' : '<span class="tag tag-verified">Work email</span>'}</td><td>${gm}</td><td>${ver}</td><td>${o.listings}</td><td><button class="mini ok" data-act="verify" data-id="${o.id}" data-s="${o.verified ? '' : '1'}">${o.verified ? 'Unverify' : 'Verify'}</button> ${isAdmin() ? `<button class="mini no" data-act="deluser" data-id="${o.id}">Delete</button>` : ''}</td></tr>`;
+        return `<tr><td><b>${esc(o.orgName)}</b><br><span class="desc">${esc(o.email || '—')}</span>${url(o.website)}</td><td>${isAdmin() && !o.remote ? sel('data-orgtype', o.id, o.orgType, Object.entries(SIZE)) : SIZE[o.orgType]}</td><td>${o.free ? '<span class="tag tag-warn">Gmail / free</span>' : '<span class="tag tag-verified">Work email</span>'}</td><td>${gm}</td><td>${ver}</td><td>${o.listings}</td><td><button class="mini ok" data-act="verify" data-id="${o.id}" data-s="${o.verified ? '' : '1'}">${o.verified ? 'Unverify' : 'Verify'}</button> ${isAdmin() && !o.remote ? `<button class="mini no" data-act="deluser" data-id="${o.id}">Delete</button>` : ''}</td></tr>`;
     });
     return head('Organizations', 'Small businesses may post with Gmail by default; enterprises may not. Override per organization below.') + `<div class="panel">${table(['Organization', 'Size', 'Email', 'Gmail posting', 'Verification', 'Listings', ''], rows)}</div>`;
 }
@@ -43,14 +43,17 @@ function verify(d) {
     return head('Verification', 'Check each organization or candidate document, then approve or reject.') + `<div class="panel">${table(['Who', 'Type', 'Checks', 'Proof', 'Status', ''], d.proofs.map(x => `<tr><td>${esc(x.name)}<br><span class="desc">${esc(x.email)}</span></td><td>${x.role}</td><td>${x.signals ? Object.entries(CK).map(([k, t]) => `<span class="tag ${x.signals[k] ? 'tag-verified' : 'tag-warn'}">${t}</span>`).join(' ') : '—'}${x.portal ? `<br><a class="link" href="${esc(x.portal)}" target="_blank" rel="noopener noreferrer">Careers page</a>` : ''}</td><td><button class="mini" data-act="viewproof" data-id="${x.id}">View</button></td><td>${pill(x.status)}</td><td><button class="mini ok" data-act="pstat" data-id="${x.id}" data-s="verified">Approve</button> <button class="mini no" data-act="pstat" data-id="${x.id}" data-s="rejected">Reject</button></td></tr>`))}</div>`;
 }
 function people(d) {
-    return head('Candidates', `${d.candidates.length} registered`) + `<div class="panel">${table(['Name', 'Email', 'Phone', 'Profile', 'Applications', 'Joined', ''], d.candidates.map(u => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${u.phoneVerified ? '<span class="tag tag-verified">Verified</span>' : '<span class="desc">—</span>'}</td><td>${u.completion}%</td><td>${u.applications}</td><td>${fmt(u.created)}</td><td>${isAdmin() ? `<button class="mini no" data-act="deluser" data-id="${u.id}">Delete</button>` : ''}</td></tr>`))}</div>`;
+    return head('Candidates', `${d.candidates.length} registered`) + `<div class="panel">${table(['Name', 'Email', 'Phone', 'Profile', 'Applications', 'Joined', ''], d.candidates.map(u => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${u.phoneVerified ? '<span class="tag tag-verified">Verified</span>' : '<span class="desc">—</span>'}</td><td>${u.completion}%</td><td>${u.applications}</td><td>${fmt(u.created)}</td><td>${isAdmin() && !u.remote ? `<button class="mini no" data-act="deluser" data-id="${u.id}">Delete</button>` : ''}</td></tr>`))}</div>`;
 }
 // Team: every account with a role selector. The main admin is permanent (no selector, cannot be changed or deleted).
 const ROLE_LABEL = { admin: 'Admin', moderator: 'Moderator' };
 function team(d) {
+    if (d.teamError) {
+        // Browser-only / GitHub Pages mode: roles live in the shared Firebase database, which needs one-time setup.
+        return head('Team', 'The shared team database is not ready yet.') + `<div class="panel"><h3>One-time setup needed</h3><p class="err">${esc(d.teamError)}</p><ol class="desc"><li>Open <b>Firebase Console</b> for your project, then <b>Build &gt; Firestore Database</b> and click <b>Create database</b> (production mode).</li><li>Open the <b>Rules</b> tab, paste the contents of <b>firestore.rules</b> from the Fyndr folder, and click <b>Publish</b>.</li><li>Reload this page.</li></ol></div>`;
+    }
     if (!Array.isArray(d.team)) {
-        // The data came from something that does not know about team roles: an old copy of the server, or browser-only (Live Server) mode.
-        return head('Team', 'Team roles are not available here.') + '<div class="panel"><h3>No server is connected</h3><p class="desc">This site is running in <b>demo mode</b> (for example on GitHub Pages without a server), where data stays inside this one browser and team roles cannot work. To use Team, host the Node server and put its address in <b>index.html</b> (<code>&lt;meta name="fyndr-api" content="https://your-server"&gt;</code>), or open the site from the server\'s own address. Steps are in the README under <b>GitHub Pages</b>.</p></div>';
+        return head('Team', 'Team roles are not available here.') + '<div class="panel"><h3>Team data is unavailable</h3><p class="desc">Reload the page. If this keeps happening, make sure you are signed in as an admin and that the site files are the latest version.</p></div>';
     }
     d.invites = d.invites || [];
     const q = (S.tq || '').toLowerCase();
@@ -64,7 +67,7 @@ function team(d) {
         } else if (t.id === S.me.id) {
             role = `<span class="tag">${ROLE_LABEL[t.staff] || 'Member'}</span>`;
         } else {
-            role = sel('data-staff', t.id, t.staff || 'none', [['none', 'Member'], ['moderator', 'Moderator'], ['admin', 'Admin']]);
+            role = sel('data-staff', t.id, t.staff || 'none', [['none', 'Member'], ['moderator', 'Moderator'], ['admin', 'Admin']]).replace('<select', `<select data-email="${esc(t.email)}"`);
         }
         return `<tr><td>${who}</td><td>${t.kind}</td><td>${role}</td><td>${fmt(t.created)}</td></tr>`;
     };

@@ -1,3 +1,4 @@
+import { ADMIN_EMAILS } from './config.js';
 import { db, bad } from './store.js';
 // Small pure helpers shared by the local API routes.
 export const QUAL = ['High School', 'Diploma', "Bachelor's", "Master's", 'PhD', 'Other'];
@@ -11,7 +12,7 @@ export const completion = u => {
     return Math.round([p.qualification, p.field, p.institution, p.gradYear, p.skills?.length, p.experience, p.jobTypes?.length, p.locations, u.resume].filter(Boolean).length / 9 * 100);
 };
 export const meOf = u => ({
-    ...pub(u), proofStatus: u.proof?.status, portal: u.proof?.portal, phoneMasked: u.phone ? u.phone.replace(/\d(?=\d{4})/g, '•') : undefined, ...(u.role === 'user' ? {
+    ...pub(u), permanent: ADMIN_EMAILS.some(e => e.toLowerCase() === (u.email || '').toLowerCase()) || undefined, proofStatus: u.proof?.status, portal: u.proof?.portal, phoneMasked: u.phone ? u.phone.replace(/\d(?=\d{4})/g, '•') : undefined, ...(u.role === 'user' ? {
         hasResume: !!u.resume, onboarded: !!u.profile?.done, completion: completion(u)
     } : {}), ...(u.role === 'org' ? { orgType: u.orgType || 'small', gmailBlocked: !gmailAllowed(u) } : {})
 });

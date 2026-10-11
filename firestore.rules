@@ -1,0 +1,42 @@
+// Firestore security rules for Fyndr (GitHub Pages / browser-only mode).
+// Firebase Console > Build > Firestore Database > Rules > paste this whole file > Publish.
+// The main admin email below can never be changed by anyone. Only admins can create/remove staff.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function mail() {
+      return request.auth.token.email.lower();
+    }
+    function isMain() {
+      return signedIn() && mail() == 'admin.fyndr@gmail.com';
+    }
+    function isAdmin() {
+      return isMain() || (signedIn()
+        && exists(/databases/$(database)/documents/staff/$(mail()))
+        && get(/databases/$(database)/documents/staff/$(mail())).data.role == 'admin');
+    }
+
+    // Who is staff. Keyed by email so a role can be given before the person has an account.
+    match /staff/{email} {
+      allow read: if signedIn() && (mail() == email || isAdmin());
+      allow create, update: if isAdmin()
+        && email != 'admin.fyndr@gmail.com'
+        && request.resource.data.role in ['admin', 'moderator']
+        && request.resource.data.keys().hasOnly(['role', 'by', 'at']);
+      allow delete: if isAdmin() && email != 'admin.fyndr@gmail.com';
+    }
+
+    // One small public card per account so admins see everyone, on every device.
+    match /directory/{uid} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.email == mail()
+        && request.resource.data.keys().hasOnly(['name', 'email', 'kind', 'orgName', 'orgType', 'created', 'phoneVerified', 'completion', 'updated']);
+      allow delete: if isAdmin();
+    }
+  }
+}
