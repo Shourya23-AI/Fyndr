@@ -1,0 +1,98 @@
+[
+  {
+    "orgName": "Harvard CS50", "title": "CS50: Introduction to Computer Science", "url": "https://cs50.harvard.edu/x/", "duration": "About 11 weeks, at your own pace", "pay": "Free",
+    "about": "Harvard's well-known first course in programming and computer science. It starts from zero and moves through C, Python, SQL and web development, with weekly problem sets.",
+    "bestFor": ["Complete beginners who have never written code", "First-year and second-year students who want a strong base", "Anyone switching to tech from another field"],
+    "provides": ["Recorded lectures and notes, free to follow", "Weekly problem sets that make you build real programs", "A very active online community", "Certificate options are explained on the course page"]
+  },
+  {
+    "orgName": "Harvard CS50", "title": "CS50's Introduction to Programming with Python", "url": "https://cs50.harvard.edu/python/", "duration": "About 10 weeks, at your own pace", "pay": "Free",
+    "about": "A shorter, Python-only course from the CS50 team. Good if you want to learn Python properly before a data, automation or backend internship.",
+    "bestFor": ["Beginners who want to learn Python first", "Students preparing for data or backend internships"],
+    "provides": ["Video lectures and notes", "Problem sets with automatic checking", "Python basics up to files, libraries and testing", "Certificate options are explained on the course page"]
+  },
+  {
+    "orgName": "freeCodeCamp", "title": "freeCodeCamp: Full web development curriculum", "url": "https://www.freecodecamp.org/learn", "duration": "Self-paced, hundreds of hours in total", "pay": "Free",
+    "about": "A free, project-based curriculum that covers HTML, CSS, JavaScript, responsive design, APIs and more, with coding exercises you solve right in the browser.",
+    "bestFor": ["Beginners who learn best by building", "Students who want projects for their resume", "Self-learners without a laptop setup (it runs in the browser)"],
+    "provides": ["Interactive coding exercises in the browser", "Projects you can show to employers", "Free certifications after finishing the projects", "A large community forum"]
+  },
+  {
+    "orgName": "Kaggle", "title": "Kaggle Learn: short courses in Python, Pandas, SQL and machine learning", "url": "https://www.kaggle.com/learn", "duration": "A few hours per course, at your own pace", "pay": "Free",
+    "about": "Short, practical courses with notebooks you run in the browser. Each one focuses on a single skill, so you can finish one in a weekend.",
+    "bestFor": ["Students aiming for data analyst or data science internships", "Learners who want quick, hands-on practice", "Anyone who already knows a little Python"],
+    "provides": ["Hands-on notebooks that run in the browser", "Short courses on Python, Pandas, SQL, data visualization and machine learning", "A free certificate of completion for each course"]
+  },
+  {
+    "orgName": "Microsoft Learn", "title": "Microsoft Learn: free learning paths for developers, data and cloud", "url": "https://learn.microsoft.com/training/", "duration": "Self-paced, from 30 minutes to many hours", "pay": "Free",
+    "about": "Free tutorials and learning paths from Microsoft on programming, Azure, data, AI and Office tools, with sandbox exercises that need no setup.",
+    "bestFor": ["Students aiming for cloud, data or software roles", "Learners preparing for a Microsoft certification", "Beginners who like step-by-step guided paths"],
+    "provides": ["Guided learning paths with exercises", "Free sandbox environments for practice", "Progress tracking and achievements on your profile"]
+  },
+  {
+    "orgName": "NPTEL", "title": "NPTEL: free courses from the IITs and IISc", "url": "https://nptel.ac.in/courses", "duration": "Usually 4, 8 or 12 weeks per course", "pay": "Free to learn",
+    "about": "A national programme that offers recorded and live-run university courses from the IITs and IISc in engineering, science, management and the humanities. Learning is free; an optional paid exam is how you earn a certificate.",
+    "bestFor": ["Engineering and science students who want IIT-level teaching", "Students who want a recognised certificate for their resume", "Learners who like a fixed weekly schedule"],
+    "provides": ["Video lectures and course material at no cost", "Weekly assignments", "An optional proctored exam for a certificate (exam fee applies, check the course page)"]
+  },
+  {
+    "orgName": "SWAYAM", "title": "SWAYAM: free online courses from Indian universities", "url": "https://swayam.gov.in/", "duration": "Varies by course", "pay": "Free to learn",
+    "about": "The Government of India's platform for online courses from Indian universities and institutes, from school level up to postgraduate. Some courses count as credit transfer in many universities.",
+    "bestFor": ["College students who want extra credits or subjects", "Learners who want courses from Indian institutions", "Students who prefer a structured semester-style course"],
+    "provides": ["Free video lectures and reading material", "Quizzes and assignments", "An optional exam for a certificate (fee applies, check the course page)"]
+  },
+  {
+    "orgName": "The Odin Project", "title": "The Odin Project: full-stack web development path", "url": "https://www.theodinproject.com/", "duration": "Self-paced, several months of study", "pay": "Free",
+    "about": "An open-source curriculum that teaches web development using real tools (the terminal, Git, VS Code) and lots of projects. It pulls together the best free material instead of lecturing itself.",
+    "bestFor": ["Learners who want a serious, project-heavy path", "Students aiming for web developer internships", "People comfortable studying on their own"],
+    "provides": ["A complete path from HTML to full-stack JavaScript", "Many portfolio projects you can show", "An active chat community for help"]
+  },
+  {
+    "orgName": "IBM SkillsBuild", "title": "IBM SkillsBuild: free courses in AI, data, cybersecurity and workplace skills", "url": "https://skillsbuild.org/", "duration": "Self-paced", "pay": "Free",
+    "about": "IBM's free learning platform with courses for students and early-career learners, including AI, data analytics, cybersecurity, cloud and professional skills. Completed courses earn digital credentials.",
+    "bestFor": ["Students and freshers exploring tech careers", "Learners who want a credential to add to LinkedIn", "Beginners who want career-readiness skills alongside tech"],
+    "provides": ["Free courses and learning plans", "Digital badges or credentials on completion", "Career-readiness material such as resume and interview help"]
+  },
+  {
+    "orgName": "Google Cloud Skills Boost", "title": "Google Cloud Skills Boost: hands-on cloud labs and learning paths", "url": "https://www.cloudskillsboost.google/", "duration": "Self-paced labs from minutes to hours", "pay": "Free and paid options",
+    "about": "Hands-on labs and learning paths for Google Cloud, with a real cloud environment opened for each lab. Some content is free; some needs credits or a subscription, so check the page before you start.",
+    "bestFor": ["Students aiming for cloud or DevOps internships", "Learners who want to practice, not only watch videos", "People who have basic programming knowledge"],
+    "provides": ["Real cloud labs with temporary accounts", "Learning paths and skill badges", "Free and paid content (check what is free before starting)"]
+  },
+  {
+    "orgName": "Cisco Networking Academy", "title": "Skills for All: free Cisco courses in networking, cybersecurity and Python", "url": "https://skillsforall.com/", "duration": "Self-paced", "pay": "Free",
+    "about": "Free self-paced courses from Cisco Networking Academy covering networking basics, cybersecurity, programming and digital skills, with badges when you complete them.",
+    "bestFor": ["Students interested in networking or cybersecurity", "Beginners who want a clear, structured start", "Learners who want a badge to show on their profile"],
+    "provides": ["Free self-paced courses", "Hands-on activities and quizzes", "Badges or certificates of completion"]
+  },
+  {
+    "orgName": "Khan Academy", "title": "Khan Academy: free maths, science, economics and computing lessons", "url": "https://www.khanacademy.org/", "duration": "Self-paced", "pay": "Free",
+    "about": "Free lessons, practice questions and quizzes, from school maths to statistics, economics and introductory computer programming.",
+    "bestFor": ["School and first-year college students who need to revise the basics", "Anyone who wants to fix weak maths or statistics before a data course", "Learners who like short videos with practice questions"],
+    "provides": ["Short video lessons", "Practice questions with instant feedback", "Progress tracking"]
+  },
+  {
+    "orgName": "MIT OpenCourseWare", "title": "MIT OpenCourseWare: free lecture notes, videos and problem sets", "url": "https://ocw.mit.edu/", "duration": "Self-paced", "pay": "Free",
+    "about": "Material from real MIT courses, including lecture videos, notes, assignments and exams across computer science, maths, engineering and business. There is no certificate or teacher support, so it suits disciplined self-learners.",
+    "bestFor": ["Strong self-learners who want university-level depth", "Students who want extra material for their own degree", "Learners who are happy without a certificate"],
+    "provides": ["Lecture videos and notes at no cost", "Assignments and past exams to practice with", "No sign-up needed to read the material"]
+  },
+  {
+    "orgName": "Automate the Boring Stuff", "title": "Automate the Boring Stuff with Python (free to read online)", "url": "https://automatetheboringstuff.com/", "duration": "Self-paced", "pay": "Free",
+    "about": "A beginner-friendly book, free to read online, that teaches Python through practical tasks such as working with files, spreadsheets, PDFs and web pages.",
+    "bestFor": ["Complete beginners who like practical examples", "Students in non-tech courses who want to automate everyday work", "Anyone who finds theory-heavy courses dull"],
+    "provides": ["A full beginner Python book, free online", "Practice projects that save real time", "Skills useful in office, operations and analyst roles"]
+  },
+  {
+    "orgName": "Hugging Face", "title": "Hugging Face Learn: free courses on modern machine learning and AI", "url": "https://huggingface.co/learn", "duration": "Self-paced", "pay": "Free",
+    "about": "Free courses from Hugging Face on natural language processing, large language models and related areas, with code you can run and change.",
+    "bestFor": ["Students who already know Python and want to try AI", "Learners aiming for machine learning internships", "People who want to build small AI projects"],
+    "provides": ["Free courses with runnable code", "Hands-on practice with real models and datasets", "A community to ask questions"]
+  },
+  {
+    "orgName": "Skill India Digital Hub", "title": "Skill India Digital Hub: free skilling courses and certificates", "url": "https://www.skillindiadigital.gov.in/", "duration": "Varies by course", "pay": "Free",
+    "about": "The Government of India's skilling platform with courses in many trades and digital skills, including options linked to national skill certification. Check each course page for what certificate it gives.",
+    "bestFor": ["Students and school leavers looking for job-ready skills", "People who want a government-recognised skill certificate", "Learners interested in trades as well as tech"],
+    "provides": ["Free skilling courses", "Certificates for selected courses (see each course page)", "A single place to find government skilling schemes"]
+  }
+]

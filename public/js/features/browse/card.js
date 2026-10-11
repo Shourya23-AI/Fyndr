@@ -2,6 +2,7 @@ import { S } from '../../core/state.js';
 import { esc, TICK } from '../../core/dom.js';
 import { isStaff } from '../../core/state.js';
 import { safeImg } from '../../core/image.js';
+import { bestLine } from '../listings/summary.js';
 // One listing card: cover picture, organization logo on it, title, provider, duration, then "View Details" and a save heart.
 // Used by browse, suggestions and the saved list on the dashboard. The full listing is kept in S.lmap for the details popup.
 const CLOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
@@ -36,7 +37,7 @@ export const card = (l, m) => {
     const course = l.type === 'Course';
     return `<article class="lcard"><div class="lc-media">${coverOf(l)}${flags(m)}<span class="lc-type">${esc(l.type)}</span><span class="lc-logo">${logoOf(l)}</span></div>
 <div class="lc-body"><h3>${esc(l.title)}</h3><p class="lc-org">${course ? '<span>Provider</span> ' : ''}${esc(l.orgName)}${l.orgVerified ? `<i class="lc-ok" title="Verified organization">${TICK}</i>` : ''}</p>
-<p class="lc-meta">${l.duration ? `<span>${CLOCK}${esc(l.duration)}</span>` : ''}<span>${PIN}${esc(l.location)}</span></p><p class="lc-pay">${esc(l.pay)}</p>${m && m.reasons.length ? `<ul class="lc-why">${m.reasons.slice(0, 2).map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+<p class="lc-meta">${l.duration ? `<span>${CLOCK}${esc(l.duration)}</span>` : ''}<span>${PIN}${esc(l.location)}</span></p><p class="lc-pay">${esc(l.pay)}</p>${bestLine(l) ? `<p class="lc-best"><b>Best for</b> ${esc(bestLine(l))}</p>` : ''}${m && m.reasons.length ? `<ul class="lc-why">${m.reasons.slice(0, 2).map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
 <div class="lc-acts"><button class="button button-dark button-small" data-act="view" data-id="${l.id}">View Details</button>${S.me?.role === 'user' ? heart(l, sv) : ''}</div></div></article>`;
 };
 export const canApply = () => !(S.me?.role === 'org' || isStaff(S.me));

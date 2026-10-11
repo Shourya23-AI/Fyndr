@@ -273,6 +273,51 @@ const ex2 = await api('admin', '/admin/expire', 'POST', {});
 ok(ex2.closed === 2 && mock.store.get('listings/imp_old1').status === 'closed' && !!mock.store.get('listings/imp_old1').closedAt && mock.store.get('listings/posted_new').status === 'approved', 'old listings auto-close (imports 45 days, posted 90 days)');
 ok(!(await api('cand', '/listings')).some(l => l.title === 'Old import'), 'closed listings disappear from the public list');
 
+// ---- automatic listings: course list, student filter, daily refresh and auto-close
+const { trustScore: tScore, decide: tDecide } = await import('../public/js/features/trust/trust.js');
+const { cleanImport: cImp, hash: hsh } = await import('../public/js/services/firestore-api/helpers.js');
+const { LIFE_DAYS: LD, isExpired: isExp } = await import('../public/js/features/listings/expiry.js');
+const { run: runImport } = await import('../scripts/import-to-firestore.js');
+const { summarize: summ, labelled: lab } = await import('../public/js/features/listings/summary.js');
+const cat = await imp2.fromCatalog({ file: 'courses.json' });
+ok(cat.length >= 10 && cat.every(c => cImp(c) && tDecide(tScore(cImp(c))) === 'approved'), 'every picked course is valid and passes the trust check on its own');
+ok(new Set(cat.map(c => c.applyUrl)).size === cat.length && cat.every(c => /^https:\/\//.test(c.applyUrl)), 'picked courses have unique https links');
+const cs = summ({ ...cImp(cat[0]), id: 'cx' });
+ok(cs.bestFor.length >= 2 && cs.provides.length >= 2 && !/Best for:/.test(cs.about) && !/What you get:/.test(cs.about), 'picked course shows "best for" and "what you get" as written, not repeated in the long text');
+const lb = lab('Great role.\nWho should apply: final-year students; career switchers\nBenefits:\n- Health insurance\n- Free meals\nApply today.');
+ok(lb.bestFor.length === 2 && lb.provides.join() === 'Health insurance,Free meals' && lb.rest === 'Great role.\nApply today.', 'labelled lines and bullet lists are picked up and removed from the long text');
+const rs = summ({ id: 'rx', type: 'Internship', title: 'Marketing Intern', orgName: 'Zed', location: 'Remote', pay: 'INR 8000 / month', description: 'Work with our social team. Certificate and letter of recommendation on completion. Mentor support included.' });
+ok(rs.bestFor[0].startsWith('Students') && rs.provides.includes('A certificate') && rs.provides.includes('A letter of recommendation') && rs.provides.includes('Mentorship from experienced people'), 'rules find best-for and perks when the text does not label them');
+ok(summ({ id: 'ex', type: 'Job', title: 'Helper', orgName: 'Q', location: 'See listing', pay: 'See listing', description: 'Short.' }).provides.length === 0, 'nothing is invented when the listing says nothing');
+ok(imp2.studentFriendly({ title: 'Data Intern', description: '' }) && imp2.studentFriendly({ title: 'Analyst', description: 'Open to freshers.' }) && !imp2.studentFriendly({ title: 'Senior Engineer', description: 'x' }) && !imp2.studentFriendly({ title: 'Engineer', description: 'Needs 5+ years of experience' }) && !imp2.studentFriendly({ title: 'Accountant', description: 'Manage the books.' }), 'student filter keeps entry-level roles and drops senior or unlabelled ones');
+ok(imp2.placeOk({ location: 'Bengaluru, Karnataka, India' }, ['india']) && imp2.placeOk({ location: 'Remote' }, ['remote']) && !imp2.placeOk({ location: 'Berlin, Germany' }, ['india', 'remote']), 'location filter');
+const mkdb = () => {
+    const m = new Map();
+    const snap = id => ({ id, exists: m.has('listings/' + id), data: () => m.get('listings/' + id), ref: ref(id) });
+    const ref = id => ({ get: async () => snap(id), set: async v => { m.set('listings/' + id, { ...v }); }, update: async v => { m.set('listings/' + id, { ...m.get('listings/' + id), ...v }); } });
+    return { m, collection: () => ({ doc: ref, where: (f, o, v) => { const c = [[f, v]]; const q = { where: (f2, o2, v2) => { c.push([f2, v2]); return q; }, get: async () => ({ docs: [...m.entries()].filter(([k, x]) => k.startsWith('listings/') && c.every(([a, b]) => x[a] === b)).map(([k]) => snap(k.slice(9))) }) }; return q; } }) };
+};
+const deps = { trustScore: tScore, decide: tDecide, cleanImport: cImp, hash: hsh, LIFE_DAYS: LD };
+const longText = 'Join the team and work with real users every day. '.repeat(10) + 'Great for freshers.';
+const job = n => ({ orgName: 'Acme', title: 'Intern ' + n, type: 'Internship', location: 'Pune', pay: '', description: longText, applyUrl: 'https://boards.greenhouse.io/acme/jobs/' + n, source: 'greenhouse', srcKey: 'greenhouse:acme' });
+const six = [1, 2, 3, 4, 5, 6].map(job);
+const irep = { complete: new Set(['greenhouse:acme']) };
+const fdb = mkdb();
+const r1 = await runImport(fdb, six, deps, irep, Date.now(), () => { });
+ok(r1.published === 6 && r1.review === 0, 'daily importer publishes trusted listings');
+const r1b = await runImport(fdb, six, deps, irep, Date.now(), () => { });
+ok(r1b.refreshed === 6 && r1b.published === 0 && r1b.gone === 0, 'running it again adds nothing new and keeps the same listings open');
+const r2 = await runImport(fdb, six.slice(0, 5), deps, irep, Date.now(), () => { });
+ok(r2.gone === 1 && fdb.m.get('listings/imp_' + hsh(six[5].applyUrl)).status === 'closed' && !!fdb.m.get('listings/imp_' + hsh(six[5].applyUrl)).closedAt, 'a job removed from the employer\'s page is closed automatically');
+const r3 = await runImport(fdb, six.slice(0, 1), deps, irep, Date.now(), () => { });
+ok(r3.gone === 0 && fdb.m.get('listings/imp_' + hsh(six[1].applyUrl)).status === 'approved', 'if almost everything vanishes at once, nothing is closed (probably a glitch)');
+const r4 = await runImport(fdb, [], deps, { complete: new Set() }, Date.now(), () => { });
+ok(r4.gone === 0 && r4.closed === 0, 'a source that failed this run closes nothing');
+const later = Date.now() + (LD.import + 1) * 864e5;
+const r5 = await runImport(fdb, [], deps, { complete: new Set() }, later, () => { });
+ok(r5.closed === 5, 'listings nobody has seen for 45 days are closed');
+ok(isExp({ status: 'approved', source: 'import', created: new Date(Date.now() - 60 * 864e5).toISOString(), lastSeen: new Date().toISOString() }) === false, 'an imported listing still seen recently does not expire by age');
+
 // ---- delete listing / user cascade
 await api('org', `/listings/${lid}`, 'DELETE');
 ok(![...mock.store.keys()].some(k => (k.startsWith('applications/') && k.endsWith('_' + lid)) || k.startsWith('blobs/ar_') && k.includes('_' + lid + '_')), 'deleting a listing removes its applications and their resume copies');

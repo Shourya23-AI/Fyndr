@@ -1,5 +1,33 @@
 # Fyndr
 
+## Update: automatic listings + a clearer job/course page
+
+**Before you publish (in this order)**
+1. Push the site files to GitHub (service-worker label is `static-2026-10-13-detail`). No new Firestore rules are needed.
+2. Make sure the daily importer has its one secret (`FIREBASE_SERVICE_ACCOUNT`, see `.github/workflows/import-jobs.yml`). Then open GitHub > Actions > **Import jobs** > **Run workflow** once, instead of waiting for 02:30 UTC.
+3. Optional, for many more internships and fresher jobs in India: get a free key at developer.adzuna.com and add two more secrets, `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`. Without them that source is skipped. Read Adzuna's terms first (they ask for credit; the page already says "From Adzuna").
+4. Read the log of that first run. The last lines say **which sources failed**. The company boards in `config/companies.json` are my best guesses (Postman, BrowserStack, Razorpay, CRED, Groww, Paytm); I could not test them without internet. Delete or correct any that fail (the board name is the last part of the company's `boards.greenhouse.io/...` or `jobs.lever.co/...` address).
+
+**What changed**
+- **Automatic listings.** The daily importer now keeps the list fresh by itself:
+  - New listings are scored (same trust rules; 50+ is published, under 50 goes to your review queue, scams are not stored).
+  - Listings still on the employer's page stay open (`lastSeen` is refreshed). Listings that **disappear** from the employer's page are **closed automatically**. Safety stops: only when that page was fetched fine, and never more than 60% of one company in a single run.
+  - Anything nobody has seen for 45 days is closed.
+- **Student-friendly filter** (`config/import-settings.json`): keeps internships, trainee, fresher, entry-level and 0-2 year roles; drops senior ones and ones with no entry-level signal; keeps India cities, "India" and remote. Change the lists in that file.
+- **16 hand-picked free courses** (`config/courses.json`: CS50, freeCodeCamp, Kaggle, Microsoft Learn, NPTEL, SWAYAM, Odin Project, IBM SkillsBuild and more), each with its own "Best for" and "What you get". They load with the same daily run. Add your own by copying an entry. I wrote the descriptions from what I know of these sites; check a link and the certificate/fee wording before you rely on it.
+- **New popup when a student clicks a job or course** (also a bottom sheet on phones, with the Apply button pinned at the bottom): quick facts (location, pay, duration, experience, posted), **Who it is best for**, **What it gives you**, About (with Read more), key skills, How to apply, and the **official link** shown in full.
+  - If the text says "Best for: ..." or "What you get: ..." (also "Ideal for", "Who should apply", "Benefits", "Perks", "You'll learn"), those lines are shown as written.
+  - Otherwise plain keyword rules look for signals (intern, fresher, remote, certificate, stipend, mentor, PPO, health insurance ...). If the listing says nothing, the page says so instead of inventing something. No AI, nothing leaves the device.
+  - Cards now show a one-line "Best for".
+  - The "Post an opportunity" box tells organizations they can add those two labelled lines.
+
+**Not done / not tested here**
+- I could not open the site in a browser, so **how the new popup looks on your screen is untested** (it uses your theme colours). Check it on a phone and tell me what to adjust.
+- Live fetching (Greenhouse, Lever, Adzuna) and the GitHub run are untested (no internet in my build environment). The logic around them has tests.
+- The "who it is best for" lines made by keyword rules are guesses from the text. Employers who write their own lines give better results.
+
+**Checks:** `node test/run.test.js` runs 114 checks.
+
 ## Update: scheduled importer, auto-close, usage counters, Insights, security hardening (plan parts 2-5, partly)
 
 **Before you publish (in this order)**

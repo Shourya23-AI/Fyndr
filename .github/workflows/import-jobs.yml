@@ -24,3 +24,6 @@ jobs:
       - run: node scripts/import-to-firestore.js
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # Optional (free key from developer.adzuna.com). Without them the Adzuna source is simply skipped.
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}

@@ -1,5 +1,10 @@
 [
-  { "name": "Example Co (Greenhouse)", "type": "greenhouse", "board": "example" },
-  { "name": "Example Co (Lever)", "type": "lever", "board": "example" },
-  { "name": "Example Co (careers page)", "type": "page", "url": "https://example.com/careers/" }
+  { "name": "Fyndr picked courses", "type": "catalog", "file": "courses.json" },
+  { "name": "Adzuna India (internships and fresher jobs)", "type": "adzuna", "country": "in", "queries": ["intern", "fresher", "trainee", "entry level"], "where": "India", "pages": 1 },
+  { "name": "Postman", "type": "greenhouse", "board": "postman" },
+  { "name": "BrowserStack", "type": "greenhouse", "board": "browserstack" },
+  { "name": "Razorpay", "type": "greenhouse", "board": "razorpaysoftwareprivatelimited" },
+  { "name": "CRED", "type": "lever", "board": "cred" },
+  { "name": "Groww", "type": "lever", "board": "groww" },
+  { "name": "Paytm", "type": "lever", "board": "paytm" }
 ]
