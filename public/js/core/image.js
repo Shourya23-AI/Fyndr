@@ -1,9 +1,10 @@
 // Shrinks a picture the organization chose, in the browser, so it can be stored inside the listing (no paid file storage needed).
-//   cover: 640x360 (16:9), cropped to fill   -> JPEG, kept under ~150 KB
-//   logo : 128x128 square, whole logo shown on white -> JPEG, kept under ~40 KB
+//   cover: 480x270 (16:9), cropped to fill   -> WebP (JPEG if the browser cannot write WebP), kept under ~30 KB
+//   logo : 96x96 square, whole logo shown on white -> WebP (JPEG fallback), kept under ~8 KB
+// (The limits in firestore.rules / the server are higher on purpose: they are only the ceiling.)
 const SPEC = {
-    cover: { w: 640, h: 360, fit: 'cover', max: 150000 },
-    logo: { w: 128, h: 128, fit: 'contain', max: 40000 }
+    cover: { w: 480, h: 270, fit: 'cover', max: 30000 },
+    logo: { w: 96, h: 96, fit: 'contain', max: 8000 }
 };
 const load = file => new Promise((ok, no) => {
     const url = URL.createObjectURL(file);
@@ -38,10 +39,12 @@ export async function shrinkImage(file, kind) {
     const dw = im.width * k;
     const dh = im.height * k;
     g.drawImage(im, (w - dw) / 2, (h - dh) / 2, dw, dh);
-    for (const q of [.82, .72, .62, .5, .4]) {
-        const d = c.toDataURL('image/jpeg', q);
-        if (d.length <= max) {
-            return d;
+    for (const type of ['image/webp', 'image/jpeg']) {
+        for (const q of [.75, .65, .55, .45, .35, .25]) {
+            const d = c.toDataURL(type, q);
+            if (d.startsWith('data:' + type) && d.length <= max) {
+                return d;
+            }
         }
     }
     throw new Error('That picture is too detailed. Try a simpler one.');
