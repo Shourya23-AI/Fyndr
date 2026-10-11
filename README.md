@@ -1,5 +1,38 @@
 # Fyndr
 
+## Update: job search runs inside the Node server (no GitHub, no Firebase key)
+
+- `server/jobs/auto-import.js` starts with `node server.js`: it fetches jobs, internships and courses 15 seconds after start and then every 6 hours, scores them (everything waits for an admin by default; scams are dropped), refreshes the ones still open, and closes the ones gone from the employer's page or unseen for 45 days.
+- Sources and filters: `config/companies.json` and `config/import-settings.json`. Optional: env `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`.
+- Env: `IMPORT=0` turns it off, `IMPORT_EVERY_HOURS=3` changes the interval.
+- Needs the Node server to be what your site talks to (set `<meta name="fyndr-api">` in `public/index.html` to its address). The GitHub Pages + Firebase-only setup does not use this.
+- The server needs internet access to reach the company job boards.
+
+## Update: every posting is verified by a person, with a legitimacy rating
+
+- **Nothing goes live without an admin or moderator approving it.** Posts from organizations always did; found (imported) jobs now do too (they arrive as "pending"). To let trusted imports (score 50+) publish by themselves, set `"autoPublish": true` in `config/import-settings.json`.
+- **Automatic verification at posting time:** the Node server scores every new posting (0-100) the moment it is posted and stores the score and reasons on the listing; an admin then approves or rejects it by clicking. (With Firebase only, the same score is worked out from the listing text whenever it is shown, so it cannot be faked by the poster.)
+- **Legitimacy rating (0-100)** is shown on every listing card and in the details popup ("Looks legit" 75+, "Probably legit" 50-74, "Check carefully" under 50; hover for the reasons), and next to each listing in the admin queue. It comes from simple visible rules in `features/trust/trust.js`, not AI. It helps people decide; it is not a guarantee.
+- Fixed: the job list crashed when drawing the second card (`.map(card)` passed the index as match info).
+- Uploaded cover images are now WebP, 480x270, about 30 KB or less (logos 96x96, about 8 KB).
+
+## Update: job search runs inside the Node server (no GitHub, no Firebase key)
+
+- `server/jobs/auto-import.js` starts with `node server.js`: it fetches jobs, internships and courses 15 seconds after start and then every 6 hours, scores them (everything waits for an admin by default; scams are dropped), refreshes the ones still open, and closes the ones gone from the employer's page or unseen for 45 days.
+- Sources and filters: `config/companies.json` and `config/import-settings.json`. Optional: env `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`.
+- Env: `IMPORT=0` turns it off, `IMPORT_EVERY_HOURS=3` changes the interval.
+- Needs the Node server to be what your site talks to (set `<meta name="fyndr-api">` in `public/index.html` to its address). The GitHub Pages + Firebase-only setup does not use this.
+- The server needs internet access to reach the company job boards.
+
+## Update: fully automatic posting
+
+- The importer now runs **every 6 hours** (was daily) and also **reviews posts from organizations**: verified org + verified phone + trust 50 or more -> approved; obvious scam (asks for fees, ID or OTP) -> rejected; anything else stays pending for an admin. Imported listings keep the earlier rules (50+ published, under 50 waits).
+- To turn the automatic approval off, add `AUTO_APPROVE: '0'` under `env:` in `.github/workflows/import-jobs.yml`.
+- One-time setup you must do yourself: the `FIREBASE_SERVICE_ACCOUNT` GitHub secret, then Actions > Import jobs > Run workflow once. Nothing else is manual after that.
+- Fixed: the job list crashed when drawing the second card (`.map(card)` passed the index as match info).
+- Uploaded cover images are now WebP, 480x270, about 30 KB or less (logos 96x96, about 8 KB).
+
+
 ## Update: automatic listings + a clearer job/course page
 
 **Before you publish (in this order)**

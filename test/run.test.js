@@ -318,6 +318,20 @@ const r5 = await runImport(fdb, [], deps, { complete: new Set() }, later, () => 
 ok(r5.closed === 5, 'listings nobody has seen for 45 days are closed');
 ok(isExp({ status: 'approved', source: 'import', created: new Date(Date.now() - 60 * 864e5).toISOString(), lastSeen: new Date().toISOString() }) === false, 'an imported listing still seen recently does not expire by age');
 
+// ---- importer inside the Node server (no GitHub needed)
+const { applyImport } = await import('../server/jobs/auto-import.js');
+{
+    const L = [];
+    const a1 = applyImport(L, six, deps, irep, Date.now());
+    ok(a1.published === 6 && L.length === 6 && L.every(x => x.status === 'approved' && x.source === 'import' && x.id.startsWith('imp_')), 'node auto import: trusted listings are stored as approved');
+    const a2 = applyImport(L, six, deps, irep, Date.now());
+    ok(a2.refreshed === 6 && L.length === 6, 'node auto import: second run adds nothing and keeps them open');
+    const a3 = applyImport(L, six.slice(0, 5), deps, irep, Date.now());
+    ok(a3.gone === 1 && L.filter(x => x.status === 'closed').length === 1, 'node auto import: a job gone from the employer page is closed');
+    const a4 = applyImport(L, [], deps, { complete: new Set() }, Date.now() + (LD.import + 1) * 864e5);
+    ok(a4.closed === 5, 'node auto import: listings unseen for 45 days are closed');
+}
+
 // ---- delete listing / user cascade
 await api('org', `/listings/${lid}`, 'DELETE');
 ok(![...mock.store.keys()].some(k => (k.startsWith('applications/') && k.endsWith('_' + lid)) || k.startsWith('blobs/ar_') && k.includes('_' + lid + '_')), 'deleting a listing removes its applications and their resume copies');

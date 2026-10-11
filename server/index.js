@@ -76,6 +76,7 @@ const server = http.createServer(async (req, res) => {
 });
 server.keepAliveTimeout = 65e3;
 server.listen(PORT, HOST, () => console.log('Fyndr running on http://localhost:' + PORT + (PROD ? ' (production)' : '')));
+require('./jobs/auto-import').start();
 const stop = () => {
     server.close(() => process.exit(0));
     setTimeout(() => process.exit(0), 8000).unref();

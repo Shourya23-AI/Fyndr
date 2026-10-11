@@ -65,3 +65,10 @@ export function trustScore(l) {
 }
 // 'approved' (publish), 'pending' (admin review) or 'hidden' (obvious scam, not stored in the queue).
 export const decide = r => r.scam ? 'hidden' : r.score >= TRUST_MIN ? 'approved' : 'pending';
+
+// The legitimacy rating shown to everyone: the stored score (imports) or one worked out from the listing's own text, and a plain word for it.
+export function rating(l) {
+    const t = l && l.trust != null ? { score: Number(l.trust) || 0, reasons: l.trustReasons || [] } : trustScore(l || {});
+    const band = t.score >= 75 ? 'strong' : t.score >= TRUST_MIN ? 'good' : 'low';
+    return { score: t.score, band, label: { strong: 'Looks legit', good: 'Probably legit', low: 'Check carefully' }[band], reasons: t.reasons };
+}

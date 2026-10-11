@@ -1,5 +1,32 @@
 {
   "studentFriendlyOnly": true,
-  "keepLocations": ["india", "remote", "work from home", "anywhere", "bengaluru", "bangalore", "mumbai", "delhi", "new delhi", "gurgaon", "gurugram", "noida", "hyderabad", "pune", "chennai", "kolkata", "ahmedabad", "kochi", "jaipur", "chandigarh", "indore", "coimbatore", "thiruvananthapuram", "bhubaneswar", "lucknow"],
-  "maxPerSource": 60
+  "keepLocations": [
+    "india",
+    "remote",
+    "work from home",
+    "anywhere",
+    "bengaluru",
+    "bangalore",
+    "mumbai",
+    "delhi",
+    "new delhi",
+    "gurgaon",
+    "gurugram",
+    "noida",
+    "hyderabad",
+    "pune",
+    "chennai",
+    "kolkata",
+    "ahmedabad",
+    "kochi",
+    "jaipur",
+    "chandigarh",
+    "indore",
+    "coimbatore",
+    "thiruvananthapuram",
+    "bhubaneswar",
+    "lucknow"
+  ],
+  "maxPerSource": 60,
+  "autoPublish": false
 }

@@ -5,6 +5,7 @@
 //   still on the employer's page -> lastSeen is refreshed (stays open)
 //   gone from the employer's page -> closed (only when that page was fetched fine this run, and never more than 60% of a company at once)
 //   not seen for 45 days (e.g. a source stopped working) -> closed
+//   (By default everything waits as 'pending' for an admin; set "autoPublish": true in config/import-settings.json to publish trust 50+ at once.)
 // Needs: env FIREBASE_SERVICE_ACCOUNT = the service-account JSON (a GitHub secret) and `npm i firebase-admin`.
 // Optional: env ADZUNA_APP_ID and ADZUNA_APP_KEY (free key) to also pull internships and fresher jobs from Adzuna.
 // The service account bypasses security rules, so this script re-checks everything itself (https links only, trust score, size limits).
@@ -94,10 +95,15 @@ async function main() {
     admin.initializeApp({ credential: admin.credential.cert(key) });
     const db = admin.firestore();
     const root = path.join(__dirname, '..', 'public', 'js');
-    const { trustScore, decide } = await import(path.join(root, 'features/trust/trust.js'));
+    const { trustScore, decide: decideTrust } = await import(path.join(root, 'features/trust/trust.js'));
     const { cleanImport, hash } = await import(path.join(root, 'services/firestore-api/helpers.js'));
     const { LIFE_DAYS } = await import(path.join(root, 'features/listings/expiry.js'));
     const list = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'companies.json'), 'utf8'));
+    let settings = {};
+    try {
+        settings = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'import-settings.json'), 'utf8'));
+    } catch { }
+    const decide = r => (r.scam ? 'hidden' : settings.autoPublish === true ? decideTrust(r) : 'pending');
     const report = { complete: new Set(), failed: [], skipped: [] };
     const items = await collect(list, console.log, report);
     const out = await run(db, items, { trustScore, decide, cleanImport, hash, LIFE_DAYS }, report);

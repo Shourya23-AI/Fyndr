@@ -1,6 +1,6 @@
 import { S } from '../../core/state.js';
 import { esc, fmt, TICK } from '../../core/dom.js';
-import { coverOf, logoOf, heart, canApply, whyBlock } from './card.js';
+import { coverOf, logoOf, heart, canApply, whyBlock, trustChip } from './card.js';
 import { summarize, hostOf, sourceOf } from '../listings/summary.js';
 import { track } from '../../services/analytics/analytics.js';
 // "View Details" popup. On a phone it slides up as a sheet with the Apply button pinned at the bottom.
@@ -67,6 +67,7 @@ export function openDetail(id) {
 <div class="tags"><span class="tag">${esc(l.type)}</span>${l.orgVerified ? `<span class="tag tag-verified">${TICK}Verified</span>` : ''}${via ? `<span class="tag">From ${esc(via)}</span>` : ''}</div>
 <h3 class="dt-title" id="dt-title">${esc(l.title)}</h3><p class="lc-org dt-org">${course ? '<span>Provider</span> ' : ''}${esc(l.orgName)}</p>
 <div class="dt-facts">${fact(I.pin, 'Location', l.location)}${fact(I.pay, course ? 'Price' : 'Pay', l.pay)}${fact(I.clock, 'Duration', l.duration)}${fact(I.cap, 'Experience', sm.experience)}${fact(I.cal, 'Posted', l.created ? fmt(l.created) : '')}</div>
+<p class="dt-rate">${trustChip(l)}</p>
 ${whyBlock(S.match?.[l.id])}
 <section class="dt-sec dt-best"><h4 class="dt-h">Who it is best for</h4>${list(sm.bestFor, `This ${noun} does not say who it suits. Read the requirements in the description and on the official page.`)}</section>
 <section class="dt-sec dt-get"><h4 class="dt-h">What it gives you</h4>${list(sm.provides, 'No perks or benefits are mentioned. Check the official page for the details.')}</section>

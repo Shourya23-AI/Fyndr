@@ -1,8 +1,9 @@
 const { R, bad, need } = require('../lib/router');
 const { db, save } = require('../db/store');
 const { uid, gmailAllowed } = require('../lib/helpers');
+const scoreListing = require('../lib/trust');
 // Organization: post listings, see own listings and applicants.
-R('POST', '/api/listings', ['org'], ({ user, body: b }) => {
+R('POST', '/api/listings', ['org'], async ({ user, body: b }) => {
     if (!user.verified) {
         bad(403, 'Your organization must be verified before posting', 'NOT_VERIFIED');
     }
@@ -24,9 +25,12 @@ R('POST', '/api/listings', ['org'], ({ user, body: b }) => {
     if (b.logo && (typeof b.logo !== 'string' || b.logo.length > 40000 || !IMG.test(b.logo))) {
         bad(400, 'That logo could not be used. Try another image.');
     }
-    db.listings.push({
+    const row = {
         id: uid(), orgId: user.id, orgName: user.orgName, title: b.title.trim(), type: b.type, location: b.location.trim(), pay: b.pay.trim(), duration: String(b.duration || '').trim().slice(0, 40), description: (b.description || '').trim(), image: b.image, logo: b.logo || '', status: 'pending', created: new Date().toISOString()
-    });
+    };
+    // Automatic verification: every posting gets a legitimacy rating (0-100) the moment it is posted. An admin still approves it by hand.
+    Object.assign(row, await scoreListing(row));
+    db.listings.push(row);
     save();
     return { ok: 1 };
 });
