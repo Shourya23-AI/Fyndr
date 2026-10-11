@@ -37,15 +37,20 @@ R('POST', '/api/phone/verify', ['user', 'org'], async ({ user, body: b }) => {
         bad(400, 'Missing verification token', 'PHONE_FAILED');
     }
     // Ask phone.email who this token belongs to. One retry, because their API is occasionally slow.
+    // phone.email normally returns an access_token (checked with their getuser API); some setups return a user_json_url instead.
+    const jsonUrl = /^https:\/\/[a-z0-9.-]+\.phone\.email\//i.test(tok);
     let d;
     for (let i = 0; i < 2 && !d; i++) {
         try {
-            const fd = new FormData();
-            fd.append('access_token', tok);
-            fd.append('client_id', PHONE_EMAIL_CLIENT_ID);
-            const r = await fetch('https://eapi.phone.email/getuser', {
-                method: 'POST', body: fd, signal: AbortSignal.timeout(12000)
-            });
+            let r;
+            if (jsonUrl) {
+                r = await fetch(tok, { signal: AbortSignal.timeout(12000) });
+            } else {
+                const fd = new FormData();
+                fd.append('access_token', tok);
+                fd.append('client_id', PHONE_EMAIL_CLIENT_ID);
+                r = await fetch('https://eapi.phone.email/getuser', { method: 'POST', body: fd, signal: AbortSignal.timeout(12000) });
+            }
             d = await r.json();
         } catch (e) {
             console.warn('phone.email lookup failed (try ' + (i + 1) + '):', e.message);
@@ -54,9 +59,13 @@ R('POST', '/api/phone/verify', ['user', 'org'], async ({ user, body: b }) => {
     if (!d) {
         bad(502, 'Could not reach the phone verification service. Please try again.', 'PHONE_UNREACHABLE');
     }
-    const ph = d.status === 200 && d.phone_no ? '+' + String(d.country_code || '').replace(/\D/g, '') + String(d.phone_no).replace(/\D/g, '') : '';
+    // Accept the field names phone.email uses in its different responses; only reject an explicit non-200 status.
+    const cc = String(d.country_code ?? d.user_country_code ?? '').replace(/\D/g, '');
+    const no = String(d.phone_no ?? d.user_phone_number ?? d.phone_number ?? '').replace(/\D/g, '');
+    const okStatus = d.status === undefined || Number(d.status) === 200;
+    const ph = okStatus && no ? '+' + cc + no : '';
     if (!/^\+\d{8,15}$/.test(ph)) {
-        console.warn('phone.email rejected the token:', d.status, d.message || '');
+        console.warn('phone.email rejected the token. status=' + d.status + ' message=' + (d.message || '') + ' keys=' + Object.keys(d).join(','));
         bad(400, 'Phone verification failed or expired' + (d.message ? ' (' + String(d.message).slice(0, 80) + ')' : '') + '. Please try again.', 'PHONE_FAILED');
     }
     if (db.users.some(u => u.id !== user.id && u.phone === ph)) {

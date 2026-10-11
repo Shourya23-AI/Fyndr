@@ -106,7 +106,7 @@ const adminData = db => {
         listings: db.listings,
         team: db.users.filter(u => u.email).map(u => ({
             id: u.id, name: u.name, email: u.email, kind: baseKind(u) === 'org' ? 'Organization' : 'Candidate', staff: staffLevel(u), permanent: isAdminEmail(u.email), created: u.created
-        })).sort((a, b) => (b.permanent - a.permanent) || ((b.staff === 'admin') - (a.staff === 'admin')) || ((!!b.staff) - (!!a.staff)) || a.name.localeCompare(b.name)),
+        })).sort((a, b) => (b.permanent - a.permanent) || ((b.staff === 'admin') - (a.staff === 'admin')) || ((!!b.staff) - (!!a.staff)) || String(a.name || '').localeCompare(String(b.name || ''))),
         invites: (db.staffInvites || []).map(i => ({ email: i.email, role: i.role, at: i.at })),
         proofs: proofs.map(u => ({
             id: u.id, name: u.orgName || u.name, email: u.email, role: u.role, portal: u.proof.portal, status: u.proof.status, signals: u.role === 'org' ? signals(u) : null

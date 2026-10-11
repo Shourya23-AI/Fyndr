@@ -84,9 +84,9 @@ Object.assign(actions, {
         ST.dtab = id;
         dashboard();
     },
-    atab(b, id) {
+    async atab(b, id) {
         ST.atab = id;
-        dashboard();
+        await dashboard();
     },
     afilt(b, id) {
         ST.afilt = id;

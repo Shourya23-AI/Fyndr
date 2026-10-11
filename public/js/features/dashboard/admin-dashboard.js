@@ -72,7 +72,17 @@ function team(d) {
 <div class="panel"><h3>Add by email</h3><p class="desc">Give a role to anyone, even before they have an account. It applies automatically when they sign up and confirm their email.</p><form class="form invite-form" data-form="invite"><input type="email" name="email" placeholder="name@example.com" required aria-label="Email"><select name="role" aria-label="Role"><option value="admin">Admin</option><option value="moderator">Moderator</option></select><button class="button button-dark">Add</button><p class="err"></p></form>${d.invites.length ? `<div class="team-chips" style="margin-top:12px">${d.invites.map(i => `<span class="team-chip">${esc(i.email)} · ${ROLE_LABEL[i.role]} (waiting for sign-up) <button class="mini no" data-act="revokeinvite" data-id="${esc(i.email)}">Cancel</button></span>`).join('')}</div>` : ''}</div>
 <div class="panel"><h3>All accounts</h3><div class="form" style="margin-bottom:12px"><input type="search" id="tq" placeholder="Search name or email" value="${esc(S.tq || '')}" aria-label="Search accounts"></div>${table(['Account', 'Type', 'Role', 'Joined'], list.map(row))}<p class="desc" style="margin-top:10px">People must have signed up and confirmed their email first. A role takes effect the next time they open Fyndr.</p></div>`;
 }
+const BUILD = () => document.querySelector('meta[name=fyndr-build]')?.content || 'dev';
+// If a tab fails to draw, say why on the page itself (with the build id) instead of silently doing nothing.
 export async function adminDashboard(a) {
+    try {
+        await drawAdmin(a);
+    } catch (x) {
+        console.error('Admin dashboard failed', x);
+        a.innerHTML = `<div class="container sk-page"><div class="panel"><h3>The ${esc(S.atab || 'overview')} tab could not be shown</h3><p class="err">${esc(x.message || String(x))}</p><p class="desc">Build ${esc(BUILD())}. Please send this message to the developer.</p><button class="button" data-act="atab" data-id="overview">Back to overview</button></div></div>`;
+    }
+}
+async function drawAdmin(a) {
     const d = await api('/admin/data');
     S.atab = S.atab || 'overview';
     const badge = { listings: d.stats.pendingListings, verify: d.stats.pendingVerifications };
@@ -84,7 +94,7 @@ export async function adminDashboard(a) {
         overview, orgs, listings, verify, people, team
     }[S.atab](d);
     const keep = document.activeElement?.id === 'tq'; // keep typing in the search box after a redraw
-    a.innerHTML = `<div class="dash-layout"><aside class="dash-side"><nav>${tabs.map(([id, t, ic]) => `<button class="side-btn ${S.atab === id ? 'on' : ''}" data-act="atab" data-id="${id}"><svg viewBox="0 0 24 24"><path d="${ic}"/></svg>${t}${badge[id] ? `<span class="side-badge">${badge[id]}</span>` : ''}</button>`).join('')}</nav><span class="side-link">${S.me.permanent ? '★ Main admin (permanent)' : S.me.role === 'moderator' ? 'Signed in as moderator' : 'Signed in as admin'}</span></aside><main class="dash-main">${body}</main></div>`;
+    a.innerHTML = `<div class="dash-layout"><aside class="dash-side"><nav>${tabs.map(([id, t, ic]) => `<button class="side-btn ${S.atab === id ? 'on' : ''}" data-act="atab" data-id="${id}"><svg viewBox="0 0 24 24"><path d="${ic}"/></svg>${t}${badge[id] ? `<span class="side-badge">${badge[id]}</span>` : ''}</button>`).join('')}</nav><span class="side-link">${S.me.permanent ? '★ Main admin (permanent)' : S.me.role === 'moderator' ? 'Signed in as moderator' : 'Signed in as admin'}</span><span class="side-link desc" style="font-size:11px">Build ${BUILD()}</span></aside><main class="dash-main">${body}</main></div>`;
     if (keep) {
         const el = document.getElementById('tq');
         el.focus();

@@ -61,7 +61,7 @@ function load(f, st) {
     } else if (base === 'index.html') {
         // Fetch the whole module graph in parallel instead of discovering it one import at a time.
         const tags = buildInfo().modules.map(m => '<link rel="modulepreload" href="' + m.slice(1) + '">').join('');
-        raw = Buffer.from(raw.toString().replace('<!--PRELOAD-->', tags));
+        raw = Buffer.from(raw.toString().replace('<!--PRELOAD-->', tags + '<meta name="fyndr-build" content="' + buildInfo().id + '">'));
     }
     const ext = path.extname(f).toLowerCase();
     const entry = {

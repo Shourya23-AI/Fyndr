@@ -58,7 +58,7 @@
       const params = new URLSearchParams(location.search);
       const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
       const pick = (k) => params.get(k) || hashParams.get(k) || "";
-      const token = pick("access_token") || pick("token");
+      const token = pick("access_token") || pick("token") || pick("user_json_url");
       const failure = pick("error") || pick("error_description");
       const back = document.getElementById("back");
 

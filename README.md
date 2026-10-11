@@ -30,6 +30,8 @@ The page used to drift to the right on phones. Causes fixed in `css/base/reset.c
 - Extra admins from `ADMIN_EMAILS` are also permanent (set in server config, not editable in the UI).
 - Roles work with the Node server. The browser-only Live Server mode (`services/local-api`) does not implement moderators.
 
+**If something fails:** the admin sidebar shows a `Build xxxx` stamp (tells you which version is really running), a failing admin tab now shows its error message on the page, and phone verification errors are shown in red on the phone page. The server log prints `phone.email rejected the token ...` with the reason. Server-side the phone check also accepts phone.email's alternative response formats (`user_json_url`, other field names).
+
 **Tested:** 21 automated checks of the role rules (promotion, demotion, permanent admin, moderator limits), static cache headers, 304s, gzip, build-stamped service worker and modulepreload injection. Please also try the site once on your own phone (see "Mobile checklist" below).
 
 **Mobile checklist (2 minutes):** open the site on your phone, rotate the screen, tap into a search box (the page must not zoom or shift), reload (placeholders then content), sign in, open `#/phone` and run the verification, then in the admin account open Team and change a role.
