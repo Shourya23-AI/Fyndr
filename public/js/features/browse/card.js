@@ -31,7 +31,8 @@ export const whyBlock = m => {
     const add = m.kind === 'course' ? tags(m.teaches, 'add') : tags(m.missing, 'add');
     return `<div class="dt-why"><h4 class="dt-h">Why this was picked for you</h4>${m.reasons.length ? `<ul class="lc-why">${m.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}${have ? `<p class="why-row"><span>You have</span>${have}</p>` : ''}${add ? `<p class="why-row"><span>${m.kind === 'course' ? 'You would learn' : 'Skills to add'}</span>${add}</p>` : ''}${m.cautions.length ? `<ul class="why-warn">${m.cautions.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}</div>`;
 };
-export const card = (l, m) => {
+export const card = (l, match) => {
+    const m = match && typeof match === 'object' ? match : null; // (never a number: Array.map passes the index as 2nd argument)
     S.lmap[l.id] = l;
     const sv = S.mine.saved.includes(l.id);
     const course = l.type === 'Course';

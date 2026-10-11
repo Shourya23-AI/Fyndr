@@ -47,7 +47,7 @@ function appsTab(saved) {
 <div class="stats3"><div class="stat"><b>${ap.length}</b><span>Applied</span></div><div class="stat"><b>${ap.filter(x => x.status === 'reviewing').length}</b><span>In review</span></div><div class="stat"><b>${iv.length}</b><span>Interview / selected</span></div></div>
 <div class="panel"><h3>Qualified for interview</h3>${table(['Role', 'Company', 'Applied', 'Resume used', 'Status'], rowsOf(iv))}</div>
 <div class="panel"><h3>All applications</h3>${table(['Role', 'Company', 'Applied', 'Resume used', 'Status', ''], rowsOf(ap, true))}</div>
-<h3 style="margin:24px 0 14px">Saved</h3><div class="opportunity-grid">${saved.map(card).join('') || '<p style="color:var(--muted)">No saved listings.</p>'}</div>`;
+<h3 style="margin:24px 0 14px">Saved</h3><div class="opportunity-grid">${saved.map(l => card(l)).join('') || '<p style="color:var(--muted)">No saved listings.</p>'}</div>`;
 }
 // Privacy & data: what was shared with whom, and the download / delete controls.
 function privacyTab(d) {

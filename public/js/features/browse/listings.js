@@ -7,7 +7,7 @@ const EMPTY = '<div class="empty"><b>No matches yet</b><p>Try fewer keywords or 
 export function drawListings(n = PAGE) {
     const all = S.lall || [];
     S.lshown = n;
-    $('#grid').innerHTML = all.slice(0, n).map(card).join('') + (all.length > n ? `<div class="more"><button class="button" data-act="more">Show more (${all.length - n})</button></div>` : '') || EMPTY;
+    $('#grid').innerHTML = all.slice(0, n).map(l => card(l)).join('') + (all.length > n ? `<div class="more"><button class="button" data-act="more">Show more (${all.length - n})</button></div>` : '') || EMPTY;
     $('#grid').removeAttribute('aria-busy');
 }
 export async function loadListings(mineP) {
