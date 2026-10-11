@@ -12,13 +12,31 @@ export const heart = (l, sv) => `<button class="save-button ${sv ? 'saved' : ''}
 export const logoOf = l => safeImg(l.logo) ? `<img src="${safeImg(l.logo)}" alt="">` : `<b>${esc((l.orgName || '?')[0].toUpperCase())}</b>`;
 // Cover: the uploaded picture, or a soft gradient with the type written on it (older listings have no picture).
 export const coverOf = l => safeImg(l.image) ? `<img class="lc-img" src="${safeImg(l.image)}" alt="" loading="lazy" decoding="async">` : `<span class="lc-img lc-none" data-t="${esc(l.type)}">${esc(l.type)}</span>`;
-export const card = l => {
+// Optional match info from the suggestions engine (features/suggestions/engine.js): a score badge on the cover and the top reasons.
+const flags = m => {
+    if (!m) {
+        return '';
+    }
+    const main = m.kind === 'course' ? (m.fills?.length ? '<span class="lc-match" data-band="strong">Fills a skill gap</span>' : `<span class="lc-match" data-band="${m.band}">${m.score}% fit</span>`) : `<span class="lc-match" data-band="${m.band}">${m.score}% match</span>`;
+    return `<span class="lc-flags">${main}${m.isNew ? '<span class="lc-new">New</span>' : ''}</span>`;
+};
+// "Why this was picked for you": reasons, skills they have, skills to add, and cautions. Used in the details popup.
+export const whyBlock = m => {
+    if (!m) {
+        return '';
+    }
+    const tags = (a, cls) => (a && a.length ? a.slice(0, 8).map(x => `<span class="why-tag ${cls}">${esc(x)}</span>`).join('') : '');
+    const have = tags(m.matched, 'on');
+    const add = m.kind === 'course' ? tags(m.teaches, 'add') : tags(m.missing, 'add');
+    return `<div class="dt-why"><h4 class="dt-h">Why this was picked for you</h4>${m.reasons.length ? `<ul class="lc-why">${m.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}${have ? `<p class="why-row"><span>You have</span>${have}</p>` : ''}${add ? `<p class="why-row"><span>${m.kind === 'course' ? 'You would learn' : 'Skills to add'}</span>${add}</p>` : ''}${m.cautions.length ? `<ul class="why-warn">${m.cautions.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}</div>`;
+};
+export const card = (l, m) => {
     S.lmap[l.id] = l;
     const sv = S.mine.saved.includes(l.id);
     const course = l.type === 'Course';
-    return `<article class="lcard"><div class="lc-media">${coverOf(l)}<span class="lc-type">${esc(l.type)}</span><span class="lc-logo">${logoOf(l)}</span></div>
+    return `<article class="lcard"><div class="lc-media">${coverOf(l)}${flags(m)}<span class="lc-type">${esc(l.type)}</span><span class="lc-logo">${logoOf(l)}</span></div>
 <div class="lc-body"><h3>${esc(l.title)}</h3><p class="lc-org">${course ? '<span>Provider</span> ' : ''}${esc(l.orgName)}${l.orgVerified ? `<i class="lc-ok" title="Verified organization">${TICK}</i>` : ''}</p>
-<p class="lc-meta">${l.duration ? `<span>${CLOCK}${esc(l.duration)}</span>` : ''}<span>${PIN}${esc(l.location)}</span></p><p class="lc-pay">${esc(l.pay)}</p>
+<p class="lc-meta">${l.duration ? `<span>${CLOCK}${esc(l.duration)}</span>` : ''}<span>${PIN}${esc(l.location)}</span></p><p class="lc-pay">${esc(l.pay)}</p>${m && m.reasons.length ? `<ul class="lc-why">${m.reasons.slice(0, 2).map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
 <div class="lc-acts"><button class="button button-dark button-small" data-act="view" data-id="${l.id}">View Details</button>${S.me?.role === 'user' ? heart(l, sv) : ''}</div></div></article>`;
 };
 export const canApply = () => !(S.me?.role === 'org' || isStaff(S.me));

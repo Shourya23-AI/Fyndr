@@ -4,12 +4,13 @@
 //   S.scope  which listing page is open: 'jobs' (jobs + internships) or 'courses'
 //   S.f      current search filters on the browse page
 //   S.mine   the candidate's saved listings + applications
+//   S.match  suggestion info by listing id (score, reasons) for the listings drawn as suggestions; the details popup reads it
 //   S.skills skill chips being edited on the profile form
 //   S.ph     phone.email verification state (cid = Client ID, busy = popup open)
 export const S = {
     me: null, lmap: {}, scope: 'jobs', f: {
         type: '', q: '', loc: ''
-    }, mine: { saved: [], applications: [] }, skills: [], skillLv: {}, ph: {
+    }, mine: { saved: [], applications: [] }, match: {}, skills: [], skillLv: {}, ph: {
         busy: false, cancel: null, cid: undefined
     }
 };

@@ -7,6 +7,7 @@ import { browse } from './browse.js';
 import { dashboard } from '../dashboard/dashboard.js';
 import { applyPopup } from './apply-popup.js';
 import { openDetail, closeDetail } from './detail.js';
+import { moreSuggestions } from '../suggestions/suggest.js';
 // data-act handlers
 export const actions = {
     tab(b, id) {
@@ -22,6 +23,9 @@ export const actions = {
     },
     more() {
         drawListings((S.lshown || 24) + 24);
+    },
+    suggmore() {
+        moreSuggestions();
     },
     view(b, id) {
         openDetail(id);

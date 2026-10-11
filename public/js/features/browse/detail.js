@@ -1,6 +1,6 @@
 import { S } from '../../core/state.js';
 import { esc, fmt, TICK } from '../../core/dom.js';
-import { coverOf, logoOf, heart, canApply } from './card.js';
+import { coverOf, logoOf, heart, canApply, whyBlock } from './card.js';
 // "View Details" popup: big cover, logo, every detail, and the Apply / Save buttons.
 let el;
 let onKey;
@@ -28,7 +28,7 @@ export function openDetail(id) {
 <div class="tags" style="margin-top:34px"><span class="tag">${esc(l.type)}</span>${l.orgVerified ? `<span class="tag tag-verified">${TICK}Verified</span>` : ''}</div>
 <h3 class="dt-title">${esc(l.title)}</h3><p class="lc-org" style="margin:0 0 14px">${course ? '<span>Provider</span> ' : ''}${esc(l.orgName)}</p>
 <div class="dt-rows">${row(course ? 'Duration' : 'Duration / term', l.duration)}${row('Location', l.location)}${row(course ? 'Price' : 'Pay', l.pay)}${row('Posted', l.created ? fmt(l.created) : '')}</div>
-${l.description ? `<h4 class="dt-h">About this ${course ? 'course' : 'role'}</h4><p class="dt-desc">${esc(l.description)}</p>` : ''}
+${whyBlock(S.match?.[l.id])}${l.description ? `<h4 class="dt-h">About this ${course ? 'course' : 'role'}</h4><p class="dt-desc">${esc(l.description)}</p>` : ''}
 <div class="ap-acts">${S.me?.role === 'user' ? heart(l, sv) : ''}<button class="button button-small" data-dt-close>Close</button>${canApply() ? `<button class="button button-dark button-small" data-act="apply" data-id="${l.id}" ${ap ? 'disabled' : ''}>${ap ? 'Applied' : course ? 'Enrol / Apply' : 'Apply'}</button>` : ''}</div></div>`;
     el.addEventListener('click', e => {
         if (e.target === el || e.target.closest('[data-dt-close]')) {
