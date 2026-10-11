@@ -25,7 +25,8 @@ ${courses ? '' : `<section class="container how"><h2>Four checks between a posti
     if (S.me?.role === 'user') {
         mineP.then(() => suggest(scope)).catch(() => { });
     }
-    loadListings(mineP).catch(() => {
-        $('#grid').innerHTML = '<div class="empty"><b>Could not load listings</b><p>Check your connection and try again.</p><button class="button button-dark button-small" data-act="clear">Retry</button></div>';
+    loadListings(mineP).catch(e => {
+        console.error('Listings failed to load:', e);
+        $('#grid').innerHTML = '<div class="empty"><b>Could not load listings</b><p>' + esc((e && e.message) || 'Check your connection and try again.') + '</p><button class="button button-dark button-small" data-act="clear">Retry</button></div>';
     });
 }
