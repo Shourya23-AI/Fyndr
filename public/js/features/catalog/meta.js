@@ -37,3 +37,28 @@ export function expandCourse(r, i) {
         created: new Date(Date.UTC(2026, 0, 1) + ((i * 2654435761) % 2592000) * 1000).toISOString()
     };
 }
+
+// ---------------- jobs and internships ----------------
+// Each row opens the job board's own live search for that role and city (openings change every day, so none is "stored" here).
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// [name, url(role, city)]  city is '' for remote / anywhere
+export const BOARDS = [
+    ['LinkedIn Jobs', (q, c) => 'https://www.linkedin.com/jobs/search/?keywords=' + enc(q) + (c ? '&location=' + enc(c + ', India') : '&location=India&f_WT=2')],
+    ['Indeed India', (q, c) => 'https://in.indeed.com/jobs?q=' + enc(q) + '&l=' + enc(c || 'Remote')],
+    ['Naukri', (q, c) => 'https://www.naukri.com/' + slug(q) + '-jobs' + (c ? '-in-' + slug(c) : '')],
+    ['Internshala', q => 'https://internshala.com/internships/keywords-' + slug(q.replace(/\bintern(ship)?\b/i, '')) + '/']
+];
+export function expandJob(r, i) {
+    const [title, kind, bi, city, cat, skills = ''] = r;
+    const intern = kind === 'i';
+    const B = BOARDS[bi];
+    const where = city ? `${city}, India` : bi === 3 ? 'India · many cities and remote' : 'Remote · India';
+    const search = intern ? title.replace(/ Intern$/, '') + ' intern' : title.replace(/ \(Fresher\)$/, '') + ' fresher';
+    const d = `${title} openings${city ? ' in ' + city : ' you can do from home'}, found on ${B[0]}. This listing opens ${B[0]}'s live search for this role, because openings change every day. ${intern ? 'Check the stipend, duration and whether it is on-site before you apply.' : 'Check the salary, location and experience asked for before you apply.'} Never pay money to get a job or internship.\nBest for: ${intern ? 'UG students looking for their first internship; PG students; final-year students' : 'Final-year students; fresh graduates; PG students'}\nWhat you get: ${intern ? 'Hands-on experience; a certificate or letter in many cases; a possible full-time offer' : 'A first full-time role; on-the-job training'}`;
+    return {
+        id: 'cat_j' + i, type: intern ? 'Internship' : 'Job', title, orgName: B[0], orgId: 'catalog', orgVerified: false,
+        location: where, pay: intern ? 'Stipend varies · check listing' : 'Salary varies · check listing', duration: intern ? '1 to 6 months, usually' : '',
+        description: d, applyUrl: B[1](search, city), cat, skills: skills ? skills.split(',') : undefined, status: 'approved', source: 'import', origin: 'catalog',
+        created: new Date(Date.UTC(2026, 0, 1) + ((i * 40503) % 2592000) * 1000).toISOString()
+    };
+}

@@ -75,14 +75,17 @@ function paint() {
 
 // The built-in catalog is thousands of rows; scoring all of them is slow. Keep real listings as they are and, from the catalog,
 // only the rows that mention something from the person's profile (skills, field, study), at most CAP of them.
-const CAP = 400;
+const CAP = 350; // per kind (jobs, courses)
+const isCat = l => typeof l.id === 'string' && l.id.startsWith('cat_');
 export function shortlist(ls, p) {
-    const cat = ls.filter(l => typeof l.id === 'string' && l.id.startsWith('cat_'));
-    if (cat.length <= CAP) {
+    const cat = ls.filter(isCat);
+    if (cat.length <= CAP * 2) {
         return ls;
     }
-    const words = [...new Set([...(Array.isArray(p.skills) ? p.skills.map(x => (typeof x === 'string' ? x : x?.name || '')) : []), p.field, p.course, p.degree, p.headline].filter(Boolean).flatMap(x => String(x).toLowerCase().split(/[^a-z0-9+#.]+/)).filter(w => w.length > 2))];
-    const keys = new Set(extractSkills([p.field, p.course, p.degree, p.headline, ...(p.skills || []).map(x => (typeof x === 'string' ? x : x?.name || ''))].filter(Boolean).join(' ')));
+    const names = (Array.isArray(p.skills) ? p.skills : []).map(x => (typeof x === 'string' ? x : x?.name || ''));
+    const info = [p.field, p.course, p.degree, p.headline, ...names].filter(Boolean).join(' ');
+    const words = [...new Set(info.toLowerCase().split(/[^a-z0-9+#.]+/).filter(w => w.length > 2))];
+    const keys = [...new Set(extractSkills(info))];
     const score = l => {
         const t = (l.title + ' ' + (l.skills || []).join(' ')).toLowerCase();
         let n = 0;
@@ -98,8 +101,8 @@ export function shortlist(ls, p) {
         }
         return n;
     };
-    const top = cat.map(l => [score(l), l]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, CAP).map(x => x[1]);
-    return ls.filter(l => !(typeof l.id === 'string' && l.id.startsWith('cat_'))).concat(top);
+    const top = type => cat.filter(l => (type === 'Course') === (l.type === 'Course')).map(l => [score(l), l]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, CAP).map(x => x[1]);
+    return ls.filter(l => !isCat(l)).concat(top('Course'), top('Job'));
 }
 export function moreSuggestions() {
     view.n += STEP;

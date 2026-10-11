@@ -1,8 +1,8 @@
-// Built-in catalog: thousands of courses (and, from Part 3, jobs and internships) that load from public/data/*.json.
+// Built-in catalog: thousands of courses (and, from Part 3, jobs and internships) that load from public/catalog/*.json.
 // They are merged into every listings request in core/api.js, so browse, search, suggestions and the saved list all see them.
 // The files are fetched once, expanded in the browser, and kept in memory. If a file is missing the site simply shows what it has.
-import { expandCourse } from './meta.js';
-const FILES = [['data/catalog-courses.json', expandCourse]];
+import { expandCourse, expandJob } from './meta.js';
+const FILES = [['catalog/catalog-courses.json', expandCourse], ['catalog/catalog-jobs.json', expandJob]];
 let mem = null;
 const url = f => {
     try {
@@ -13,7 +13,13 @@ const url = f => {
 };
 export function loadCatalog() {
     if (!mem) {
-        mem = Promise.all(FILES.map(([f, expand]) => fetch(url(f)).then(r => (r.ok ? r.json() : { rows: [] })).then(d => (d.rows || []).map(expand)).catch(() => []))).then(a => a.flat());
+        mem = Promise.all(FILES.map(([f, expand]) => fetch(url(f)).then(r => {
+    if (!r.ok) {
+        console.warn('Fyndr catalog file not found: ' + f + ' (HTTP ' + r.status + '). Make sure public/catalog/ is uploaded.');
+        return { rows: [] };
+    }
+    return r.json();
+}).then(d => (d.rows || []).map(expand)).catch(() => []))).then(a => a.flat());
     }
     return mem;
 }

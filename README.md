@@ -1,5 +1,14 @@
 # Fyndr
 
+## Update: new logo, banners, 7,900+ built-in jobs and courses, sliding "Suggested for you" row
+
+- **Logo and icons:** new mark in `core/dom.js`, `index.html`, `favicon.svg` and `public/icons/*`.
+- **Banners and letter logos:** `features/browse/banner.js` draws a coloured banner (by kind of work) for any listing with no picture, and a coloured letter logo for providers with no logo. Uploaded or server-found pictures always win. Category chips on the Jobs and Courses pages use the same grouping.
+- **Built-in catalog:** `scripts/build-catalog.js` writes `public/catalog/catalog-courses.json` (4,403 courses, 491 topics, 16 providers) and `catalog-jobs.json` (3,505 jobs and internships, 161 roles, 4 job boards). Add a topic or role to the script and run `node scripts/build-catalog.js`. `features/catalog/` turns the rows into listings in the browser and `core/api.js` merges them into every `/listings` request. Saving a catalog item is kept on the device.
+- **Honest note:** catalog entries are TOPIC and ROLE listings. Each opens the provider's or job board's own search page, so the student picks the exact course or opening there. They are not individually verified pages, and search-page addresses can change. Real live openings still come from the importer.
+- **Suggested for you row:** `features/suggestions/rail.js`, at the top of both pages. Signed-in people with a finished profile get picks from the on-device engine; everyone else gets a daily-rotating "Popular right now" mix. The catalog is pre-filtered to rows that mention the person's skills or field before scoring, so it stays fast.
+
+
 ## Update: job suggester + course suggester with a "For you" page (more confidence for candidates)
 
 **Why candidates saw nothing:** the suggestions only appeared after a qualification document was verified (`NEEDS_VERIFIED_DOCUMENT = true`). Now everyone who has finished their profile gets them. (Set it back to `true` in `features/suggestions/suggest.js` if you want the old rule.)

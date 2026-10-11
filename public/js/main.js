@@ -8,6 +8,7 @@ import { dashboard } from './features/dashboard/dashboard.js';
 import { clearApiCache } from './core/api.js';
 import { cachedMe } from './features/auth/load-me.js';
 import { initReveal } from './core/reveal.js';
+import { loadCatalog } from './features/catalog/catalog.js';
 // Entry point. Draw the shell INSTANTLY from what this device remembers (header + page-shaped placeholders),
 // then wire up events and let route() fill in the real page as soon as Firebase and the server have answered.
 const hint = cachedMe();
@@ -15,6 +16,8 @@ if (hint) {
     S.me = hint; // only a hint for the header; route() replaces it with the real profile
 }
 nav();
+// Start fetching the built-in jobs and courses right away, so the lists are ready when the page needs them.
+loadCatalog();
 $('#app').innerHTML = skeleton(skeletonFor(location.hash.slice(2), !!hint));
 bindEvents();
 initReveal();

@@ -7,6 +7,7 @@ import { browse } from './browse.js';
 import { dashboard } from '../dashboard/dashboard.js';
 import { openDetail, closeDetail } from './detail.js';
 import { moreSuggestions } from '../suggestions/suggest.js';
+import { slide } from '../suggestions/rail.js';
 import { track } from '../../services/analytics/analytics.js';
 // data-act handlers
 export const actions = {
@@ -29,6 +30,12 @@ export const actions = {
     },
     more() {
         drawListings((S.lshown || 24) + 24);
+    },
+    railnext() {
+        slide(1);
+    },
+    railprev() {
+        slide(-1);
     },
     suggmore() {
         moreSuggestions();
