@@ -10,7 +10,7 @@ const head = (t, d) => `<div class="dash-head"><h2>${t}</h2><p class="desc">${d}
 const url = u => /^https?:\/\//i.test(u || '') ? `<br><a class="link" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u.replace(/^https?:\/\//i, ''))}</a>` : '';
 const sel = (attr, id, cur, opts) => `<select ${attr}="${id}">${opts.map(([v, t]) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
 const lstActs = l => `<button class="mini ok" data-act="lstat" data-id="${l.id}" data-s="approved">Approve</button> <button class="mini no" data-act="lstat" data-id="${l.id}" data-s="rejected">Reject</button> <button class="mini" data-act="dellist" data-id="${l.id}">Delete</button>`;
-const lstRow = l => `<tr><td>${esc(l.title)}</td><td>${esc(l.orgName)}</td><td>${l.type}</td><td>${pill(l.status)}</td><td>${lstActs(l)}</td></tr>`;
+const lstRow = l => `<tr><td>${l.image && l.image.startsWith('data:image/') ? `<img class="thumb" src="${l.image}" alt="">` : ''}<b>${esc(l.title)}</b><br><span class="desc">${esc([l.duration, l.location, l.pay].filter(Boolean).join(' · '))}</span>${l.description ? `<br><span class="desc">${esc(l.description.slice(0, 160))}${l.description.length > 160 ? '…' : ''}</span>` : ''}</td><td>${esc(l.orgName)}</td><td>${l.type}</td><td>${pill(l.status)}</td><td>${lstActs(l)}</td></tr>`;
 function overview(d) {
     const s = d.stats;
     const pend = d.listings.filter(l => l.status === 'pending');

@@ -16,8 +16,16 @@ R('POST', '/api/listings', ['org'], ({ user, body: b }) => {
     if (!['Job', 'Internship', 'Course'].includes(b.type)) {
         bad(400, 'Invalid type');
     }
+    // Cover image + logo arrive as small data URLs (the browser shrinks them first).
+    const IMG = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+    if (typeof b.image !== 'string' || b.image.length > 150000 || !IMG.test(b.image)) {
+        bad(400, 'Add a cover image for your listing (JPG, PNG or WebP)');
+    }
+    if (b.logo && (typeof b.logo !== 'string' || b.logo.length > 40000 || !IMG.test(b.logo))) {
+        bad(400, 'That logo could not be used. Try another image.');
+    }
     db.listings.push({
-        id: uid(), orgId: user.id, orgName: user.orgName, title: b.title.trim(), type: b.type, location: b.location.trim(), pay: b.pay.trim(), description: (b.description || '').trim(), status: 'pending', created: new Date().toISOString()
+        id: uid(), orgId: user.id, orgName: user.orgName, title: b.title.trim(), type: b.type, location: b.location.trim(), pay: b.pay.trim(), duration: String(b.duration || '').trim().slice(0, 40), description: (b.description || '').trim(), image: b.image, logo: b.logo || '', status: 'pending', created: new Date().toISOString()
     });
     save();
     return { ok: 1 };

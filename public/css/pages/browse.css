@@ -30,96 +30,304 @@
   border-color: var(--yellow);
 }
 
+/* Listing grid + cards: cover picture, logo on it, title, provider, duration, View Details + save heart */
 .opportunity-grid {
-  border-top: 1px solid var(--line);
-}
-
-.card {
   display: grid;
-  grid-template-columns: 52px 1fr auto;
-  gap: 20px;
-  align-items: start;
-  padding: 24px 14px;
-  border-bottom: 1px solid var(--line);
-  transition: background .15s;
+  grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
+  gap: 18px;
+  padding-top: 20px;
 }
 
-.card:hover {
+.opportunity-grid > .empty,
+.opportunity-grid > p {
+  grid-column: 1 / -1;
+}
+
+.opportunity-grid > .sk {
+  height: 330px;
+  border-radius: 18px;
+}
+
+.lcard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+
+.lcard:hover {
+  transform: translateY(-2px);
+  border-color: var(--green);
+  box-shadow: 0 10px 26px var(--shadow);
+}
+
+.lc-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  margin: 10px 10px 0;
+  border-radius: 12px;
   background: var(--yellow-soft);
 }
 
-.company-logo {
-  width: 52px;
-  height: 52px;
+.lc-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.lc-none {
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  background: var(--yellow);
-  color: var(--deep);
+  background: linear-gradient(135deg, var(--auth-a), var(--auth-b));
+  color: rgba(255, 255, 255, .92);
   font-weight: 800;
   font-size: 20px;
+  letter-spacing: -.01em;
 }
 
-.card h3 {
+.lc-type {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(15, 16, 18, .62);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.lc-logo {
+  position: absolute;
+  left: 10px;
+  bottom: -22px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  border: 2px solid var(--white);
+  box-shadow: 0 3px 10px var(--shadow);
+}
+
+.lc-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.lc-logo b {
+  color: var(--deep);
   font-size: 20px;
-  margin: 8px 0 2px;
+  font-weight: 800;
 }
 
-.card .company {
-  margin: 0;
+.lc-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 30px 14px 14px;
+}
+
+.lc-body h3 {
+  margin: 0 0 3px;
+  font-size: 17px;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lc-org {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 14px;
   font-weight: 600;
 }
 
-.card .loc {
-  margin: 0;
+.lc-org span {
+  font-weight: 500;
+}
+
+.lc-ok {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  vertical-align: -3px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.lc-ok svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.lc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 6px;
   color: var(--muted);
+  font-size: 13px;
+}
+
+.lc-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.lc-meta svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.lc-pay {
+  margin: 0 0 12px;
   font-size: 14px;
+  font-weight: 700;
 }
 
-.card .desc {
-  max-width: 52em;
-}
-
-.card-side {
-  display: grid;
-  justify-items: end;
-  gap: 6px;
-  text-align: right;
-}
-
-.pay {
-  font-size: 16px;
-}
-
-.when {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.acts {
+.lc-acts {
   display: flex;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: auto;
+}
+
+.lc-acts .button {
+  flex: 1;
+  justify-content: center;
 }
 
 .save-button {
+  flex: none;
   width: 38px;
   height: 38px;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: 12px;
   color: var(--muted);
   background: var(--white);
+  cursor: pointer;
+}
+
+.save-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.save-button:hover {
+  color: var(--ink);
+  border-color: var(--ink);
 }
 
 .save-button.saved {
-  color: var(--deep);
-  border-color: var(--deep);
+  color: #c2415a;
+  border-color: #c2415a;
 }
 
 .save-button.saved svg {
   fill: currentColor;
+}
+
+/* "View Details" popup (reuses the .ap-back / .ap-box overlay from the apply popup) */
+.dt-box {
+  position: relative;
+  max-width: 600px;
+  padding: 14px 14px 20px;
+}
+
+.dt-box > :not(.dt-media):not(.dt-x) {
+  margin-left: 8px;
+  margin-right: 8px;
+}
+
+.dt-media {
+  margin: 0 0 0;
+  aspect-ratio: 16 / 7;
+}
+
+.dt-media .lc-logo {
+  width: 62px;
+  height: 62px;
+  left: 16px;
+  bottom: -30px;
+  border-radius: 16px;
+}
+
+.dt-x {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(15, 16, 18, .6);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dt-title {
+  margin: 8px 0 2px;
+  font-size: 24px;
+}
+
+.dt-rows {
+  margin-bottom: 14px;
+}
+
+.dt-h {
+  margin: 18px 0 6px;
+  font-size: 15px;
+}
+
+.dt-desc {
+  margin: 0;
+  white-space: pre-line;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.dt-box .ap-acts {
+  align-items: center;
+}
+
+.dt-box .save-button {
+  margin-right: auto;
 }
 
 .empty {
@@ -160,17 +368,11 @@
   }
 }
 
-@media (max-width: 800px) {
-  .card {
-    grid-template-columns: 44px 1fr;
-  }
-  .card-side {
-    grid-column: 2;
-    justify-items: start;
-    text-align: left;
-  }
-  .company-logo {
-    width: 44px;
-    height: 44px;
-  }
+.thumb {
+  width: 64px;
+  height: 36px;
+  margin-right: 10px;
+  object-fit: cover;
+  border-radius: 6px;
+  vertical-align: middle;
 }

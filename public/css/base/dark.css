@@ -152,8 +152,8 @@
   box-shadow: inset 0 2px 0 var(--green);
 }
 
-:root[data-theme=dark] .card:hover {
-  background: var(--yellow-soft);
+:root[data-theme=dark] .lcard:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .5);
 }
 
 :root[data-theme=dark] .tabs .active,

@@ -95,3 +95,97 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Image pickers in the "Post an opportunity" form */
+.img-pick {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.img-pick > b {
+  font-size: 13px;
+}
+
+.img-pick > small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.img-drop {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  min-height: 120px;
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+  background: var(--yellow-soft);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+
+.img-drop:hover {
+  border-color: var(--green);
+}
+
+.img-drop.cover {
+  aspect-ratio: 16 / 9;
+}
+
+.img-drop.logo {
+  width: 120px;
+  height: 120px;
+}
+
+.img-drop img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.img-drop.logo img {
+  object-fit: contain;
+  background: #fff;
+}
+
+.img-drop input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  padding: 0;
+  border: 0;
+}
+
+.img-drop.has span {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(15, 16, 18, .65);
+  color: #fff;
+  font-size: 11px;
+}
+
+.img-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .img-row {
+    grid-template-columns: 1fr;
+  }
+}

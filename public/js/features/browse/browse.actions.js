@@ -6,6 +6,7 @@ import { loadListings } from './listings.js';
 import { browse } from './browse.js';
 import { dashboard } from '../dashboard/dashboard.js';
 import { applyPopup } from './apply-popup.js';
+import { openDetail, closeDetail } from './detail.js';
 // data-act handlers
 export const actions = {
     tab(b, id) {
@@ -19,12 +20,16 @@ export const actions = {
         };
         browse(S.scope);
     },
+    view(b, id) {
+        openDetail(id);
+    },
     save: saveOrApply,
     apply: saveOrApply
 };
 async function saveOrApply(b, id) {
     const act = b.dataset.act;
     if (!S.me) {
+        closeDetail();
         sessionStorage.next = location.hash || '#/';
         return openAuth('signin');
     }
@@ -45,6 +50,7 @@ async function saveOrApply(b, id) {
         }
     }
     await api(`/${act}/${id}`, 'POST', body);
+    closeDetail();
     if (act === 'apply') {
         toast('Application sent!');
     }

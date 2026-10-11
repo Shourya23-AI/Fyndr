@@ -1,26 +1,59 @@
-// Firestore security rules for Fyndr (GitHub Pages / browser-only mode).
+// Firestore security rules for Fyndr (GitHub Pages / no server).
 // Firebase Console > Build > Firestore Database > Rules > paste this whole file > Publish.
-// The main admin email below can never be changed by anyone. Only admins can create/remove staff.
+//
+// There is no server in this mode, so THESE RULES are the backend's security. In short:
+//   - Everyone must have a verified email to touch anything except reading approved listings.
+//   - A user can only edit their own account, and never their own staff/verification fields.
+//   - Organizations can post only when staff verified them AND they have a phone; a post waits as "pending" until staff approve it.
+//   - Candidates apply once per listing; only the organization that owns the listing can change an application's status.
+//   - An organization can read a candidate's profile/resume only after that candidate applied to it.
+//   - Staff roles live in staff/{email}; only admins can change them. The main admin below can never be changed.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---------- helpers ----------
     function signedIn() {
       return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function me() {
+      return request.auth.uid;
     }
     function mail() {
       return request.auth.token.email.lower();
     }
+    // Keep in sync with ADMIN_EMAILS in public/js/services/firestore-api/config.js
     function isMain() {
       return signedIn() && mail() == 'admin.fyndr@gmail.com';
     }
+    function hasStaffDoc() {
+      return signedIn() && exists(/databases/$(database)/documents/staff/$(mail()));
+    }
+    function staffRole() {
+      return get(/databases/$(database)/documents/staff/$(mail())).data.role;
+    }
     function isAdmin() {
-      return isMain() || (signedIn()
-        && exists(/databases/$(database)/documents/staff/$(mail()))
-        && get(/databases/$(database)/documents/staff/$(mail())).data.role == 'admin');
+      return isMain() || (hasStaffDoc() && staffRole() == 'admin');
+    }
+    function isStaff() {
+      return isMain() || (hasStaffDoc() && staffRole() in ['admin', 'moderator']);
+    }
+    function myDoc() {
+      return get(/databases/$(database)/documents/users/$(me())).data;
+    }
+    function changed() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+    function isFreeMail() {
+      return mail().matches('.*@(gmail|yahoo|outlook|hotmail|proton|protonmail|icloud|aol)[.].*');
+    }
+    // Free email addresses may post only if the organization is "small" (default) or an admin allowed it.
+    function mayPostWithThisEmail(u) {
+      return !isFreeMail() || (u.get('gmailOk', null) != null ? u.get('gmailOk', null) == true : u.get('orgType', 'small') == 'small');
     }
 
-    // Who is staff. Keyed by email so a role can be given before the person has an account.
+    // ---------- staff roles ----------
+    // Keyed by email so a role can be given before the person has an account.
     match /staff/{email} {
       allow read: if signedIn() && (mail() == email || isAdmin());
       allow create, update: if isAdmin()
@@ -30,13 +63,139 @@ service cloud.firestore {
       allow delete: if isAdmin() && email != 'admin.fyndr@gmail.com';
     }
 
-    // One small public card per account so admins see everyone, on every device.
-    match /directory/{uid} {
-      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
-      allow create, update: if request.auth != null && request.auth.uid == uid
+    // ---------- accounts ----------
+    match /users/{userId} {
+      // The owner, staff, and an organization the candidate has applied to (the candidate lists it in sharedWith).
+      allow get: if signedIn() && (userId == me() || isStaff() || me() in resource.data.sharedWith);
+      allow list: if isStaff();
+
+      allow create: if signedIn() && userId == me()
+        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'orgName', 'orgType', 'website', 'verified', 'sharedWith', 'created'])
+        && request.resource.data.keys().hasAll(['name', 'email', 'role', 'verified', 'sharedWith', 'created'])
         && request.resource.data.email == mail()
-        && request.resource.data.keys().hasOnly(['name', 'email', 'kind', 'orgName', 'orgType', 'created', 'phoneVerified', 'completion', 'updated']);
+        && request.resource.data.role in ['user', 'org']
+        && request.resource.data.verified == false
+        && request.resource.data.sharedWith.size() == 0
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && (request.resource.data.role == 'user'
+            || (request.resource.data.orgType in ['small', 'enterprise']
+                && request.resource.data.orgName is string
+                && !(request.resource.data.orgType == 'enterprise' && isFreeMail())));
+
+      allow update: if signedIn() && (
+        // the person themselves: never role, email, verified, orgType, gmailOk
+        (userId == me()
+          && changed().hasOnly(['name', 'website', 'profile', 'resume', 'photo', 'proof', 'phone', 'sharedWith'])
+          && request.resource.data.get('photo', '').size() <= 120000
+          && request.resource.data.sharedWith.size() < 500
+          && (!changed().hasAny(['proof']) || request.resource.data.proof.status == 'pending')
+          // a phone number is only accepted together with its phones/{digits} claim (one number, one account)
+          && (!changed().hasAny(['phone'])
+              || getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phone.replace('+', ''))).data.uid == me()))
+        // moderators and admins: verify organizations and proof documents
+        || (isStaff() && changed().hasOnly(['verified', 'proof']))
+        // admins only: organization size and the Gmail-posting override
+        || (isAdmin() && changed().hasOnly(['orgType', 'gmailOk']))
+      );
+
       allow delete: if isAdmin();
+
+      match /saved/{listingId} {
+        allow read, write: if signedIn() && userId == me();
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ---------- one verified phone number = one account ----------
+    match /phones/{digits} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && digits.matches('[0-9]{8,15}')
+        && request.resource.data.keys().hasOnly(['uid', 'at'])
+        && request.resource.data.uid == me()
+        && getAfter(/databases/$(database)/documents/users/$(me())).data.get('phone', '') == '+' + digits;
+      allow delete: if isAdmin();
+    }
+
+    // ---------- listings (jobs, internships, courses) ----------
+    match /listings/{listingId} {
+      // Approved listings are public. The owner sees their own; staff see everything.
+      allow get, list: if resource.data.status == 'approved'
+        || (signedIn() && resource.data.orgId == me())
+        || isStaff();
+
+      allow create: if signedIn()
+        && request.resource.data.orgId == me()
+        && myDoc().role == 'org'
+        && myDoc().verified == true
+        && myDoc().get('phone', '') != ''
+        && mayPostWithThisEmail(myDoc())
+        && request.resource.data.orgName == myDoc().orgName
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['orgId', 'orgName', 'title', 'type', 'location', 'pay', 'duration', 'description', 'image', 'logo', 'status', 'created'])
+        && request.resource.data.keys().hasAll(['orgId', 'orgName', 'title', 'type', 'location', 'pay', 'image', 'status', 'created'])
+        && request.resource.data.type in ['Job', 'Internship', 'Course']
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+        && request.resource.data.location is string && request.resource.data.location.size() <= 120
+        && request.resource.data.pay is string && request.resource.data.pay.size() <= 80
+        && request.resource.data.get('duration', '').size() <= 40
+        && request.resource.data.get('description', '').size() <= 4000
+        // cover image and logo are small data URLs stored inside the listing
+        && request.resource.data.image.size() <= 160000
+        && request.resource.data.image.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+')
+        && request.resource.data.get('logo', '').size() <= 40000
+        && (request.resource.data.get('logo', '') == '' || request.resource.data.logo.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+'));
+
+      // Only staff review (approve / reject) a listing. Nobody edits the content afterwards.
+      allow update: if isStaff()
+        && changed().hasOnly(['status'])
+        && request.resource.data.status in ['approved', 'rejected', 'pending'];
+
+      allow delete: if isStaff() || (signedIn() && resource.data.orgId == me());
+    }
+
+    // ---------- applications: one per candidate per listing, id = {candidateUid}_{listingId} ----------
+    match /applications/{applicationId} {
+      allow get, list: if isStaff()
+        || (signedIn() && (resource.data.userId == me() || resource.data.orgId == me()));
+
+      allow create: if signedIn()
+        && request.resource.data.userId == me()
+        && applicationId == me() + '_' + request.resource.data.listingId
+        && request.resource.data.status == 'applied'
+        && request.resource.data.resumeType in ['site', 'own']
+        && request.resource.data.keys().hasOnly(['userId', 'listingId', 'orgId', 'orgName', 'title', 'type', 'name', 'email', 'status', 'resumeType', 'created'])
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.status == 'approved'
+        && request.resource.data.orgId == get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.orgId
+        && myDoc().role == 'user'
+        && myDoc().get('phone', '') != ''
+        && myDoc().get('profile', {}).get('done', false) == true;
+
+      // Only the organization that owns the listing moves an application through the pipeline.
+      allow update: if signedIn()
+        && resource.data.orgId == me()
+        && changed().hasOnly(['status'])
+        && request.resource.data.status in ['applied', 'reviewing', 'interview', 'accepted', 'rejected'];
+
+      allow delete: if isStaff() || (signedIn() && resource.data.orgId == me());
+    }
+
+    // ---------- files: resume PDFs and proof documents, stored as base64 text chunks ----------
+    match /blobs/{blobId} {
+      allow get: if signedIn() && (
+        resource.data.owner == me()
+        || (resource.data.kind == 'proof' && isStaff())
+        // an organization may read the resume of a candidate who applied to it
+        || (resource.data.kind == 'resume' && me() in get(/databases/$(database)/documents/users/$(resource.data.owner)).data.sharedWith)
+      );
+      allow create, update: if signedIn()
+        && request.resource.data.owner == me()
+        && request.resource.data.kind in ['resume', 'proof']
+        && blobId.matches(me() + '_' + request.resource.data.kind + '_[0-9]+')
+        && request.resource.data.keys().hasOnly(['owner', 'kind', 'i', 'data'])
+        && request.resource.data.data is string
+        && request.resource.data.data.size() <= 750000;
+      allow delete: if isAdmin() || (signedIn() && resource.data.owner == me());
     }
   }
 }

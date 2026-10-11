@@ -1,34 +1,37 @@
 # Fyndr
 
-## GitHub Pages: why devices showed different data, and how to fix it
+## GitHub Pages + Firebase only (no server)
 
-GitHub Pages only hosts static files. With no server behind it, Fyndr falls back to a **browser-only demo mode where every device keeps its own private data** (that is why your phone and laptop disagreed, and why Team roles and phone verification could not work: both need the server). The site now shows a yellow "Demo mode" bar when this happens.
+The site now runs completely on **GitHub Pages + Firebase**. Accounts, profiles, listings, applications, resumes, saved items, phone claims and staff roles are all stored in **Firestore**, so every device sees the same data. The yellow "Demo mode" bar and the "No server is connected" message are gone. (The optional Node server still works exactly as before if you ever want it; the site picks Firestore automatically when no server answers.)
 
-**To share one database across all devices**
-1. Host the Node server somewhere (this repo includes `render.yaml` for Render; any Node host works): `node server.js`. Add the environment variables `PHONE_EMAIL_CLIENT_ID` and optionally `ADMIN_EMAILS`, and make sure `config/firebase-config.json` is in the deployed copy.
-2. **Keep the data:** the server stores everything in `DATA_DIR/data.json`. On Render this needs the paid disk in `render.yaml`; on a free plan the file is erased when the service restarts. Fly.io / Railway volumes also work.
-3. In `public/index.html` set the server address (no trailing slash):
-   `<meta name="fyndr-api" content="https://your-server.onrender.com" />`
-   then commit and push so GitHub Pages republishes.
-4. Optional: set `CORS_ORIGIN=https://YOURNAME.github.io` on the server so only your site may call it (default allows any site; requests use sign-in tokens, not cookies).
-5. In the phone.email dashboard, set the Domain URL to your **GitHub Pages address** (where people open the site).
-6. In Firebase Authentication > Settings > Authorized domains, make sure `YOURNAME.github.io` is listed.
+**One-time setup (about 5 minutes)**
+1. Firebase Console > **Build > Firestore Database > Create database** (production mode, any region).
+2. **Rules** tab: paste the whole file `firestore.rules` from this folder and **Publish**. *This step is required: the rules are the security of the site now.* Re-publish them whenever this file changes.
+3. **Authentication > Sign-in method**: enable Email/Password and Google. **Settings > Authorized domains**: add `YOURNAME.github.io`.
+4. phone.email dashboard: set Domain URL to your GitHub Pages address (as before).
+5. Push everything to GitHub. In `public/sw.js` change the `static-...` label to anything new whenever you publish an update (it makes visitors drop old cached files).
+6. Sign up with `admin.fyndr@gmail.com`, confirm the email: that account is the permanent admin and can make others Admin / Moderator in **Dashboard > Team**.
 
-Simplest alternative: skip GitHub Pages and use the server's own address as the website (it serves the pages too), then nothing above is needed.
+**Posting with pictures**
+- The *Post an opportunity* form now asks the organization for a **cover image** (required) and a **logo** (optional; the logo from the last listing is reused). The browser shrinks them (cover 640x360, logo 128x128) and stores them inside the listing, so **no paid Firebase Storage plan is needed**.
+- Listings (jobs, internships and courses) show as cards: cover picture, logo on it, title, provider, duration, location, price, **View Details** and a save heart. View Details opens a popup with everything and the Apply button. Admins see the picture and details when reviewing a listing.
+- Optional **Duration** field (e.g. "12 weeks"). Star ratings from the mock-up are not shown because there is no review system behind them.
 
-## Roles on GitHub Pages without any server (Firebase Firestore)
+**Who can do what (enforced by `firestore.rules`)**
+- Only staff can approve a listing or verify an organization; an organization cannot verify itself or approve its own post.
+- Organizations post only when verified + phone confirmed (and Gmail rule respected). New posts are "pending" until approved.
+- A candidate applies once per listing; only that organization can change the application status.
+- An organization can read a candidate's profile and resume only after the candidate applied to it.
+- One phone number can belong to one account. Staff roles live in `staff/{email}`; the main admin can never be changed.
 
-Admins can now make people **Admin** or **Moderator** from **Dashboard > Team** on the GitHub Pages site itself. Roles are saved in your Firebase project (Firestore), so they are shared and follow the person to every device. You can also add an email that has not signed up yet. The main admin (`admin.fyndr@gmail.com`) is permanent and the database rules refuse any change to it.
+**Honest limits of having no server**
+- Phone verification is checked by the browser against phone.email (a server used to do this). Normal users can't skip it, but a technically skilled person could fake a number. For airtight checks you would need a small Cloud Function (Firebase "Blaze" plan) or the Node server.
+- Deleting an account in the admin dashboard removes its data but not its sign-in in Firebase Authentication (delete that in the console if needed).
+- Files (resume, proof) are limited to 2 MB and listing pictures to about 150 KB each, to fit in Firestore. The listing page loads all approved listings; that is fine for hundreds, but at thousands add paging.
+- Firestore free plan: 50,000 reads / 20,000 writes per day. A rules-check read is counted when staff roles are looked up.
+- Data that used to live only in one browser (old demo mode) is not moved into Firestore: people sign in and set up again.
 
-**One-time setup (about 3 minutes)**
-1. Firebase Console > your project > **Build > Firestore Database > Create database** (production mode, any region).
-2. Open the **Rules** tab, paste the whole file `firestore.rules` from this folder, click **Publish**.
-3. Push these files to GitHub so Pages republishes, sign in as the main admin, open **Team**. If setup is missing, the Team tab tells you exactly what to do.
-
-**What is shared and what is not (important)**
-- Shared across all devices: staff roles, and a small "account card" (name, email, type) for every signed-in account. The admin's Candidates / Organizations lists and counts now include people who signed up on other devices (those rows are view-only).
-- Still per device in this mode: profiles, resumes, listings, applications and approvals. They live in each browser because GitHub Pages has no server. To share those too, use the hosted Node server option in the GitHub Pages section above, or ask for them to be moved to Firestore as well.
-- Moderators can sign in anywhere, but they can only moderate data that exists in their own browser until the data is shared.
+**Checks**: `node test/run.test.js` runs 46 checks of the whole backend logic against an in-memory Firestore stand-in (signup, verification, posting with images, approval, applying, chunked resumes, roles, cascade delete). It cannot test `firestore.rules`; use Firebase Console > Rules > *Rules Playground* for that.
 
 ## Latest update: speed, caching, mobile, phone verification, team roles
 

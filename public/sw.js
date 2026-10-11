@@ -5,7 +5,10 @@
 //  - Public config (/api/firebase-config, /api/phone-config): same strategy.
 //  - All other /api calls and the phone.email callback page are never touched (always live data).
 //  - __BUILD__ is replaced by the server with a hash of the site files, so every deploy gets its own cache and the old one is deleted.
-const CACHE = 'fyndr-__BUILD__';
+// On static hosting (GitHub Pages) nothing replaces the token above, so the cache name is a fixed label.
+// CHANGE THE LABEL below whenever you publish a new version, so visitors drop the old cached files.
+const BUILD = '__BUILD__';
+const CACHE = 'fyndr-' + (BUILD.indexOf('__') === 0 ? 'static-2026-10-11-firestore' : BUILD);
 const SHELL = ['./', 'index.html', 'css/app.css', 'js/main.js', 'favicon.svg', 'icons/icon-192.png'];
 const CONFIG_API = ['/api/firebase-config', '/api/phone-config'];
 

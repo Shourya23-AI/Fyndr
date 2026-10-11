@@ -1,5 +1,6 @@
 import { api } from '../../core/api.js';
-import { toast } from '../../core/dom.js';
+import { $, toast } from '../../core/dom.js';
+import { shrinkImage } from '../../core/image.js';
 import { ferr } from '../../core/errors.js';
 import { dashboard } from './dashboard.js';
 export const actions = {
@@ -41,6 +42,9 @@ export const forms = {
         dashboard();
     },
     async post(d) {
+        if (!d.image) {
+            throw new Error('Add a cover image for your listing');
+        }
         await api('/listings', 'POST', d);
         toast('Submitted for review');
         dashboard();
@@ -129,3 +133,25 @@ document.addEventListener('input', e => {
         onChange.t = setTimeout(dashboard, 200);
     }
 });
+// Cover image / logo pickers in the post form: shrink in the browser, show a preview, keep the result in a hidden field.
+export const bind = () => {
+    document.addEventListener('change', async (e) => {
+        const kind = { 'cover-in': 'cover', 'logo-in': 'logo' }[e.target.id];
+        const f = kind && e.target.files[0];
+        if (!f) {
+            return;
+        }
+        try {
+            const data = await shrinkImage(f, kind);
+            const drop = $('#' + kind + '-drop');
+            $('#' + kind + '-val').value = data;
+            drop.querySelector('img')?.remove();
+            drop.classList.add('has');
+            drop.insertAdjacentHTML('afterbegin', `<img src="${data}" alt="">`);
+            drop.querySelector('span').textContent = 'Change';
+        } catch (x) {
+            e.target.value = '';
+            toast(x.message);
+        }
+    });
+};

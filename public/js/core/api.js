@@ -1,7 +1,7 @@
 import { fb } from '../services/firebase/firebase-init.js';
 import { API_BASE } from './api-base.js';
-import { localApi } from '../services/local-api/local-api.js';
-// Every call to the backend goes through api(): the Node server normally, or the browser-only localApi in Live Server mode.
+import { fireApi } from '../services/firestore-api/fire-api.js';
+// Every call to the backend goes through api(): the Node server normally, or Firebase Firestore directly when there is no server (GitHub Pages).
 //
 // Client data cache: GET requests for the lists below are kept in memory for a few seconds, so moving between pages and tabs
 // does not hit the network each time. Identical requests made at the same moment share one network call.
@@ -47,7 +47,7 @@ export async function api(p, m = 'GET', b) {
     await fb.ready();
     if (fb.local) {
         const u = fb.user();
-        return localApi(p, m, b, u && {
+        return fireApi(p, m, b, u && {
             uid: u.uid, email: u.email, displayName: u.displayName, phoneNumber: u.phoneNumber
         });
     }
