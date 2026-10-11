@@ -1,5 +1,5 @@
 import { S } from '../../core/state.js';
-import { esc, fmt, table, pill } from '../../core/dom.js';
+import { esc, fmt, table, pill, safeUrl } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { RETENTION } from '../privacy/retention.js';
 import { trustScore, TRUST_MIN } from '../trust/trust.js';
@@ -15,7 +15,7 @@ const sel = (attr, id, cur, opts) => `<select ${attr}="${id}">${opts.map(([v, t]
 const lstActs = l => `<button class="mini ok" data-act="lstat" data-id="${l.id}" data-s="approved">Approve</button> <button class="mini no" data-act="lstat" data-id="${l.id}" data-s="rejected">Reject</button> <button class="mini" data-act="dellist" data-id="${l.id}">Delete</button>`;
 const trustTag = l => {
     const t = l.trust != null ? { score: l.trust, reasons: l.trustReasons || [] } : trustScore(l);
-    return `<span class="tag ${t.score >= TRUST_MIN ? 'tag-verified' : 'tag-warn'}" title="Legitimacy rating from simple rules. Every listing still needs your approval.">Trust ${t.score}</span>${l.source === 'import' ? ' <span class="tag">Imported</span>' : ''}${t.reasons.length ? `<br><span class="desc">${esc(t.reasons.join(' · '))}</span>` : ''}${l.applyUrl ? `<br><a class="link" href="${esc(l.applyUrl)}" target="_blank" rel="noopener noreferrer nofollow">Open apply link</a>` : ''}`;
+    return `<span class="tag ${t.score >= TRUST_MIN ? 'tag-verified' : 'tag-warn'}" title="Legitimacy rating from simple rules. Every listing still needs your approval.">Trust ${t.score}</span>${l.source === 'import' ? ' <span class="tag">Imported</span>' : ''}${t.reasons.length ? `<br><span class="desc">${esc(t.reasons.join(' · '))}</span>` : ''}${l.applyUrl ? `<br><a class="link" href="${esc(safeUrl(l.applyUrl))}" target="_blank" rel="noopener noreferrer nofollow">Open apply link</a>` : ''}`;
 };
 const lstRow = l => `<tr><td>${l.image && l.image.startsWith('data:image/') ? `<img class="thumb" src="${l.image}" alt="">` : ''}<b>${esc(l.title)}</b><br><span class="desc">${esc([l.duration, l.location, l.pay].filter(Boolean).join(' · '))}</span>${l.description ? `<br><span class="desc">${esc(l.description.slice(0, 160))}${l.description.length > 160 ? '…' : ''}</span>` : ''}<br>${trustTag(l)}</td><td>${esc(l.orgName)}</td><td>${l.type}</td><td>${pill(l.status)}</td><td>${lstActs(l)}</td></tr>`;
 function overview(d) {
@@ -61,7 +61,7 @@ function verify(d) {
     const CK = {
         https: 'HTTPS site', workEmail: 'Work email', emailMatchesSite: 'Email matches site', nameInSite: 'Name in site'
     };
-    return head('Verification', 'Check each organization or candidate document, then approve or reject.') + `<div class="panel">${table(['Who', 'Type', 'Checks', 'Proof', 'Status', ''], d.proofs.map(x => `<tr><td>${esc(x.name)}<br><span class="desc">${esc(x.email)}</span></td><td>${x.role}</td><td>${x.signals ? Object.entries(CK).map(([k, t]) => `<span class="tag ${x.signals[k] ? 'tag-verified' : 'tag-warn'}">${t}</span>`).join(' ') : '—'}${x.portal ? `<br><a class="link" href="${esc(x.portal)}" target="_blank" rel="noopener noreferrer">Careers page</a>` : ''}</td><td><button class="mini" data-act="viewproof" data-id="${x.id}">View</button></td><td>${pill(x.status)}</td><td><button class="mini ok" data-act="pstat" data-id="${x.id}" data-s="verified">Approve</button> <button class="mini no" data-act="pstat" data-id="${x.id}" data-s="rejected">Reject</button></td></tr>`))}</div>`;
+    return head('Verification', 'Check each organization or candidate document, then approve or reject.') + `<div class="panel">${table(['Who', 'Type', 'Checks', 'Proof', 'Status', ''], d.proofs.map(x => `<tr><td>${esc(x.name)}<br><span class="desc">${esc(x.email)}</span></td><td>${x.role}</td><td>${x.signals ? Object.entries(CK).map(([k, t]) => `<span class="tag ${x.signals[k] ? 'tag-verified' : 'tag-warn'}">${t}</span>`).join(' ') : '—'}${safeUrl(x.portal) ? `<br><a class="link" href="${esc(safeUrl(x.portal))}" target="_blank" rel="noopener noreferrer">Careers page</a>` : ''}</td><td><button class="mini" data-act="viewproof" data-id="${x.id}">View</button></td><td>${pill(x.status)}</td><td><button class="mini ok" data-act="pstat" data-id="${x.id}" data-s="verified">Approve</button> <button class="mini no" data-act="pstat" data-id="${x.id}" data-s="rejected">Reject</button></td></tr>`))}</div>`;
 }
 function people(d) {
     return head('Candidates', `${d.candidates.length} registered`) + `<div class="panel">${table(['Name', 'Email', 'Phone', 'Profile', 'Applications', 'Joined', ''], d.candidates.map(u => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${u.phoneVerified ? '<span class="tag tag-verified">Verified</span>' : '<span class="desc">—</span>'}</td><td>${u.completion}%</td><td>${u.applications}</td><td>${fmt(u.created)}</td><td>${isAdmin() && !u.remote ? `<button class="mini no" data-act="deluser" data-id="${u.id}">Delete</button>` : ''}</td></tr>`))}</div>`;

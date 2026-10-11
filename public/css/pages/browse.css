@@ -973,3 +973,118 @@ body.dt-lock {
     gap: 4px;
   }
 }
+
+/* "Not listed on Fyndr" card: shown first in the results when someone searches for a big company that hires on its own careers page */
+.careers-card {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--green);
+  border-radius: 18px;
+  background: var(--yellow-soft);
+}
+
+.cc-logo .mono {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.cc-body {
+  min-width: 0;
+}
+
+.cc-tag {
+  margin: 0 0 4px;
+  color: var(--deep);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.cc-body h3 {
+  margin: 0 0 6px;
+}
+
+.cc-text {
+  margin: 0 0 14px;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+.cc-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+}
+
+.cc-ico svg {
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  vertical-align: -2px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cc-host {
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+.cc-safe {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+@media (max-width: 600px) {
+  .careers-card {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+/* "Try searching" chips under the search box (built from the person's own profile) */
+.try-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.try-row > span {
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+.try-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: .85rem;
+  cursor: pointer;
+}
+
+.try-chip:hover,
+.try-chip:focus-visible {
+  border-color: var(--green);
+  color: var(--deep);
+}

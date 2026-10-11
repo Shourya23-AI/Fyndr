@@ -19,7 +19,7 @@ R('POST', '/api/init', 'fb', ({ fb, body: b }) => {
         }
     }
     const u = {
-        id: fb.sub, name: String(b.name || fb.name || email.split('@')[0]).trim(), email, role, orgName: role === 'org' ? b.orgName.trim() : undefined, orgType: role === 'org' ? b.orgType : undefined, website: role === 'org' ? String(b.website || '').trim().slice(0, 200) : undefined, verified: role !== 'org', created: new Date().toISOString()
+        id: fb.sub, name: String(b.name || fb.name || email.split('@')[0]).trim().slice(0, 80), email, role, orgName: role === 'org' ? String(b.orgName).trim().slice(0, 120) : undefined, orgType: role === 'org' ? b.orgType : undefined, website: role === 'org' ? String(b.website || '').trim().slice(0, 200) : undefined, verified: role !== 'org', created: new Date().toISOString()
     };
     db.users.push(u);
     save();

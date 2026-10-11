@@ -322,7 +322,7 @@ export function buildProfile(p, now = Date.now()) {
     const xi = EXP.indexOf(p.experience);
     const now_ = new Date(now);
     return {
-        ready: cover.size > 0, cover, have, custom, domains, places, remoteOk, roleWords: new Set(roleWords(roles)),
+        ready: cover.size > 0 || domains.size > 0 || roleWords(roles).length > 0, skilled: cover.size > 0, cover, have, custom, domains, places, remoteOk, roleWords: new Set(roleWords(roles)),
         years: xi >= 0 ? EXP_YEARS[xi] : 0, qual: QUAL_RANK[p.qualification] ?? 2.5, field: String(p.field ?? '').trim(),
         studying: +p.gradYear > now_.getFullYear(), jobTypes: Array.isArray(p.jobTypes) ? p.jobTypes : []
     };
@@ -415,7 +415,8 @@ export function scoreListing(c, l, a = analyseListing(l), o = {}) {
         }
     }
     [matched, related, missing].forEach(x => x.sort((p, q) => q.w - p.w));
-    const S = den > 0 ? (num + PRIOR * .5) / (den + PRIOR) : null;
+    // A person who listed no skills is matched on field, level, type and place only (no skill score, so nothing is penalised for it).
+    const S = den > 0 && c.skilled ? (num + PRIOR * .5) / (den + PRIOR) : null;
     const F = fieldFit(c, a);
     const relevance = S === null ? F * .85 : (.7 * S + .3 * F) * (.6 + .4 * F);
     const L = levelFit(c, a, l);

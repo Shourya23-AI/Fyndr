@@ -1,5 +1,5 @@
 import { S } from '../../core/state.js';
-import { esc, fmt, TICK } from '../../core/dom.js';
+import { esc, fmt, TICK, safeUrl } from '../../core/dom.js';
 import { coverOf, logoOf, heart, canApply, whyBlock, trustChip } from './card.js';
 import { summarize, hostOf, sourceOf } from '../listings/summary.js';
 import { track } from '../../services/analytics/analytics.js';
@@ -49,15 +49,15 @@ export function openDetail(id) {
     const sv = S.mine.saved.includes(l.id);
     const course = l.type === 'Course';
     const noun = course ? 'course' : l.type === 'Internship' ? 'internship' : 'job';
-    const ext = l.source === 'import' && l.applyUrl;
+    const ext = l.source === 'import' && safeUrl(l.applyUrl); // only ever an https address
     const sm = summarize(l);
     const via = sourceOf(l);
     track('view', { skills: sm.skills });
     const fact = (icon, k, v) => real(v) ? `<div class="dt-fact"><i>${icon}</i><span>${k}</span><b>${esc(v)}</b></div>` : '';
     const list = (a, empty) => a.length ? `<ul class="dt-list">${a.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : `<p class="dt-none">${empty}</p>`;
     const [lead, more] = splitAbout(sm.about || '');
-    const host = ext ? hostOf(l.applyUrl) : '';
-    const cta = ext && canApply() ? `<a class="button button-dark dt-cta" href="${esc(l.applyUrl)}" data-act="extclick" target="_blank" rel="noopener noreferrer nofollow">${course ? 'Go to course page' : 'Apply on ' + esc(host)}<span class="dt-ico">${I.out}</span></a>`
+    const host = ext ? hostOf(ext) : '';
+    const cta = ext && canApply() ? `<a class="button button-dark dt-cta" href="${esc(ext)}" data-act="extclick" target="_blank" rel="noopener noreferrer nofollow">${course ? 'Go to course page' : 'Apply on ' + esc(host)}<span class="dt-ico">${I.out}</span></a>`
         : !ext && canApply() ? `<button class="button button-dark dt-cta" data-act="apply" data-id="${l.id}" ${ap ? 'disabled' : ''}>${ap ? 'Applied' : course ? 'Enrol / Apply' : 'Apply now'}</button>` : '';
     el = document.createElement('div');
     el.className = 'ap-back dt-back';
@@ -73,7 +73,7 @@ ${whyBlock(S.match?.[l.id])}
 <section class="dt-sec dt-get"><h4 class="dt-h">What it gives you</h4>${list(sm.provides, 'No perks or benefits are mentioned. Check the official page for the details.')}</section>
 <section class="dt-sec"><h4 class="dt-h">About this ${noun}</h4><p class="dt-desc">${esc(lead || sm.overview)}</p>${more ? `<details class="dt-more"><summary>Read more</summary><p class="dt-desc">${esc(more)}</p></details>` : ''}${sm.skills.length ? `<p class="why-row dt-skills"><span>Key skills</span>${sm.skills.map(x => `<span class="why-tag on">${esc(x)}</span>`).join('')}</p>` : ''}</section>
 <section class="dt-sec"><h4 class="dt-h">How to apply</h4><ol class="dt-desc dt-steps">${sm.steps.map(x => `<li>${x}</li>`).join('')}</ol></section>
-${ext ? `<div class="dt-link"><span>Official page</span><a href="${esc(l.applyUrl)}" target="_blank" rel="noopener noreferrer nofollow" ${canApply() ? 'data-act="extclick"' : ''}>${esc(l.applyUrl)}</a><small>Opens in a new tab on ${esc(host)}. Never pay a fee or share an OTP to apply.</small></div>` : ''}
+${ext ? `<div class="dt-link"><span>Official page</span><a href="${esc(ext)}" target="_blank" rel="noopener noreferrer nofollow" ${canApply() ? 'data-act="extclick"' : ''}>${esc(ext)}</a><small>Opens in a new tab on ${esc(host)}. Never pay a fee or share an OTP to apply.</small></div>` : ''}
 </div>
 <div class="dt-foot">${S.me?.role === 'user' ? heart(l, sv) : ''}${cta || '<button class="button dt-cta" data-dt-close>Close</button>'}</div></div>`;
     el.addEventListener('click', e => {

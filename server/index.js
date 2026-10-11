@@ -52,6 +52,7 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'none'"); // the page's own CSP is a <meta> tag, which cannot say this one; the two are combined by the browser
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     // Company logos and cover pictures found by the importer (server/jobs/brand.js). Public on purpose: an <img> tag cannot send a login token.
     const bm = req.method === 'GET' && u.pathname.match(BRAND_URL);

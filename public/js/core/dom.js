@@ -3,6 +3,9 @@ export const $ = s => document.querySelector(s);
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
 }[c]));
+// A web address that is safe to put in an href: plain https, no spaces or quotes. Anything else (javascript:, data:, http:) becomes ''.
+// esc() alone is NOT enough for links: href="javascript:..." runs when clicked even though it contains no < or ".
+export const safeUrl = u => (typeof u === 'string' && u.length <= 600 && /^https:\/\/[^\s"<>`\\]+$/i.test(u) ? u : '');
 export const fmt = d => new Date(d).toLocaleDateString();
 export const toast = m => {
     const t = $('#toast');

@@ -21,6 +21,14 @@ export const actions = {
         document.querySelectorAll('.chip-c').forEach(t => t.classList.toggle('on', t.dataset.id === id));
         drawListings();
     },
+    trysearch(b, id) {
+        S.f.q = String(id || '');
+        const box = document.querySelector('.search-box input[name=q]');
+        if (box) {
+            box.value = S.f.q;
+        }
+        loadListings().then(() => track('search', { term: S.f.q, empty: !(S.lall || []).length })).catch(() => { });
+    },
     clear() {
         S.cat = '';
         S.f = {

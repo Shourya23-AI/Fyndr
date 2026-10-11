@@ -404,3 +404,18 @@ Open `public/index.html` (landing page) with Live Server; the app itself is `pub
 - Organizations: sign up, confirm email, then `#/proof` (careers page link + photo of registration proof). An admin approves it in the **Verification queue** (shows automated checks). Only verified organizations can post.
 - Candidates: optional documents at `#/proof`. Approval unlocks **Suggested for you** (skill matching on the typed profile skills; no AI reads the documents).
 - Proof files are saved in `uploads/` (server) or browser storage (Live Server). Admin views are logged in `adminLog` in `data.json`.
+
+## Careers-page card and personal search
+
+**"Not listed on Fyndr" card.** When a signed-in person searches Jobs for a well-known company that has no real openings on Fyndr (Google, Microsoft, TCS, Infosys ...),
+the first item in the results is a card that says so and links to the company's own careers page. The list lives in `public/js/features/browse/careers.js`
+(one row per company: name, other spellings, https careers link). The card hides itself as soon as real openings from that company are listed, so nothing has to be kept in sync by hand.
+Names that are also normal words (Meta, Apple, Oracle, Intel ...) are marked `ambiguous` and only trigger on an exact search or with "jobs" / "careers" / "internship" next to them.
+Check the links now and then with `node scripts/check-careers-links.js`.
+
+**Personal search.** For a candidate with a finished profile: (1) "Try:" chips under the search box are made from the headline, best-rated skills, field and first city;
+(2) search results are ordered by how well each job fits that person, with a match % on each card (normal newest-first order when there is no search);
+(3) people who have not typed any skills yet still get picks, matched on field, headline, level, job type and place. Code: `public/js/features/suggestions/personal.js` and `engine.js`.
+
+Tests: `node test/careers.test.js`, `node test/personal.test.js` (all test files run on every push through `.github/workflows/tests.yml`).
+Security review and what to do next: `SECURITY-AUDIT.md`.

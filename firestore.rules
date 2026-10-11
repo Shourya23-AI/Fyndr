@@ -96,7 +96,16 @@ service cloud.firestore {
               || (request.resource.data.consent.keys().hasOnly(['v', 'at']) && request.resource.data.consent.v is string && request.resource.data.consent.at is string))
           && request.resource.data.get('photo', '').size() <= 120000
           && request.resource.data.get('sharedWith', []).size() < 500
-          && (!changed().hasAny(['proof']) || request.resource.data.proof.status == 'pending')
+          // proof: always starts as 'pending', and its careers-page link must be a plain https address (the admin page turns it into a clickable link,
+          // so a javascript: link stored here would run in the admin's browser)
+          && (!changed().hasAny(['proof'])
+              || (request.resource.data.proof.status == 'pending'
+                  && request.resource.data.proof.get('portal', '') is string
+                  && request.resource.data.proof.get('portal', '').size() <= 200
+                  && (request.resource.data.proof.get('portal', '') == '' || request.resource.data.proof.get('portal', '').matches('https://[^ ]+'))))
+          // sizes: a name or website cannot grow until the 1 MB document limit
+          && (!changed().hasAny(['name']) || (request.resource.data.name is string && request.resource.data.name.size() <= 80))
+          && (!changed().hasAny(['website']) || (request.resource.data.website is string && request.resource.data.website.size() <= 200))
           // a phone number is only accepted together with its phones/{phoneId} claim (one number, one account).
           // phoneId is the number's digits; it must equal the phone without its '+', and the claim must belong to this person.
           && (!changed().hasAny(['phone', 'phoneId'])
@@ -140,6 +149,7 @@ service cloud.firestore {
         || isStaff();
 
       allow create: if signedIn()
+        && !listingId.matches('imp_.*') // imp_ ids belong to the importer; an organization must not squat on one
         && request.resource.data.orgId == me()
         && myDoc().role == 'org'
         && myDoc().verified == true
@@ -223,6 +233,11 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['userId', 'listingId', 'orgId', 'orgName', 'title', 'type', 'name', 'email', 'status', 'resumeType', 'consentAt', 'snapChunks', 'created', 'form'])
         && request.resource.data.keys().hasAll(['userId', 'listingId', 'orgId', 'status', 'resumeType', 'consentAt', 'snapChunks'])
         && request.resource.data.consentAt is string
+        // the organization sees these words and this address: they must be the candidate's own, and of a sane size
+        && request.resource.data.get('email', mail()) == mail()
+        && request.resource.data.get('name', '').size() <= 80
+        && request.resource.data.get('title', '').size() <= 200
+        && request.resource.data.get('orgName', '').size() <= 120
         && (!('form' in request.resource.data) || (request.resource.data.form is map && request.resource.data.form.note.size() <= 1500 && request.resource.data.form.fullName.size() <= 80))
         && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.get('source', '') != 'import'
         && request.resource.data.snapChunks is int && request.resource.data.snapChunks >= 1 && request.resource.data.snapChunks <= 6

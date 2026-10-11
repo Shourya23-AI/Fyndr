@@ -1,0 +1,23 @@
+# Runs every test file on each push and pull request, so a broken change shows up before it reaches the live site.
+name: Tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run tests
+        run: |
+          set -e
+          for f in test/*.test.js; do
+            echo "== $f"
+            node "$f"
+          done
