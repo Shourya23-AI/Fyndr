@@ -1,0 +1,26 @@
+# Runs the importer every day. Needs ONE secret: Settings > Secrets and variables > Actions > New repository secret
+#   name: FIREBASE_SERVICE_ACCOUNT   value: the whole service-account JSON (Firebase Console > Project settings > Service accounts > Generate new private key)
+# Never commit that key to the repository. If it ever leaks, delete it in Google Cloud Console and make a new one.
+name: Import jobs
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: import-jobs
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save --ignore-scripts firebase-admin@12
+      - run: node scripts/import-to-firestore.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

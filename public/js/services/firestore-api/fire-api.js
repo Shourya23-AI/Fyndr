@@ -18,8 +18,19 @@ import { expiredApps } from './retention.js';
 import { POLICY_VERSION } from '../../features/legal/constants.js';
 import { ADMIN_EMAILS } from './config.js';
 import { trustScore, decide } from '../../features/trust/trust.js';
+import { isExpired } from '../../features/listings/expiry.js';
 import { QUAL, EXP, JT, ORG_TYPES, IMG_MAX, now, lc, bad, isMain, isFree, gmailAllowed, pub, meOf, completion, cleanExtras, need, imgOk, filterListings, adminData, cleanForm, cleanImport, hash } from './helpers.js';
 
+const NUM = ['views', 'searches', 'emptySearches', 'saves', 'applyClicks'];
+// Counters from the browser, cleaned: whole numbers 0-50, plain words only, at most 10 words per kind.
+const cleanCounts = b => {
+    const n = v => Math.max(0, Math.min(50, Math.floor(+v) || 0));
+    const mp = (o, re) => Object.fromEntries(Object.entries(o && typeof o === 'object' ? o : {}).filter(([k]) => re.test(k)).slice(0, 10).map(([k, v]) => [k, n(v)]).filter(([, v]) => v));
+    const out = Object.fromEntries(NUM.map(k => [k, n(b[k])]).filter(([, v]) => v));
+    const empty = mp(b.empty, /^[a-z][a-z +#.-]{1,28}$/);
+    const skills = mp(b.skills, /^[a-z0-9][a-z0-9 +#.-]{0,28}$/);
+    return { ...out, ...(Object.keys(empty).length ? { empty } : {}), ...(Object.keys(skills).length ? { skills } : {}) };
+};
 export const tuning = { selfTtl: 8000 }; // how long (ms) your own profile document is reused between calls (0 = always re-read)
 const selfMemo = { uid: null, t: 0, d: null };
 const sweep = { t: 0 }; // last time expired applications were cleaned up (admin dashboard)
@@ -567,6 +578,12 @@ async function run(path, method, b, fu) {
             if (user.role === 'admin' && Date.now() - sweep.t > 3600e3) {
                 sweep.t = Date.now();
                 try {
+                    const stale = rows(ls).filter(l => isExpired(l));
+                    for (const l of stale) {
+                        await m.updateDoc(ref('listings', l.id), { status: 'closed', closedAt: now() });
+                        l.status = 'closed';
+                        l.closedAt = now();
+                    }
                     const old = expiredApps(apps, rows(ls));
                     await dropApps(old);
                     const gone = new Set(old.map(a => a.id));
@@ -602,6 +619,7 @@ async function run(path, method, b, fu) {
         }
         case 'POST /admin/cleanup': {
             only('admin');
+            await run('/admin/expire', 'POST', {}, fu);
             const [ls, ap] = await Promise.all([m.getDocs(col('listings')), m.getDocs(col('applications'))]);
             const old = expiredApps(rows(ap), rows(ls));
             await dropApps(old);
@@ -701,6 +719,35 @@ async function run(path, method, b, fu) {
             }
             await bt.commit();
             return out;
+        }
+        case 'POST /analytics': { // daily counters only; no id of the person or the listing is stored
+            const c = cleanCounts(b || {});
+            if (!Object.keys(c).length) {
+                return { ok: 1 };
+            }
+            const f = {};
+            for (const [k, v] of Object.entries(c)) {
+                f[k] = typeof v === 'number' ? m.increment(v) : Object.fromEntries(Object.entries(v).map(([w, x]) => [w, m.increment(x)]));
+            }
+            await m.setDoc(ref('analytics', now().slice(0, 10)), f, { merge: true });
+            return { ok: 1 };
+        }
+        case 'GET /admin/insights': {
+            only('admin', 'moderator');
+            const [as, ls, ap] = await Promise.all([m.getDocs(col('analytics')), m.getDocs(col('listings')), m.getDocs(col('applications'))]);
+            return { analytics: rows(as), listings: rows(ls).map(l => ({ id: l.id, title: l.title, description: String(l.description || '').slice(0, 1500), status: l.status })), applicationDates: rows(ap).map(a => a.created) };
+        }
+        case 'POST /admin/expire': {
+            only('admin', 'moderator');
+            const ls = await m.getDocs(m.query(col('listings'), m.where('status', '==', 'approved')));
+            const old = rows(ls).filter(l => isExpired(l));
+            for (let i = 0; i < old.length; i += 400) {
+                const bt = m.writeBatch(db);
+                old.slice(i, i + 400).forEach(l => bt.update(ref('listings', l.id), { status: 'closed', closedAt: now() }));
+                await bt.commit();
+            }
+            memo.listings = null;
+            return { closed: old.length };
         }
         case 'PATCH /admin/listings/:id': {
             only('admin', 'moderator');

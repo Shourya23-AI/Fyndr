@@ -1,5 +1,30 @@
 # Fyndr
 
+## Update: scheduled importer, auto-close, usage counters, Insights, security hardening (plan parts 2-5, partly)
+
+**Before you publish (in this order)**
+1. Push the site files to GitHub (service-worker label is `static-2026-10-12-insights`).
+2. Firebase Console > Firestore > **Rules**: paste the new `firestore.rules` and **Publish** (new: closing listings, `analytics/{day}` counters).
+3. **Test sign-in with Google and the phone check once.** The new Content-Security-Policy line in `index.html` (line 5) could block something I could not test. If a sign-in step breaks, delete that one `<meta http-equiv="Content-Security-Policy" ...>` line and tell me the browser console message.
+4. Everyone sees a one-time "Please review our updated policies" screen (policy version `2026-10-12`: usage counts and the weekly summary are now in the Privacy Policy).
+5. Go through **SECURITY.md** (App Check, API key restriction, admin 2-step, budget alert). Those are the biggest wins and only you can do them.
+
+**What changed**
+- **Scheduled importer:** `.github/workflows/import-jobs.yml` runs `scripts/import-to-firestore.js` daily. Needs one GitHub secret, `FIREBASE_SERVICE_ACCOUNT` (the service-account JSON; never commit it). Same sources, rules and trust bands as before: **50+ published, under 50 review queue, scams not stored** (the number is `TRUST_MIN` in `features/trust/trust.js`; your plan said 70/40, you asked for 50, change it there if you want the plan's bands).
+- **Auto-close:** imported listings close after 45 days, posted ones after 90 (`features/listings/expiry.js`). Closing runs when an admin opens the dashboard (hourly), with **Run cleanup now**, and in the daily importer. Closed listings leave the public list and start the 30-day application retention clock.
+- **Usage counters (consent):** a one-time question (and a switch in Privacy & data). If yes, the browser sends daily totals only: views, searches, searches that found nothing (plain words only, never numbers or emails), saves, Apply clicks, skill names of viewed listings. No user id, listing id or time per event.
+- **Insights tab (admin and moderators):** totals, where people drop off, searches that found nothing, skills people look at vs how many listings mention them, and a **weekly report** written from the totals with fixed sentences (no AI) that you can copy.
+- **Security:** Content-Security-Policy and referrer policy, escaping of the generated how-to-apply text, `security.txt`, a rules-checked counter document, and `SECURITY.md`.
+
+**Not done yet (say which you want next)**
+- Part 3: crawlable public listing pages + sitemap (needs a build step that writes one HTML page per listing), saved searches and alerts (needs email sending), employer reply times.
+- Trending skills feeding back into suggestions (the counters are being collected; wire it once there is data).
+- Firebase App Check in code, and a Cloud Function for phone verification.
+- The analytics counters accept values inside the two maps without range checks in the rules; a determined signed-in person could skew them.
+- Not testable here: `firestore.rules`, the GitHub workflow, live fetching, and how the new screens look in a browser (Insights, usage question, apply page). Syntax is checked and the logic has tests.
+
+**Checks:** `node test/run.test.js` runs 99 checks.
+
 ## Update: imported jobs, trust score, auto description, full apply page (plan step 3)
 
 **Before you publish (in this order)**

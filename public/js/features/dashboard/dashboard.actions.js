@@ -132,6 +132,14 @@ Object.assign(actions, {
         el.addEventListener('click', e => (e.target === el || e.target.closest('[data-x]')) && el.remove());
         document.body.append(el);
     },
+    async copyrep() {
+        try {
+            await navigator.clipboard.writeText(document.getElementById('weekrep').textContent);
+            toast('Copied');
+        } catch {
+            toast('Select the text and copy it');
+        }
+    },
     printresume() {
         const { d, me } = ST.dd;
         printResume({

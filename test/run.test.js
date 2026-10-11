@@ -102,7 +102,7 @@ const keysOf = pre => [...mock.store.keys()].filter(k => k.startsWith(pre));
 U.x1 = { uid: 'x1', email: 'newbie@gmail.com' };
 await throws(() => api('x1', '/init', 'POST', { role: 'user' }), /CONSENT/, 'sign-up needs the Terms/Privacy box ticked');
 await throws(() => api('x1', '/init', 'POST', { role: 'user', agree: false }), /CONSENT/, 'unticked box refused');
-ok(mock.store.get('users/c1').consent.v === '2026-10-11' && !!mock.store.get('users/c1').consent.at, 'consent version + time stored at sign-up');
+ok(mock.store.get('users/c1').consent.v === '2026-10-12' && !!mock.store.get('users/c1').consent.at, 'consent version + time stored at sign-up');
 ok((await api('cand', '/me')).needsConsent === false, 'fresh account does not need consent again');
 // an old account (consent from an older policy version) is asked once
 mock.store.get('users/c2').consent = { v: '2025-01-01', at: '2025-01-01T00:00:00.000Z' };
@@ -146,7 +146,7 @@ ok(!mock.store.get('users/c2').sharedWith.includes('org1'), 'withdrawing an olde
 
 // download my data
 const ex = await api('cand', '/account/export');
-ok(ex.account.email === 'sam@gmail.com' && ex.account.consent.v === '2026-10-11' && ex.profile.institution === 'MIT' && ex.applications.length === 1 && ex.applications[0].organization === 'Acme Academy' && ex.uploadedResume.base64 === big, 'candidate export holds account, profile, applications, consent and the resume file');
+ok(ex.account.email === 'sam@gmail.com' && ex.account.consent.v === '2026-10-12' && ex.profile.institution === 'MIT' && ex.applications.length === 1 && ex.applications[0].organization === 'Acme Academy' && ex.uploadedResume.base64 === big, 'candidate export holds account, profile, applications, consent and the resume file');
 const exo = await api('org', '/account/export');
 ok(exo.account.orgName === 'Acme Academy' && exo.listings.length === 2 && exo.listings.every(l => l.image === undefined && l.hasImage === true) && exo.applicationsReceived.length === 1, 'organization export holds listings (without pictures) and applications received');
 await throws(() => api('admin', '/account/export'), /Forbidden/, 'staff accounts have no export');
@@ -247,6 +247,31 @@ ok(sm.skills.includes('Python') && sm.steps[0].includes('official page') && sm.o
 const imp2 = await import('../scripts/import-jobs.js');
 const lds = imp2.jobPostings('<script type="application/ld+json">{"@graph":[{"@type":"JobPosting","title":"QA","description":"<p>Test</p>"}]}</script><script type="application/ld+json">not json</script>');
 ok(lds.length === 1 && lds[0].title === 'QA', 'importer reads JobPosting data and ignores broken blocks');
+
+// ---- step 4: usage counters, insights, auto-close
+await api('cand', '/analytics', 'POST', { views: 3, searches: 2, emptySearches: 1, applyClicks: 1, empty: { 'rust developer': 1, 'a@b.com': 1, '555 1234': 4 }, skills: { python: 2, sql: 1 }, userId: 'c1', listingId: 'x' });
+await api('cand', '/analytics', 'POST', { views: 999, searches: -5, empty: { 'rust developer': 2 } });
+const day = new Date().toISOString().slice(0, 10);
+const an = mock.store.get('analytics/' + day);
+ok(an.views === 53 && an.searches === 2 && an.emptySearches === 1 && an.empty['rust developer'] === 3 && an.skills.python === 2, 'counters add up and are capped per call');
+ok(!('a@b.com' in an.empty) && !('555 1234' in an.empty) && !('userId' in an) && !('listingId' in an), 'only plain words and fixed counters are stored (no email, number, user or listing id)');
+await throws(() => api('cand', '/admin/insights'), /Forbidden/, 'candidate cannot read insights');
+const ins = await api('admin', '/admin/insights');
+const { aggregate, weeklyReport } = await import('../public/js/features/insights/insights.js');
+const ag = aggregate(ins.analytics, ins.listings, 2, 7);
+ok(ag.totals.views === 53 && ag.topEmpty[0][0] === 'rust developer' && ag.shortage.some(x => x.skill === 'python'), 'insights aggregate: totals, empty searches, demand vs supply');
+const rep = weeklyReport(ag);
+ok(/53 listing views/.test(rep) && /rust developer/.test(rep) && !/@/.test(rep), 'weekly report is written from totals only');
+// auto-close: an imported listing older than 45 days, a posted one older than 90 days
+const oldImp = new Date(Date.now() - 50 * 864e5).toISOString();
+const older = new Date(Date.now() - 100 * 864e5).toISOString();
+mock.store.set('listings/imp_old1', { orgId: 'import', orgName: 'Old Co', title: 'Old import', type: 'Job', location: 'x', pay: 'x', status: 'approved', source: 'import', applyUrl: 'https://old.example.com/1', trust: 80, created: oldImp });
+mock.store.set('listings/posted_old', { orgId: 'org1', orgName: 'Acme Academy', title: 'Old posted', type: 'Job', location: 'x', pay: 'x', status: 'approved', created: older });
+mock.store.set('listings/posted_new', { orgId: 'org1', orgName: 'Acme Academy', title: 'New posted', type: 'Job', location: 'x', pay: 'x', status: 'approved', created: oldImp });
+await throws(() => api('cand', '/admin/expire', 'POST', {}), /Forbidden/, 'candidate cannot close listings');
+const ex2 = await api('admin', '/admin/expire', 'POST', {});
+ok(ex2.closed === 2 && mock.store.get('listings/imp_old1').status === 'closed' && !!mock.store.get('listings/imp_old1').closedAt && mock.store.get('listings/posted_new').status === 'approved', 'old listings auto-close (imports 45 days, posted 90 days)');
+ok(!(await api('cand', '/listings')).some(l => l.title === 'Old import'), 'closed listings disappear from the public list');
 
 // ---- delete listing / user cascade
 await api('org', `/listings/${lid}`, 'DELETE');

@@ -19,6 +19,7 @@ import { termsView, privacyView, contactView } from '../features/legal/legal.vie
 import { cachedMe } from '../features/auth/load-me.js';
 import { consentView } from '../features/privacy/consent.view.js';
 import { applyView } from '../features/apply/apply.view.js';
+import { askAnalytics } from '../features/privacy/analytics.actions.js';
 // Hash router: '#/organizations', '#/dashboard', ... Decides which page to draw and redirects people who are signed out or not set up yet.
 export async function route() {
     const rid = route.n = (route.n || 0) + 1;
@@ -116,6 +117,7 @@ export async function route() {
                 openAuth('signup');
             }, jobs: () => browse('jobs'), courses: () => browse('courses'), organizations: orgPage, proof: proofView, forgot: () => authView('forgot'), verify: () => authView('verify'), setup: () => authView('setup'), dashboard, profile: profileView, phone: phoneView, terms: termsView, privacy: privacyView, contact: contactView, reset: resetView, consent: consentView, apply: applyView
         }[r] || home)();
+        askAnalytics();
     } catch (e) {
         toast(e.message);
     }

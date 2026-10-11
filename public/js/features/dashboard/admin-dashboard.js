@@ -3,9 +3,10 @@ import { esc, fmt, table, pill } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { RETENTION } from '../privacy/retention.js';
 import { trustScore, TRUST_MIN } from '../trust/trust.js';
+import { aggregate, weeklyReport } from '../insights/insights.js';
 // Admin dashboard (sidebar like the candidate one): Overview · Organizations · Listings · Verification · Candidates.
 // Data comes from GET /admin/data. Org size + Gmail-posting controls are <select>s handled by onChange in dashboard.actions.js.
-const TABS = [['overview', 'Overview', 'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z'], ['orgs', 'Organizations', 'M4 21V7l8-4 8 4v14M9 21v-6h6v6'], ['listings', 'Listings', 'M4 7h16v12H4zM9 7V4h6v3'], ['verify', 'Verification', 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4'], ['people', 'Candidates', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0'], ['team', 'Team', 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 11a2.5 2.5 0 1 0 0-5M17 14.5a5 5 0 0 1 4 5.5']];
+const TABS = [['overview', 'Overview', 'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z'], ['orgs', 'Organizations', 'M4 21V7l8-4 8 4v14M9 21v-6h6v6'], ['listings', 'Listings', 'M4 7h16v12H4zM9 7V4h6v3'], ['verify', 'Verification', 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4'], ['people', 'Candidates', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0'], ['insights', 'Insights', 'M4 20V10M10 20V4M16 20v-7M22 20H2'], ['team', 'Team', 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 11a2.5 2.5 0 1 0 0-5M17 14.5a5 5 0 0 1 4 5.5']];
 const isAdmin = () => S.me?.role === 'admin'; // moderators see everything they can act on, nothing more
 const SIZE = { small: 'Small business', enterprise: 'Enterprise' };
 const head = (t, d) => `<div class="dash-head"><h2>${t}</h2><p class="desc">${d}</p></div>`;
@@ -40,9 +41,21 @@ function orgs(d) {
 function listings(d) {
     const f = S.afilt || 'all';
     const cnt = s => s === 'all' ? d.listings.length : d.listings.filter(l => l.status === s).length;
-    const chips = ['all', 'pending', 'approved', 'rejected'].map(s => `<button class="chip-f ${f === s ? 'on' : ''}" data-act="afilt" data-id="${s}">${s[0].toUpperCase() + s.slice(1)} (${cnt(s)})</button>`).join('');
+    const chips = ['all', 'pending', 'approved', 'rejected', 'closed'].map(s => `<button class="chip-f ${f === s ? 'on' : ''}" data-act="afilt" data-id="${s}">${s[0].toUpperCase() + s.slice(1)} (${cnt(s)})</button>`).join('');
     const imp = `<div class="panel"><h3>Import jobs and courses</h3><p class="desc">Run <b>node scripts/import-jobs.js</b> on your computer, then choose the file it makes (<b>imports/jobs.json</b>). Listings with trust 50 or more are published; the rest wait below for you; obvious scams are skipped.</p><input type="file" id="impfile" accept="application/json,.json" aria-label="Import file"><p class="desc" id="impout">${esc(S.impResult || '')}</p></div>`;
     return head('Listings', 'Approve or reject what organizations post. Anything with a trust score under 50 needs a person to check it.') + imp + `<div class="chip-row">${chips}</div><div class="panel">${table(['Title', 'Org', 'Type', 'Status', 'Actions'], d.listings.filter(l => f === 'all' || l.status === f).map(lstRow))}</div>`;
+}
+function insights(d, x) {
+    const a30 = aggregate(x.analytics, x.listings, x.applicationDates.filter(c => String(c) >= new Date(Date.now() - 30 * 864e5).toISOString()).length, 30);
+    const a7 = aggregate(x.analytics, x.listings, x.applicationDates.filter(c => String(c) >= new Date(Date.now() - 7 * 864e5).toISOString()).length, 7);
+    const t = a30.totals;
+    const tile = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
+    const drop = (a, b, l) => `<tr><td>${l}</td><td>${a}</td><td>${b ? Math.round(100 * a / b) + '%' : '—'}</td></tr>`;
+    return head('Insights', 'Daily totals from visitors who said yes to usage counts. No names, no listing ids. Last 30 days.') + `<div class="stats3">${tile(t.views, 'Listing views') + tile(t.searches, 'Searches') + tile(t.emptySearches, 'Searches with no result') + tile(t.saves, 'Saves') + tile(t.applyClicks, 'Apply clicks') + tile(a30.applications, 'Applications on Fyndr')}</div>
+<div class="panel"><h3>Where people drop off</h3>${table(['Step', 'Count', 'Of the step before'], [drop(t.views, 0, 'Viewed a listing'), drop(t.applyClicks, t.views, 'Clicked Apply'), drop(a30.applications, t.applyClicks, 'Applied on Fyndr (Fyndr jobs only)')])}</div>
+<div class="panel"><h3>Searches that found nothing</h3>${table(['Search words', 'Times'], a30.topEmpty.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`))}</div>
+<div class="panel"><h3>Skills: demand and supply</h3><p class="desc">Views are how often listings mentioning the skill were opened. Listings is how many open listings mention it.</p>${table(['Skill', 'Views', 'Listings', 'Read'], [...a30.shortage.map(s => `<tr><td>${esc(s.skill)}</td><td>${s.views}</td><td>${s.listings}</td><td><span class="tag tag-warn">Needs more listings</span></td></tr>`), ...a30.surplus.map(s => `<tr><td>${esc(s.skill)}</td><td>${s.views}</td><td>${s.listings}</td><td><span class="tag">Plenty of listings</span></td></tr>`)])}</div>
+<div class="panel"><h3>Weekly report</h3><p class="desc">Written from the totals above only. Copy it into an email to yourself.</p><div class="ins-report" id="weekrep">${esc(weeklyReport(a7))}</div><button class="button button-small" style="margin-top:12px" data-act="copyrep">Copy</button></div>`;
 }
 function verify(d) {
     const CK = {
@@ -96,14 +109,15 @@ export async function adminDashboard(a) {
 async function drawAdmin(a) {
     const d = await api('/admin/data');
     S.atab = S.atab || 'overview';
+    const extra = S.atab === 'insights' ? await api('/admin/insights') : null;
     const badge = { listings: d.stats.pendingListings, verify: d.stats.pendingVerifications };
     const tabs = TABS.filter(t => t[0] !== 'team' || isAdmin());
     if (!tabs.some(t => t[0] === S.atab)) {
         S.atab = 'overview';
     }
     const body = {
-        overview, orgs, listings, verify, people, team
-    }[S.atab](d);
+        overview, orgs, listings, verify, people, team, insights
+    }[S.atab](d, extra);
     const keep = document.activeElement?.id === 'tq'; // keep typing in the search box after a redraw
     a.innerHTML = `<div class="dash-layout"><aside class="dash-side"><nav>${tabs.map(([id, t, ic]) => `<button class="side-btn ${S.atab === id ? 'on' : ''}" data-act="atab" data-id="${id}"><svg viewBox="0 0 24 24"><path d="${ic}"/></svg>${t}${badge[id] ? `<span class="side-badge">${badge[id]}</span>` : ''}</button>`).join('')}</nav><span class="side-link">${S.me.permanent ? '★ Main admin (permanent)' : S.me.role === 'moderator' ? 'Signed in as moderator' : 'Signed in as admin'}</span><span class="side-link desc" style="font-size:11px">Build ${BUILD()}</span></aside><main class="dash-main">${body}</main></div>`;
     if (keep) {

@@ -109,10 +109,7 @@ async function fromPage(c) {
         applyUrl: j.url || (j.directApply && c.url) || c.url, source: 'page'
     }));
 }
-async function main() {
-    const cfg = path.resolve(process.argv[2] || path.join(__dirname, '..', 'config', 'companies.json'));
-    const out = path.resolve(process.argv[3] || path.join(__dirname, '..', 'imports', 'jobs.json'));
-    const list = JSON.parse(fs.readFileSync(cfg, 'utf8'));
+async function collect(list, log = console.log) {
     const all = [];
     for (const c of list) {
         try {
@@ -121,13 +118,19 @@ async function main() {
                 throw new Error('unknown type ' + c.type);
             }
             const r = (await f(c)).filter(x => x.title && /^https:\/\//i.test(x.applyUrl || ''));
-            console.log(`${c.name}: ${r.length} listing(s)`);
+            log(`${c.name}: ${r.length} listing(s)`);
             all.push(...r);
         } catch (e) {
-            console.log(`${c.name}: failed (${e.message})`);
+            log(`${c.name}: failed (${e.message})`);
         }
         await new Promise(r => setTimeout(r, 800)); // be gentle with every site
     }
+    return all;
+}
+async function main() {
+    const cfg = path.resolve(process.argv[2] || path.join(__dirname, '..', 'config', 'companies.json'));
+    const out = path.resolve(process.argv[3] || path.join(__dirname, '..', 'imports', 'jobs.json'));
+    const all = await collect(JSON.parse(fs.readFileSync(cfg, 'utf8')));
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, JSON.stringify(all, null, 1));
     console.log(`\nWrote ${all.length} listing(s) to ${out}\nNext: Dashboard > Listings > Import jobs and courses, then choose that file.`);
@@ -135,4 +138,4 @@ async function main() {
 if (require.main === module) {
     main();
 }
-module.exports = { jobPostings, allowed, strip, typeOf };
+module.exports = { collect, jobPostings, allowed, strip, typeOf };

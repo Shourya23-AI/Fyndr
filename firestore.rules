@@ -182,7 +182,32 @@ service cloud.firestore {
         && changed().hasOnly(['status'])
         && request.resource.data.status in ['approved', 'rejected', 'pending'];
 
+      // Staff (or the daily auto-close) close an old listing. Closing starts the retention clock for its applications.
+      allow update: if isStaff()
+        && changed().hasOnly(['status', 'closedAt'])
+        && request.resource.data.status == 'closed'
+        && request.resource.data.closedAt is string;
+
       allow delete: if isStaff() || (signedIn() && resource.data.orgId == me());
+    }
+
+    // ---------- usage counters: ONE document per day, only totals (no user, no listing, no time of day) ----------
+    // Anyone signed in may add small amounts (each counter at most +50 per write) to the fixed counters, and to the 'empty' (searches that
+    // found nothing) and 'skills' maps. Only staff read them. The values inside the two maps are not range-checked by the rules (the app caps them);
+    // a determined signed-in person could skew the numbers, which is why the Insights page treats them as hints, not facts.
+    match /analytics/{day} {
+      function inc(k) {
+        return request.resource.data.get(k, 0) - (resource == null ? 0 : resource.data.get(k, 0));
+      }
+      allow read: if isStaff();
+      allow create, update: if signedIn()
+        && day.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && request.resource.data.keys().hasOnly(['views', 'searches', 'emptySearches', 'saves', 'applyClicks', 'empty', 'skills'])
+        && inc('views') <= 50 && inc('searches') <= 50 && inc('emptySearches') <= 50 && inc('saves') <= 50 && inc('applyClicks') <= 50
+        && inc('views') >= 0 && inc('searches') >= 0 && inc('emptySearches') >= 0 && inc('saves') >= 0 && inc('applyClicks') >= 0
+        && request.resource.data.get('empty', {}).keys().size() <= 300
+        && request.resource.data.get('skills', {}).keys().size() <= 300;
+      allow delete: if isAdmin();
     }
 
     // ---------- applications: one per candidate per listing, id = {candidateUid}_{listingId} ----------

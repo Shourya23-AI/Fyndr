@@ -48,7 +48,23 @@ export function createMock() {
             }
             return { docs: out };
         },
-        setDoc: async (r, d) => write.set(r.path, d),
+        setDoc: async (r, d, o) => {
+            if (!(o && o.merge)) {
+                return write.set(r.path, d);
+            }
+            const cur = store.has(r.path) ? store.get(r.path) : {};
+            const mg = (t, s) => Object.entries(s).forEach(([k, v]) => {
+                if (v && v.__inc !== undefined) {
+                    t[k] = (t[k] || 0) + v.__inc;
+                } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+                    mg(t[k] = t[k] || {}, v);
+                } else {
+                    t[k] = v;
+                }
+            });
+            mg(cur, d);
+            store.set(r.path, clone(cur));
+        },
         updateDoc: async (r, d) => write.update(r.path, d),
         deleteDoc: async r => write.delete(r.path),
         writeBatch: () => {
@@ -61,6 +77,7 @@ export function createMock() {
             };
             return b;
         },
+        increment: n => ({ __inc: n }),
         arrayUnion: (...v) => ({ __union: v }),
         arrayRemove: (...v) => ({ __remove: v }),
         deleteField: () => DEL

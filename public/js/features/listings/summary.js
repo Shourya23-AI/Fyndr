@@ -19,7 +19,7 @@ export function summarize(l) {
     const skills = skillsIn(`${l.title} ${d}`);
     const steps = [];
     if (l.applyUrl) {
-        steps.push(`Press <b>Apply on the official page</b>. It opens ${hostOf(l.applyUrl)} in a new tab.`);
+        steps.push(`Press <b>Apply on the official page</b>. It opens ${escH(hostOf(l.applyUrl))} in a new tab.`);
         steps.push('Check the address bar. A real employer never asks you to pay a fee or share an OTP.');
         steps.push(course ? 'Follow the enrolment steps on that page.' : 'Create an account or fill their form there, and attach your resume.');
         steps.push('Keep a screenshot or email of your submission.');
@@ -31,6 +31,7 @@ export function summarize(l) {
     }
     return { overview, skills, steps };
 }
+const escH = x => String(x).replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';');
 export const hostOf = u => {
     try {
         return new URL(u).hostname.replace(/^www\./, '');

@@ -7,6 +7,7 @@ import { browse } from './browse.js';
 import { dashboard } from '../dashboard/dashboard.js';
 import { openDetail, closeDetail } from './detail.js';
 import { moreSuggestions } from '../suggestions/suggest.js';
+import { track } from '../../services/analytics/analytics.js';
 // data-act handlers
 export const actions = {
     tab(b, id) {
@@ -29,6 +30,9 @@ export const actions = {
     view(b, id) {
         openDetail(id);
     },
+    extclick() {
+        track('apply');
+    },
     save: saveOrApply,
     apply: saveOrApply
 };
@@ -50,11 +54,15 @@ async function saveOrApply(b, id) {
             location.hash = '#/phone';
             return;
         }
+        track('apply');
         closeDetail();
         location.hash = '#/apply/' + id;
         return;
     }
-    await api(`/${act}/${id}`, 'POST', body);
+    const r = await api(`/${act}/${id}`, 'POST', body);
+    if (act === 'save' && r?.saved) {
+        track('save');
+    }
     closeDetail();
     if (act === 'apply') {
         toast('Application sent!');
@@ -66,6 +74,6 @@ export const forms = {
     search(d) {
         S.f.q = d.q;
         S.f.loc = d.loc;
-        loadListings();
+        loadListings().then(() => d.q && track('search', { term: d.q, empty: !(S.lall || []).length })).catch(() => { });
     }
 };
