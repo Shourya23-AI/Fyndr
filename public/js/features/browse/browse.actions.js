@@ -15,7 +15,13 @@ export const actions = {
         document.querySelectorAll('.tabs button').forEach(t => t.classList.toggle('active', t.dataset.id === id));
         loadListings();
     },
+    cat(b, id) {
+        S.cat = id;
+        document.querySelectorAll('.chip-c').forEach(t => t.classList.toggle('on', t.dataset.id === id));
+        drawListings();
+    },
     clear() {
+        S.cat = '';
         S.f = {
             type: '', q: '', loc: ''
         };

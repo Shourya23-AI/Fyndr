@@ -2,22 +2,25 @@
 .logo {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 22px;
+  gap: 10px;
+  font-size: 23px;
   font-weight: 800;
-  letter-spacing: -.04em;
+  letter-spacing: -.045em;
 }
 
 .logo-mark {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   color: #fff;
-  background: linear-gradient(135deg, var(--green), var(--deep));
-  border-radius: 50% 50% 50% 9px;
+  background: linear-gradient(135deg, #5fc29d, #2f7a5c);
+  border-radius: 50% 50% 50% 10px;
+  box-shadow: 0 4px 12px rgba(47, 122, 92, .35);
 }
 
 .logo-mark svg {
-  width: 18px;
+  width: 22px;
+  height: 22px;
+  stroke-width: 3;
 }
