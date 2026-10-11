@@ -104,3 +104,32 @@ R('PATCH', '/api/admin/staff/:id', ['admin'], ({ user, p, body: b }) => {
     save();
     return { ok: 1, staff: staffLevel(u) };
 });
+// Give a role to an email address, even if that person has not signed up yet. It is applied as soon as they sign up and confirm the email.
+R('POST', '/api/admin/staff-invite', ['admin'], ({ user, body: b }) => {
+    const email = String(b.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 120) {
+        bad(400, 'Enter a valid email address');
+    }
+    if (!['admin', 'moderator'].includes(b.role)) {
+        bad(400, 'Choose Admin or Moderator');
+    }
+    if (isAdminEmail(email)) {
+        bad(400, 'That account is already a permanent admin', 'PERMANENT');
+    }
+    const existing = db.users.find(u => (u.email || '').toLowerCase() === email);
+    if (existing) {
+        existing.staff = b.role;
+        applyStaff(existing);
+        save();
+        return { ok: 1, applied: true };
+    }
+    db.staffInvites = (db.staffInvites || []).filter(i => i.email !== email);
+    db.staffInvites.push({ email, role: b.role, by: user.email, at: new Date().toISOString() });
+    save();
+    return { ok: 1, applied: false };
+});
+R('POST', '/api/admin/staff-invite/revoke', ['admin'], ({ body: b }) => {
+    db.staffInvites = (db.staffInvites || []).filter(i => i.email !== String(b.email || '').toLowerCase());
+    save();
+    return { ok: 1 };
+});

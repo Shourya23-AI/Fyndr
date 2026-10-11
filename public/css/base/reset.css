@@ -173,3 +173,25 @@ h3 {
     animation: none!important;
   }
 }
+
+/* Rows that scroll sideways on purpose (menu tabs, dashboard tabs, tables) must still allow a horizontal swipe,
+   even though the page itself only moves vertically. */
+.tbl-wrap,
+.nav-links,
+.dash-side,
+.dash-side nav,
+.tabs,
+.chip-row {
+  touch-action: pan-x pan-y;
+}
+
+/* Phones: show every dashboard tab (Overview ... Team) instead of hiding the last ones off-screen. */
+@media (max-width: 800px) {
+  .dash-side {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .dash-side nav {
+    flex-wrap: wrap;
+  }
+}

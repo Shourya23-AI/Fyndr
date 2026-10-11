@@ -48,6 +48,11 @@ function people(d) {
 // Team: every account with a role selector. The main admin is permanent (no selector, cannot be changed or deleted).
 const ROLE_LABEL = { admin: 'Admin', moderator: 'Moderator' };
 function team(d) {
+    if (!Array.isArray(d.team)) {
+        // The data came from something that does not know about team roles: an old copy of the server, or browser-only (Live Server) mode.
+        return head('Team', 'Team roles are not available here.') + '<div class="panel"><h3>This copy of Fyndr cannot manage the team</h3><p class="desc">Team roles need the <b>latest Node server</b>. Stop the server, make sure you are running the files from the newest zip, start it again with <b>node server.js</b>, open the site from <b>http://localhost:3000</b> (not Live Server) and reload the page twice.</p></div>';
+    }
+    d.invites = d.invites || [];
     const q = (S.tq || '').toLowerCase();
     const staff = d.team.filter(t => t.staff);
     const list = d.team.filter(t => !q || (t.name + ' ' + t.email).toLowerCase().includes(q));
@@ -64,6 +69,7 @@ function team(d) {
         return `<tr><td>${who}</td><td>${t.kind}</td><td>${role}</td><td>${fmt(t.created)}</td></tr>`;
     };
     return head('Team', 'Choose who can moderate or administer Fyndr. Moderators can approve listings and verifications. Admins can do everything, including managing this team.') + `<div class="panel"><h3>Current team <span class="desc">(${staff.length})</span></h3><div class="team-chips">${staff.map(t => `<span class="team-chip ${t.permanent ? 'perm' : ''}"><b>${esc(t.name)}</b> ${t.permanent ? '★ Permanent admin' : ROLE_LABEL[t.staff]}</span>`).join('')}</div></div>
+<div class="panel"><h3>Add by email</h3><p class="desc">Give a role to anyone, even before they have an account. It applies automatically when they sign up and confirm their email.</p><form class="form invite-form" data-form="invite"><input type="email" name="email" placeholder="name@example.com" required aria-label="Email"><select name="role" aria-label="Role"><option value="admin">Admin</option><option value="moderator">Moderator</option></select><button class="button button-dark">Add</button><p class="err"></p></form>${d.invites.length ? `<div class="team-chips" style="margin-top:12px">${d.invites.map(i => `<span class="team-chip">${esc(i.email)} · ${ROLE_LABEL[i.role]} (waiting for sign-up) <button class="mini no" data-act="revokeinvite" data-id="${esc(i.email)}">Cancel</button></span>`).join('')}</div>` : ''}</div>
 <div class="panel"><h3>All accounts</h3><div class="form" style="margin-bottom:12px"><input type="search" id="tq" placeholder="Search name or email" value="${esc(S.tq || '')}" aria-label="Search accounts"></div>${table(['Account', 'Type', 'Role', 'Joined'], list.map(row))}<p class="desc" style="margin-top:10px">People must have signed up and confirmed their email first. A role takes effect the next time they open Fyndr.</p></div>`;
 }
 export async function adminDashboard(a) {

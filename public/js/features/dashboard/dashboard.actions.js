@@ -23,6 +23,11 @@ export const actions = {
             dashboard();
         }
     },
+    async revokeinvite(b, id) {
+        await api('/admin/staff-invite/revoke', 'POST', { email: id });
+        toast('Invite cancelled');
+        dashboard();
+    },
     async pstat(b, id, s) {
         await api('/admin/proof/' + id, 'PATCH', { status: s });
         toast('Updated');
@@ -30,6 +35,11 @@ export const actions = {
     }
 };
 export const forms = {
+    async invite(d) {
+        const r = await api('/admin/staff-invite', 'POST', d);
+        toast(r.applied ? 'Role updated' : 'Saved. It applies when they sign up.');
+        dashboard();
+    },
     async post(d) {
         await api('/listings', 'POST', d);
         toast('Submitted for review');

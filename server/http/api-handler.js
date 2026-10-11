@@ -33,6 +33,13 @@ module.exports = async function handleApi(req, res, u) {
             if (!fb.email_verified) {
                 return send(403, { error: 'Please verify your email' });
             }
+            // A role granted by email before sign-up is applied now (the email is confirmed at this point).
+            const inv = (db.staffInvites || []).find(i => i.email === (fb.email || '').toLowerCase());
+            if (inv && !isAdminEmail(fb.email)) {
+                user.staff = inv.role;
+                db.staffInvites = db.staffInvites.filter(i => i !== inv);
+                save();
+            }
             // Staff roles: the main admin is always admin; others get what an admin granted them (or lose it when demoted).
             if (applyStaff(user) || (isAdminEmail(fb.email) && !user.verified)) {
                 if (isAdminEmail(fb.email)) {

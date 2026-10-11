@@ -70,6 +70,14 @@ export function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) {
         return;
     }
+    // A new version of the site was installed: reload once so the open page uses the new files (not a mix of old and new).
+    const hadWorker = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('message', e => {
+        if (e.data?.type === 'fyndr-updated' && hadWorker && !sessionStorage.getItem('fyndr-reloaded') && !location.hash.startsWith('#/phone')) {
+            sessionStorage.setItem('fyndr-reloaded', '1');
+            location.reload();
+        }
+    });
     const register = () => navigator.serviceWorker.register('sw.js').catch(() => {});
     document.readyState === 'complete' ? register() : addEventListener('load', register);
 }

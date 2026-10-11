@@ -26,6 +26,7 @@ The page used to drift to the right on phones. Causes fixed in `css/base/reset.c
 - **Main admin (`admin.fyndr@gmail.com`) is permanent.** It shows as "★ Permanent admin", has no role selector, and the server refuses to change, demote or delete it (even by another admin).
 - Admins open **Dashboard > Team**, search any account (candidate or organization) and choose **Member / Moderator / Admin** from a dropdown. The person must have signed up and confirmed their email; the role applies the next time they open Fyndr. Demoting returns them to their normal candidate/organization account (nothing is lost).
 - **Moderators** can review listings and verification documents and verify organizations. **Admins** can also change organization size / Gmail posting, delete accounts and manage the team. The Team tab is hidden from moderators and the server enforces all of this (`server/routes/admin.routes.js`, `PATCH /api/admin/staff/:id`).
+- **Add by email:** in Team, type any email and pick Admin or Moderator. If the person already has an account the role applies now; otherwise it waits and applies automatically once they sign up and confirm their email. Pending invites can be cancelled.
 - Extra admins from `ADMIN_EMAILS` are also permanent (set in server config, not editable in the UI).
 - Roles work with the Node server. The browser-only Live Server mode (`services/local-api`) does not implement moderators.
 

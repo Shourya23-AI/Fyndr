@@ -23,6 +23,8 @@ self.addEventListener('activate', event => {
         caches.keys()
             .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
             .then(() => self.clients.claim())
+            .then(() => self.clients.matchAll({ type: 'window' }))
+            .then(list => list.forEach(c => c.postMessage({ type: 'fyndr-updated' })))
     );
 });
 
