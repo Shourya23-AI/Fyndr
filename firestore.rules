@@ -5,6 +5,7 @@
 //   - Everyone must have a verified email to touch anything except reading approved listings.
 //   - A user can only edit their own account, and never their own staff/verification fields.
 //   - Organizations can post only when staff verified them AND they have a phone; a post waits as "pending" until staff approve it.
+//   - Staff can import listings found by scripts/import-jobs.js (ids imp_*, https apply link, trust score). Imported listings are applied for on the employer's own page, never through Fyndr.
 //   - Candidates apply once per listing; only the organization that owns the listing can change an application's status.
 //   - When a candidate applies, the resume they chose is COPIED into the application (blobs/ar_{appId}_{i}). The organization reads only that
 //     copy. Withdrawing or deleting the application (or closing the listing, or the retention cleanup) removes the organization's access.
@@ -160,6 +161,22 @@ service cloud.firestore {
         && request.resource.data.get('logo', '').size() <= 40000
         && (request.resource.data.get('logo', '') == '' || request.resource.data.logo.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+'));
 
+      // Staff can load imported listings (scripts/import-jobs.js): public data with an https apply link and a trust score.
+      // Trust 50 or more arrives as 'approved', the rest as 'pending' for review. The id always starts with imp_ so it can never clash with a posted listing.
+      allow create: if isStaff()
+        && listingId.matches('imp_[a-z0-9]+')
+        && request.resource.data.orgId == 'import'
+        && request.resource.data.source == 'import'
+        && request.resource.data.status in ['approved', 'pending']
+        && request.resource.data.keys().hasOnly(['orgId', 'orgName', 'title', 'type', 'location', 'pay', 'duration', 'description', 'image', 'logo', 'status', 'created', 'source', 'origin', 'applyUrl', 'trust', 'trustReasons'])
+        && request.resource.data.keys().hasAll(['orgId', 'orgName', 'title', 'type', 'location', 'pay', 'status', 'created', 'source', 'applyUrl', 'trust'])
+        && request.resource.data.type in ['Job', 'Internship', 'Course']
+        && request.resource.data.applyUrl.matches('https://[^ ]+')
+        && request.resource.data.applyUrl.size() <= 500
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.get('description', '').size() <= 4000
+        && request.resource.data.trust is int && request.resource.data.trust >= 0 && request.resource.data.trust <= 100;
+
       // Only staff review (approve / reject) a listing. Nobody edits the content afterwards.
       allow update: if isStaff()
         && changed().hasOnly(['status'])
@@ -178,9 +195,11 @@ service cloud.firestore {
         && applicationId == me() + '_' + request.resource.data.listingId
         && request.resource.data.status == 'applied'
         && request.resource.data.resumeType in ['site', 'own']
-        && request.resource.data.keys().hasOnly(['userId', 'listingId', 'orgId', 'orgName', 'title', 'type', 'name', 'email', 'status', 'resumeType', 'consentAt', 'snapChunks', 'created'])
+        && request.resource.data.keys().hasOnly(['userId', 'listingId', 'orgId', 'orgName', 'title', 'type', 'name', 'email', 'status', 'resumeType', 'consentAt', 'snapChunks', 'created', 'form'])
         && request.resource.data.keys().hasAll(['userId', 'listingId', 'orgId', 'status', 'resumeType', 'consentAt', 'snapChunks'])
         && request.resource.data.consentAt is string
+        && (!('form' in request.resource.data) || (request.resource.data.form is map && request.resource.data.form.note.size() <= 1500 && request.resource.data.form.fullName.size() <= 80))
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.get('source', '') != 'import'
         && request.resource.data.snapChunks is int && request.resource.data.snapChunks >= 1 && request.resource.data.snapChunks <= 6
         && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.status == 'approved'
         && request.resource.data.orgId == get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.orgId

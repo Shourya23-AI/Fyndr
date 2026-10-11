@@ -5,7 +5,6 @@ import { openAuth } from '../auth/auth-modal.js';
 import { loadListings, drawListings } from './listings.js';
 import { browse } from './browse.js';
 import { dashboard } from '../dashboard/dashboard.js';
-import { applyPopup } from './apply-popup.js';
 import { openDetail, closeDetail } from './detail.js';
 import { moreSuggestions } from '../suggestions/suggest.js';
 // data-act handlers
@@ -51,10 +50,9 @@ async function saveOrApply(b, id) {
             location.hash = '#/phone';
             return;
         }
-        body = await applyPopup(S.lmap[id]?.orgName);
-        if (!body) {
-            return;
-        }
+        closeDetail();
+        location.hash = '#/apply/' + id;
+        return;
     }
     await api(`/${act}/${id}`, 'POST', body);
     closeDetail();

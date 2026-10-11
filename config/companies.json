@@ -1,0 +1,5 @@
+[
+  { "name": "Example Co (Greenhouse)", "type": "greenhouse", "board": "example" },
+  { "name": "Example Co (Lever)", "type": "lever", "board": "example" },
+  { "name": "Example Co (careers page)", "type": "page", "url": "https://example.com/careers/" }
+]

@@ -1,0 +1,7 @@
+.apply-page{max-width:720px}
+.apply-form .panel{margin-bottom:16px}
+.apply-form .fld{display:block;margin-top:12px}
+.apply-form .fld input,.apply-form .fld select,.apply-form textarea{width:100%}
+.apply-form textarea{resize:vertical}
+.apply-form .rs-opt{width:100%;margin-top:10px}
+.dt-desc ol,ol.dt-desc{padding-left:20px;margin:6px 0 12px}

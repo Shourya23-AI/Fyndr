@@ -21,7 +21,7 @@ export const skeletonFor = (route, signedIn) => {
     if (r === 'dashboard') {
         return 'dash';
     }
-    if (['phone', 'verify', 'setup', 'forgot', 'reset', 'proof', 'profile'].includes(r)) {
+    if (['phone', 'verify', 'setup', 'forgot', 'reset', 'proof', 'profile', 'apply'].includes(r.split('/')[0])) {
         return 'center';
     }
     return 'home';

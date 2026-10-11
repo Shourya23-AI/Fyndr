@@ -212,6 +212,42 @@ ok(mock.store.get('users/org1').gmailOk === true && mock.store.get('users/org1')
 await api('admin', '/admin/orgs/org1', 'PATCH', { gmailOk: null });
 ok(!('gmailOk' in mock.store.get('users/org1')), 'gmail override cleared');
 
+// ---- step 3: imported listings, trust bands, full apply form
+const good = { orgName: 'Globex', title: 'Backend Engineer', type: 'Job', location: 'Bengaluru', pay: 'INR 20-30 / year', description: 'Build services in Python and SQL on AWS. '.repeat(12), applyUrl: 'https://boards.greenhouse.io/globex/jobs/1', source: 'greenhouse' };
+const doubtful = { orgName: 'Confidential', title: 'Office Assistant', type: 'Job', location: 'Pune', pay: 'See listing', description: 'Join us. Message on WhatsApp.', applyUrl: 'https://jobs-now.example.net/a1' };
+const scam = { orgName: 'Quick Hire', title: 'Data Entry', type: 'Job', location: 'Remote', pay: 'Rs 500/day', description: 'Pay a registration fee of Rs 500 to start. Contact on WhatsApp. '.repeat(3), applyUrl: 'https://quickhire.example.net/x' };
+await throws(() => api('cand', '/admin/import', 'POST', { items: [good] }), /Forbidden/, 'candidate cannot import');
+const imp = await api('admin', '/admin/import', 'POST', { items: [good, doubtful, scam, good, { title: 'x' }, { ...good, applyUrl: 'http://insecure.example.com/1', title: 'Insecure' }] });
+ok(imp.published === 1 && imp.review === 1 && imp.skipped === 1 && imp.duplicates === 1 && imp.invalid === 2, 'import sorts listings by trust: ' + JSON.stringify(imp));
+const impRows = [...mock.store.entries()].filter(([k]) => k.startsWith('listings/imp_'));
+ok(impRows.length === 2, 'obvious scam is not stored');
+ok(impRows.find(([, v]) => v.title === 'Backend Engineer')[1].status === 'approved' && impRows.find(([, v]) => v.title === 'Office Assistant')[1].status === 'pending', 'trust >= 50 approved, below 50 goes to review');
+ok(impRows.every(([, v]) => v.trust >= 0 && v.trust <= 100 && v.applyUrl.startsWith('https://') && v.source === 'import'), 'imported listings carry trust score and https apply link');
+const pubList = await api('cand', '/listings');
+const impPub = pubList.find(l => l.title === 'Backend Engineer');
+ok(impPub && impPub.orgVerified === false && !pubList.some(l => l.title === 'Office Assistant'), 'candidates see only the published import (not marked as a verified organization)');
+await throws(() => api('cand', `/apply/${impPub.id}`, 'POST', { consent: true }), /EXTERNAL/, 'imported listings are applied for on the official page');
+const adm2 = await api('admin', '/admin/data');
+ok(adm2.listings.some(l => l.title === 'Office Assistant' && l.status === 'pending'), 'review queue shows the doubtful import');
+await api('admin', `/admin/listings/${impRows.find(([, v]) => v.title === 'Office Assistant')[0].split('/')[1]}`, 'PATCH', { status: 'approved' });
+ok((await api('cand', '/listings')).some(l => l.title === 'Office Assistant'), 'admin can approve a doubtful import');
+ok((await api('admin', '/admin/import', 'POST', { items: [good] })).duplicates === 1, 'importing again does not duplicate');
+
+await api('org', '/listings', 'POST', { ...post, title: 'Design Intern', type: 'Internship' });
+const dl = (await api('org', '/org/listings')).find(l => l.title === 'Design Intern').id;
+await api('admin', `/admin/listings/${dl}`, 'PATCH', { status: 'approved' });
+const form = { fullName: 'Casey Lee', email: 'c2@x.com', phone: '+919999999999', city: 'Pune', education: "Bachelor's, CS", skills: ['Figma', 'figma', 'UX'], experience: '0–1 years', linkedin: 'https://linkedin.com/in/casey', portfolio: '', note: 'I love design.' };
+await throws(() => api('cand', `/apply/${dl}`, 'POST', { resume: 'site', consent: true, form: { ...form, note: '' } }), /fill in/, 'form needs a cover note');
+await throws(() => api('cand', `/apply/${dl}`, 'POST', { resume: 'site', consent: true, form: { ...form, linkedin: 'javascript:alert(1)' } }), /fill in/, 'form links must be http(s)');
+await api('cand', `/apply/${dl}`, 'POST', { resume: 'site', consent: true, form });
+const got = (await api('org', '/org/applications')).find(a => a.listingId === dl);
+ok(got && got.form.fullName === 'Casey Lee' && got.form.skills.length === 2 && got.form.city === 'Pune', 'organization receives the application form (skills de-duplicated)');
+const sm = (await import('../public/js/features/listings/summary.js')).summarize(good);
+ok(sm.skills.includes('Python') && sm.steps[0].includes('official page') && sm.overview.includes('Globex'), 'auto summary for an imported listing');
+const imp2 = await import('../scripts/import-jobs.js');
+const lds = imp2.jobPostings('<script type="application/ld+json">{"@graph":[{"@type":"JobPosting","title":"QA","description":"<p>Test</p>"}]}</script><script type="application/ld+json">not json</script>');
+ok(lds.length === 1 && lds[0].title === 'QA', 'importer reads JobPosting data and ignores broken blocks');
+
 // ---- delete listing / user cascade
 await api('org', `/listings/${lid}`, 'DELETE');
 ok(![...mock.store.keys()].some(k => (k.startsWith('applications/') && k.endsWith('_' + lid)) || k.startsWith('blobs/ar_') && k.includes('_' + lid + '_')), 'deleting a listing removes its applications and their resume copies');

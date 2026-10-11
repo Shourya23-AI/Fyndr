@@ -110,3 +110,45 @@ export const adminData = (users, lists, apps) => {
         }))
     };
 };
+
+// The application form (apply page). Returns null when a required field is missing. Everything is trimmed and length-limited.
+export const cleanForm = f => {
+    if (!f || typeof f !== 'object') {
+        return null;
+    }
+    const url = v => {
+        const t = T(v, 200);
+        return !t || /^https?:\/\/[^\s]+$/i.test(t) ? t : null;
+    };
+    const out = {
+        fullName: T(f.fullName, 80), email: T(f.email, 100), phone: T(f.phone, 30), city: T(f.city, 80), education: T(f.education, 200),
+        skills: [...new Map(arr(f.skills).map(x => T(x, 30)).filter(Boolean).map(x => [x.toLowerCase(), x])).values()].slice(0, 20), experience: T(f.experience, 40),
+        linkedin: url(f.linkedin), portfolio: url(f.portfolio), note: T(f.note, 1500)
+    };
+    if (out.linkedin === null || out.portfolio === null || !out.fullName || !out.phone || !out.city || !out.note) {
+        return null;
+    }
+    return out;
+};
+// A listing found by scripts/import-jobs.js. Only https apply links are accepted; the fields are cut to the same limits as posted listings.
+export const hash = s => {
+    let h = 5381;
+    for (const c of String(s)) {
+        h = ((h << 5) + h + c.charCodeAt(0)) >>> 0;
+    }
+    return h.toString(36) + String(s).length.toString(36);
+};
+export const cleanImport = it => {
+    if (!it || typeof it !== 'object') {
+        return null;
+    }
+    const applyUrl = T(it.applyUrl, 500);
+    if (!/^https:\/\/[^\s]+\.[^\s]+$/i.test(applyUrl) || !T(it.title, 120) || !T(it.orgName, 80)) {
+        return null;
+    }
+    return {
+        orgId: 'import', orgName: T(it.orgName, 80), title: T(it.title, 120), type: JT.includes(it.type) && it.type !== 'Freelance' ? it.type : 'Job',
+        location: T(it.location, 120) || 'See listing', pay: T(it.pay, 80) || 'See listing', duration: T(it.duration, 40), description: T(it.description, 4000),
+        image: '', logo: '', applyUrl, source: 'import', origin: T(it.source, 20) || 'page'
+    };
+};

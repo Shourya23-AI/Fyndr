@@ -1,5 +1,32 @@
 # Fyndr
 
+## Update: imported jobs, trust score, auto description, full apply page (plan step 3)
+
+**Before you publish (in this order)**
+1. Push the site files to GitHub (the service-worker label is already bumped to `static-2026-10-11-apply-import`).
+2. Firebase Console > Firestore Database > **Rules**: paste the new `firestore.rules` and **Publish**. Without it, importing and the new apply form are refused.
+3. Optional, to bring in jobs: edit `config/companies.json`, run `node scripts/import-jobs.js` on your computer, then open **Dashboard > Listings > Import jobs and courses** and choose `imports/jobs.json`.
+
+**What changed**
+- **Imported listings (no bot that logs in anywhere).** `scripts/import-jobs.js` reads only: Greenhouse and Lever public job boards, and company careers pages that publish schema.org `JobPosting` data (it checks `robots.txt` first and skips pages that disallow it). You choose the companies; it never logs in or fills forms. Sites with no structured data or that block it cannot be covered.
+- **Trust score (0-100, plain rules, no AI):** fee or deposit requests, ID/bank/OTP requests, WhatsApp/Telegram hiring, unrealistic earnings, hidden employer, thin text, free-email contact, non-https or mismatching apply link lower it; an official job-board source and a matching company link raise it. Code: `js/features/trust/trust.js`.
+  - **50 or more:** published automatically.
+  - **Under 50:** goes to the admin review queue (Dashboard > Listings, with the score and the reasons shown on each row).
+  - **Obvious scams** (asking for money or ID): not stored at all. The import result says how many were skipped.
+  - Listings posted by organizations still wait for admin approval as before; the admin now also sees their trust score.
+- **Auto description:** clicking a job or course shows a summary (what it is, key skills found in the text) and numbered **How to apply** steps, built with rules from the listing's own text (`js/features/listings/summary.js`). Nothing is sent to any AI service.
+- **Apply button:** for imported listings it opens the employer's own page in a new tab (`rel="noopener noreferrer nofollow"`), labelled with the site name. Fyndr never collects applications for them (the rules and the API both refuse).
+- **Apply page for jobs posted on Fyndr:** `#/apply/<listing>` is now a full page instead of a popup: name, email (fixed), phone, current city, education, skills, experience, LinkedIn, portfolio/GitHub, a short cover note (required), resume choice (Fyndr resume or your own PDF), and the same consent line. Details are saved on the application (`form`); the organization sees them under **Applicants > Details**. They are deleted with the application (same retention rules as before).
+
+**Things to know**
+- "Totally safe" cannot be promised. The trust score catches common scam patterns; the admin queue is the safety net. Imported listings are only as good as the employer's own page.
+- The importer runs on your computer, because the site has no server. For automatic runs use a scheduled GitHub Action later.
+- Imported listings have no cover picture (they show the type on a coloured card).
+- The Privacy Policy still says the organization and admins see the resume; the form details follow the same rule. Add a sentence about the application form if you want it spelled out.
+- Not tested here: `firestore.rules` (use Rules Playground: staff create `listings/imp_abc`, candidate apply with `form`) and live fetching from real sites (no internet in my build environment; the parsing is covered by tests).
+
+**Checks:** `node test/run.test.js` now runs 91 checks (new: import bands, scam skipped, duplicates, staff-only import, no applying to imports, form validation, form reaches the organization, summary, JobPosting parsing).
+
 ## Update: resume privacy and consent (plan step 1)
 
 **Before you publish (2 minutes, in this order)**

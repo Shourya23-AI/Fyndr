@@ -12,10 +12,11 @@ import * as install from '../features/install/install.actions.js';
 import * as profile from '../features/profile/profile.actions.js';
 import * as proof from '../features/proof/proof.actions.js';
 import * as privacy from '../features/privacy/privacy.actions.js';
+import * as apply from '../features/apply/apply.actions.js';
 // One delegated listener per event type. Each feature owns its handlers:
 //   data-act="name"  -> features/<feature>/<feature>.actions.js  `actions.name`
 //   data-form="name" -> features/<feature>/<feature>.actions.js  `forms.name`
-const features = [auth, accountMenu, browse, dashboard, layout, legal, reset, phone, profile, proof, install, privacy];
+const features = [auth, accountMenu, browse, dashboard, layout, legal, reset, phone, profile, proof, install, privacy, apply];
 const ACTIONS = Object.assign(Object.create(null), ...features.map(f => f.actions || {}));
 const FORMS = Object.assign(Object.create(null), ...features.map(f => f.forms || {}));
 export function bindEvents() {

@@ -1,5 +1,5 @@
 import { api } from '../../core/api.js';
-import { $, toast } from '../../core/dom.js';
+import { $, toast, esc } from '../../core/dom.js';
 import { shrinkImage } from '../../core/image.js';
 import { ferr } from '../../core/errors.js';
 import { dashboard } from './dashboard.js';
@@ -118,6 +118,20 @@ Object.assign(actions, {
             throw x;
         }
     },
+    async oform(b, id) {
+        const list = await api('/org/applications');
+        const a = list.find(x => x.id === id);
+        if (!a?.form) {
+            return toast('No form details for this application');
+        }
+        const f = a.form;
+        const row = (k, v) => v ? `<div class="info-row"><span>${k}</span><b style="white-space:pre-wrap">${esc(Array.isArray(v) ? v.join(', ') : v)}</b></div>` : '';
+        const el = document.createElement('div');
+        el.className = 'ap-back';
+        el.innerHTML = `<div class="ap-box" role="dialog" aria-label="Application details"><h3>${esc(f.fullName)}</h3><p class="desc">Applied for ${esc(a.title)}</p>${row('Email', f.email)}${row('Phone', f.phone)}${row('City', f.city)}${row('Education', f.education)}${row('Skills', f.skills)}${row('Experience', f.experience)}${row('LinkedIn', f.linkedin)}${row('Portfolio', f.portfolio)}${row('Cover note', f.note)}<div class="ap-acts"><button class="button button-small" data-x>Close</button></div></div>`;
+        el.addEventListener('click', e => (e.target === el || e.target.closest('[data-x]')) && el.remove());
+        document.body.append(el);
+    },
     printresume() {
         const { d, me } = ST.dd;
         printResume({
@@ -135,6 +149,30 @@ document.addEventListener('input', e => {
 });
 // Cover image / logo pickers in the post form: shrink in the browser, show a preview, keep the result in a hidden field.
 export const bind = () => {
+    document.addEventListener('change', async (e) => {
+        if (e.target.id !== 'impfile' || !e.target.files[0]) {
+            return;
+        }
+        const out = document.getElementById('impout');
+        try {
+            const items = JSON.parse(await e.target.files[0].text());
+            if (!Array.isArray(items)) {
+                throw new Error('That file is not a list of jobs');
+            }
+            const t = { published: 0, review: 0, skipped: 0, duplicates: 0, invalid: 0 };
+            for (let i = 0; i < items.length; i += 100) {
+                out.textContent = `Importing ${Math.min(i + 100, items.length)} of ${items.length}...`;
+                const r = await api('/admin/import', 'POST', { items: items.slice(i, i + 100) });
+                Object.keys(t).forEach(k => t[k] += r[k] || 0);
+            }
+            toast(`Imported: ${t.published} published, ${t.review} to review`);
+            ST.impResult = `Last import: ${t.published} published, ${t.review} sent to review, ${t.skipped} skipped as unsafe, ${t.duplicates} already there, ${t.invalid} invalid.`;
+            dashboard();
+        } catch (x) {
+            e.target.value = '';
+            out.textContent = ferr(x);
+        }
+    });
     document.addEventListener('change', async (e) => {
         const kind = { 'cover-in': 'cover', 'logo-in': 'logo' }[e.target.id];
         const f = kind && e.target.files[0];

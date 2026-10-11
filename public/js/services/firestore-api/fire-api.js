@@ -17,7 +17,8 @@ import { putBlob, dropBlob, getBlob, putAppBlob, dropAppBlob, getAppBlob } from 
 import { expiredApps } from './retention.js';
 import { POLICY_VERSION } from '../../features/legal/constants.js';
 import { ADMIN_EMAILS } from './config.js';
-import { QUAL, EXP, JT, ORG_TYPES, IMG_MAX, now, lc, bad, isMain, isFree, gmailAllowed, pub, meOf, completion, cleanExtras, need, imgOk, filterListings, adminData } from './helpers.js';
+import { trustScore, decide } from '../../features/trust/trust.js';
+import { QUAL, EXP, JT, ORG_TYPES, IMG_MAX, now, lc, bad, isMain, isFree, gmailAllowed, pub, meOf, completion, cleanExtras, need, imgOk, filterListings, adminData, cleanForm, cleanImport, hash } from './helpers.js';
 
 export const tuning = { selfTtl: 8000 }; // how long (ms) your own profile document is reused between calls (0 = always re-read)
 const selfMemo = { uid: null, t: 0, d: null };
@@ -82,7 +83,7 @@ async function run(path, method, b, fu) {
     if (k === 'GET /listings') {
         if (!memo.listings || Date.now() - memo.listings.t > LIFE) {
             const s = await m.getDocs(m.query(col('listings'), m.where('status', '==', 'approved')));
-            memo.listings = { t: Date.now(), d: rows(s).map(x => ({ ...x, orgVerified: true })) };
+            memo.listings = { t: Date.now(), d: rows(s).map(x => ({ ...x, orgVerified: x.source !== 'import' })) };
         }
         return filterListings(memo.listings.d, q);
     }
@@ -359,6 +360,13 @@ async function run(path, method, b, fu) {
             if (!l) {
                 bad('Listing not found');
             }
+            if (l.source === 'import') {
+                bad('This listing is applied for on the employer\'s own page. Use the Apply on the official page button.', 'EXTERNAL');
+            }
+            const form = cleanForm(b.form);
+            if (b.form !== undefined && !form) {
+                bad('Please fill in your name, phone, city and a short note');
+            }
             const mine = await m.getDocs(m.query(col('applications'), m.where('userId', '==', user.id)));
             if (mine.docs.some(x => x.data().listingId === id)) {
                 bad('Already applied');
@@ -372,7 +380,7 @@ async function run(path, method, b, fu) {
             const bt = m.writeBatch(db);
             const snapChunks = await putAppBlob(bt, user.id, l.orgId, appId, copy);
             bt.set(ref('applications', appId), {
-                userId: user.id, listingId: id, orgId: l.orgId, orgName: l.orgName, title: l.title, type: l.type, name: user.name, email: user.email, status: 'applied', resumeType: rt, consentAt: now(), snapChunks, created: now()
+                userId: user.id, listingId: id, orgId: l.orgId, orgName: l.orgName, title: l.title, type: l.type, name: user.name, email: user.email, status: 'applied', resumeType: rt, consentAt: now(), snapChunks, created: now(), ...(form ? { form } : {})
             });
             await bt.commit();
             return { ok: 1 };
@@ -663,6 +671,36 @@ async function run(path, method, b, fu) {
                 await m.updateDoc(ref('users', id), f);
             }
             return { ok: 1 };
+        }
+        case 'POST /admin/import': { // staff load listings found by scripts/import-jobs.js; each is scored and sorted into publish / review / skipped
+            only('admin', 'moderator');
+            const items = Array.isArray(b.items) ? b.items.slice(0, 100) : [];
+            const out = { published: 0, review: 0, skipped: 0, duplicates: 0, invalid: 0 };
+            const bt = m.writeBatch(db);
+            const seen = new Set();
+            for (const it of items) {
+                const l = cleanImport(it);
+                if (!l) {
+                    out.invalid++;
+                    continue;
+                }
+                const lid = 'imp_' + hash(l.applyUrl);
+                if (seen.has(lid) || (await m.getDoc(ref('listings', lid))).exists()) {
+                    out.duplicates++;
+                    continue;
+                }
+                seen.add(lid);
+                const t = trustScore(l);
+                const st = decide(t);
+                if (st === 'hidden') {
+                    out.skipped++;
+                    continue;
+                }
+                bt.set(ref('listings', lid), { ...l, trust: t.score, trustReasons: t.reasons, status: st, created: now() });
+                st === 'approved' ? out.published++ : out.review++;
+            }
+            await bt.commit();
+            return out;
         }
         case 'PATCH /admin/listings/:id': {
             only('admin', 'moderator');

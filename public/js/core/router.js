@@ -18,6 +18,7 @@ import { resetView } from '../features/password-reset/reset.view.js';
 import { termsView, privacyView, contactView } from '../features/legal/legal.view.js';
 import { cachedMe } from '../features/auth/load-me.js';
 import { consentView } from '../features/privacy/consent.view.js';
+import { applyView } from '../features/apply/apply.view.js';
 // Hash router: '#/organizations', '#/dashboard', ... Decides which page to draw and redirects people who are signed out or not set up yet.
 export async function route() {
     const rid = route.n = (route.n || 0) + 1;
@@ -60,6 +61,12 @@ export async function route() {
     if (q.get('mode') === 'resetPassword' && q.get('oobCode')) {
         r = 'reset';
     }
+    const seg = r.split('/'); // '#/apply/<listing id>' -> page 'apply', argument S.arg
+    r = seg[0];
+    S.arg = seg[1] || '';
+    if (!S.me && r === 'apply') {
+        sessionStorage.next = location.hash;
+    }
     if (gate === 'verify' || gate === 'setup') {
         r = gate;
     } else if (!S.me && !['', 'login', 'register', 'forgot', 'verify', 'setup', 'organizations', 'terms', 'privacy', 'contact', 'reset'].includes(r)) {
@@ -72,6 +79,9 @@ export async function route() {
             return;
         }
         r = '';
+    }
+    if (r === 'apply' && S.me && S.me.role !== 'user') {
+        r = 'dashboard';
     }
     if (S.me?.role === 'user' && !S.me.onboarded && r !== 'phone') {
         r = 'profile';
@@ -104,7 +114,7 @@ export async function route() {
             }, register: () => {
                 home();
                 openAuth('signup');
-            }, jobs: () => browse('jobs'), courses: () => browse('courses'), organizations: orgPage, proof: proofView, forgot: () => authView('forgot'), verify: () => authView('verify'), setup: () => authView('setup'), dashboard, profile: profileView, phone: phoneView, terms: termsView, privacy: privacyView, contact: contactView, reset: resetView, consent: consentView
+            }, jobs: () => browse('jobs'), courses: () => browse('courses'), organizations: orgPage, proof: proofView, forgot: () => authView('forgot'), verify: () => authView('verify'), setup: () => authView('setup'), dashboard, profile: profileView, phone: phoneView, terms: termsView, privacy: privacyView, contact: contactView, reset: resetView, consent: consentView, apply: applyView
         }[r] || home)();
     } catch (e) {
         toast(e.message);
