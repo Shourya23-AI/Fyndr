@@ -1,0 +1,117 @@
+/* Profile page: skill chips and job-type checkboxes */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.chip-s {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  border-radius: 99px;
+  background: var(--yellow-soft);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chip-s button {
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.photo-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.photo-row .av-lg {
+  width: 72px;
+  height: 72px;
+  font-size: 28px;
+}
+
+.checks {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.checks input {
+  width: auto;
+  margin-right: 4px;
+}
+
+/* Resume details on the profile form */
+.form .sec {
+  margin: 10px 0 0;
+  font-size: 16px;
+}
+
+.form .sec small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.rep {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+}
+
+.rep .full {
+  grid-column: 1/-1;
+}
+
+.rep .two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.rep textarea {
+  min-height: 64px;
+}
+
+.rep-x {
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  background: var(--white);
+}
+
+.rep-row {
+  grid-template-columns: 1fr 160px;
+  padding-top: 18px;
+}
+
+.chip-s select {
+  padding: 2px 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 800px) {
+  .rep,
+  .rep-row {
+    grid-template-columns: 1fr;
+  }
+}

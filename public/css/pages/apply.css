@@ -1,0 +1,12 @@
+.apply-page{max-width:720px}
+.apply-form .panel{margin-bottom:16px}
+.apply-form .fld{display:block;margin-top:12px}
+.apply-form .fld input,.apply-form .fld select,.apply-form textarea{width:100%}
+.apply-form textarea{resize:vertical}
+.apply-form .rs-opt{width:100%;margin-top:10px}
+.dt-desc ol,ol.dt-desc{padding-left:20px;margin:6px 0 12px}
+.an-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:80;max-width:640px;margin:0 auto;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px 16px;box-shadow:0 12px 32px rgba(0,0,0,.18);font-size:13px}
+.an-bar p{margin:0;flex:1 1 240px}
+.an-bar div{display:flex;gap:8px}
+.ins-table td,.ins-table th{font-size:13px}
+.ins-report{white-space:pre-wrap;font-size:13px;background:var(--yellow-soft);border-radius:10px;padding:12px}

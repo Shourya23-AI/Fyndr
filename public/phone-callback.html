@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Fyndr: phone verification</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font: 16px system-ui, sans-serif;
+        background: #f4f2ec;
+        color: #2d3330;
+        text-align: center;
+        padding: 24px;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #181a17;
+          color: #e6e4dc;
+        }
+      }
+      a {
+        color: inherit;
+        font-weight: 700;
+      }
+      .spin {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-right: 6px;
+        vertical-align: -2px;
+        border: 2px solid #c9c6bb;
+        border-top-color: #4f8a6f;
+        border-radius: 50%;
+        animation: s .8s linear infinite;
+      }
+      @keyframes s {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <p id="m"><span class="spin"></span> Finishing up…</p>
+      <p id="b" hidden><a id="back" href="index.html#/phone">Continue to Fyndr</a></p>
+    </div>
+    <script>
+      // phone.email sends the popup/tab back here with ?access_token=… (some setups use the #fragment).
+      // 1) Popup flow: hand the token to the Fyndr tab that opened us, then close.
+      // 2) Same-tab flow (phones, blocked popups): go back to Fyndr carrying the token in the link, so nothing depends on storage.
+      const message = document.getElementById("m");
+      const params = new URLSearchParams(location.search);
+      const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+      const pick = (k) => params.get(k) || hashParams.get(k) || "";
+      const token = pick("access_token") || pick("token") || pick("user_json_url");
+      const failure = pick("error") || pick("error_description");
+      const back = document.getElementById("back");
+
+      function show(text, link) {
+        message.textContent = text;
+        if (link) {
+          document.getElementById("b").hidden = false;
+        }
+      }
+
+      function backToApp() {
+        const target = "index.html#/phone?token=" + encodeURIComponent(token);
+        for (const store of [sessionStorage, localStorage]) {
+          try {
+            store.setItem("fyndr-phone-token", token);
+          } catch {} // storage can be blocked by privacy settings
+        }
+        back.href = target;
+        show("Taking you back to Fyndr…", true);
+        location.replace(target);
+      }
+
+      if (!token) {
+        show(failure ? "Verification failed: " + failure : "Verification was not completed.", true);
+      } else {
+        const payload = { type: "fyndr-phone-token", token };
+        history.replaceState(null, "", location.pathname); // keep the token out of the address bar
+
+        let channel = null;
+        try {
+          channel = new BroadcastChannel("fyndr-phone");
+        } catch {}
+
+        let received = false;
+        if (channel) {
+          channel.onmessage = (e) => {
+            if (e.data && e.data.type === "fyndr-phone-ack") {
+              received = true;
+            }
+          };
+          channel.postMessage(payload);
+        }
+        try {
+          window.opener && window.opener.postMessage(payload, location.origin);
+        } catch {}
+
+        const handedOver = () => {
+          show("Phone number received. You can close this window.", true);
+          setTimeout(() => window.close(), 600);
+        };
+
+        if (!channel) {
+          // Very old browser: nothing to wait for, rely on the opener message.
+          window.opener ? handedOver() : backToApp();
+        } else {
+          setTimeout(() => (received ? handedOver() : backToApp()), 900);
+        }
+      }
+    </script>
+  </body>
+</html>

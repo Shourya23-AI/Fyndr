@@ -1,0 +1,57 @@
+/* Logged-out landing page (js/features/home/landing.js). Colors come only from theme tokens, so dark mode works. */
+.lp-hero{display:grid;grid-template-columns:1fr 1.05fr;gap:clamp(24px,4vw,64px);align-items:center;padding:clamp(36px,6vw,80px) 0 clamp(36px,5vw,64px)}
+.lp-copy h1{font-size:clamp(46px,7.4vw,104px);font-weight:800;letter-spacing:-.055em;line-height:.95;margin-bottom:22px}
+.lp-copy .lead{max-width:26em}
+.lp-search{display:flex;gap:6px;padding:6px;max-width:520px;margin:0 0 18px;border:1.5px solid var(--ink);border-radius:999px;background:var(--white)}
+.lp-search input{flex:1;min-width:0;height:46px;padding:0 18px;border:0;outline:0;background:transparent}
+.lp-search .btn-primary{height:46px}
+.lp-copy .desc button{padding:0}
+.lp-visual{position:relative;padding-bottom:56px}
+.lp-visual>img{display:block;width:100%;height:auto;aspect-ratio:21/10;object-fit:cover;border-radius:28px;box-shadow:0 26px 54px var(--shadow)}
+.lp-card{position:absolute;left:-6%;bottom:0;width:min(330px,62%)}
+.lp-card .specimen{padding:18px;transform:rotate(-2deg)}
+.lp-card .specimen h3{font-size:18px;margin-top:10px}
+.lp-card .cks{margin-top:12px;padding-top:12px;gap:8px}
+.lp-card .cks li{font-size:12.5px}
+.lp-tick{overflow:hidden;background:var(--ink);color:var(--paper);padding:13px 0;font-weight:700;font-size:15px}
+.lp-tick-in{display:flex;width:max-content;gap:0;animation:lp-slide 38s linear infinite}
+.lp-tick span{padding:0 28px;white-space:nowrap}
+.lp-tick span::after{content:"";display:inline-block;width:7px;height:7px;margin-left:56px;border-radius:50%;background:var(--green)}
+@keyframes lp-slide{to{transform:translateX(-50%)}}
+.lp-chapters{display:grid;gap:clamp(36px,6vw,84px);padding:clamp(48px,8vw,110px) 0}
+.lp-ch{display:grid;grid-template-columns:minmax(150px,.7fr) 1.3fr;gap:clamp(20px,5vw,72px);align-items:center}
+.lp-ch:nth-child(even){grid-template-columns:1.3fr minmax(150px,.7fr)}
+.lp-ch:nth-child(even) .lp-ico{order:2}
+.lp-ico{display:grid;place-items:center;aspect-ratio:1;max-width:300px;width:100%;margin-inline:auto;border-radius:36px;background:radial-gradient(circle at 30% 25%,var(--white),var(--yellow-soft) 70%);border:1px solid var(--line-soft);box-shadow:0 22px 44px -18px var(--shadow)}
+.lp-ico svg{width:62%;height:auto;stroke:none;stroke-width:0;filter:drop-shadow(0 14px 14px rgba(40,70,55,.3))}
+.lp-n{font-size:clamp(56px,8vw,112px);font-weight:800;line-height:.9;letter-spacing:-.06em;color:var(--green);display:block}
+.lp-ch h2{font-size:clamp(34px,4.6vw,60px);letter-spacing:-.045em;margin:6px 0 10px}
+.lp-ch h3{font-size:clamp(18px,2vw,22px);font-weight:600;letter-spacing:-.01em;margin-bottom:8px}
+.lp-ch p{color:var(--muted);max-width:34em}
+.lp-ch ul{display:grid;gap:8px;margin:16px 0 0;padding:0;list-style:none}
+.lp-ch li{position:relative;padding-left:28px;font-weight:600}
+.lp-ch li::before{content:"";position:absolute;left:2px;top:.42em;width:12px;height:6px;border-left:2.5px solid var(--green);border-bottom:2.5px solid var(--green);transform:rotate(-45deg)}
+.lp-nums{display:grid;grid-template-columns:repeat(3,1fr);border-block:1.5px solid var(--ink);padding:0}
+.lp-nums div{padding:clamp(24px,4vw,48px) clamp(12px,2vw,28px)}
+.lp-nums div+div{border-left:1px solid var(--line)}
+.lp-nums b{display:block;font-size:clamp(40px,6.5vw,92px);font-weight:800;letter-spacing:-.055em;line-height:1}
+.lp-nums span{color:var(--muted);font-weight:600}
+.lp-cats{padding:clamp(48px,7vw,96px) 0}
+.lp-cats h2{font-size:clamp(28px,4vw,48px);letter-spacing:-.04em;margin-bottom:22px}
+.lp-cats div{display:flex;flex-wrap:wrap;gap:12px}
+.lp-cats button{padding:14px 26px;border:1.5px solid var(--ink);border-radius:999px;background:var(--white);font-size:clamp(15px,1.6vw,19px);font-weight:700;transition:background .15s,color .15s}
+.lp-cats button:hover{background:var(--ink);color:var(--paper)}
+.lp-end{overflow:hidden;padding:clamp(28px,5vw,56px) 0 clamp(20px,3vw,36px);background:var(--yellow-soft);border-top:1px solid var(--line)}
+.lp-word{font-size:clamp(110px,27vw,420px);font-weight:800;letter-spacing:-.07em;line-height:.8;color:var(--ink);margin-left:-.04em;user-select:none}
+.lp-end .cta{margin-top:clamp(18px,3vw,32px)}
+@media (max-width:800px){
+.lp-hero{grid-template-columns:1fr}
+.lp-card{left:0;width:78%}
+.lp-ch,.lp-ch:nth-child(even){grid-template-columns:1fr}
+.lp-ch:nth-child(even) .lp-ico{order:0}
+.lp-ico{max-width:200px;margin-inline:0}
+.lp-nums{grid-template-columns:1fr}
+.lp-nums div+div{border-left:0;border-top:1px solid var(--line)}
+.lp-search{border-radius:22px;flex-direction:column}
+}
+@media (prefers-reduced-motion:reduce){.lp-tick-in{animation:none}}

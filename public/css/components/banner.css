@@ -1,0 +1,327 @@
+/* Part 1: banners, letter logos and a calmer (less crowded) browse page */
+
+/* ---------- banner on cards and in the details popup ---------- */
+.lc-bn {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(255, 255, 255, .22), transparent 42%),
+    radial-gradient(circle at 12% 110%, rgba(255, 255, 255, .14), transparent 45%),
+    linear-gradient(135deg, var(--b1), var(--b2));
+  color: #fff;
+}
+
+.lc-bn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, .16) 1.2px, transparent 1.4px);
+  background-size: 16px 16px;
+  -webkit-mask-image: linear-gradient(120deg, transparent 20%, #000 90%);
+  mask-image: linear-gradient(120deg, transparent 20%, #000 90%);
+}
+
+.bn-ic {
+  position: absolute;
+  right: 6%;
+  top: 50%;
+  width: 34%;
+  max-width: 120px;
+  aspect-ratio: 1;
+  transform: translateY(-50%) rotate(-6deg);
+  display: grid;
+  place-items: center;
+  border-radius: 26%;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .28);
+  backdrop-filter: blur(2px);
+}
+
+.bn-ic svg {
+  width: 56%;
+  stroke-width: 1.7;
+}
+
+.bn-tag {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  opacity: .92;
+}
+
+/* ---------- letter logo ---------- */
+.lc-logo .mono {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.dt-media .lc-logo .mono {
+  font-size: 24px;
+}
+
+/* ---------- compact page header (signed-in browse pages) ---------- */
+.hero.hero-compact {
+  display: block;
+  padding: 30px 0 8px;
+}
+
+.hero.hero-compact::before {
+  inset: -40px calc(-1 * clamp(16px, 3.5vw, 60px)) 0;
+  opacity: .7;
+}
+
+.hero-compact h1 {
+  max-width: none;
+  margin-bottom: 8px;
+  font-size: clamp(28px, 3.6vw, 40px);
+}
+
+.hero-compact .lead {
+  max-width: 40em;
+  margin-bottom: 18px;
+  font-size: 16px;
+}
+
+.hero-compact .search-box {
+  max-width: 760px;
+  box-shadow: 0 8px 22px var(--shadow);
+}
+
+/* ---------- list header, tabs, category chips ---------- */
+.list-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.list-head h2 {
+  margin-bottom: 2px;
+  font-size: clamp(22px, 2.6vw, 28px);
+}
+
+.list-head .tabs {
+  margin: 0;
+}
+
+.page {
+  padding: 28px 0 64px;
+}
+
+.chips-row {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 4px;
+  padding-bottom: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  touch-action: pan-x pan-y;
+}
+
+.chips-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-c {
+  flex: none;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chip-c:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.chip-c.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+:root[data-theme=dark] .chip-c.on {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--on-accent);
+}
+
+/* ---------- roomier, lighter cards ---------- */
+.opportunity-grid {
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 22px;
+  padding-top: 18px;
+}
+
+.lc-body {
+  gap: 0;
+  padding: 32px 16px 16px;
+}
+
+.lc-body h3 {
+  min-height: 2.5em;
+  margin-bottom: 4px;
+}
+
+.lc-org {
+  margin-bottom: 10px;
+}
+
+.lc-meta {
+  margin-bottom: 8px;
+}
+
+.lc-pay {
+  margin-bottom: 14px;
+  color: var(--deep);
+}
+
+.lc-why {
+  margin-bottom: 14px;
+}
+
+.lcard {
+  content-visibility: auto;
+  contain-intrinsic-size: 380px;
+}
+
+.sugg {
+  padding-top: 20px;
+}
+
+@media (max-width: 800px) {
+  .hero.hero-compact {
+    padding: 22px 0 4px;
+  }
+
+  .opportunity-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+/* ---------- Part 3: the sliding "Suggested for you" row ---------- */
+.rail {
+  padding-top: 22px;
+}
+
+.rail-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.rail-head h2 {
+  margin-bottom: 2px;
+  font-size: clamp(20px, 2.4vw, 26px);
+}
+
+.rail-head .desc {
+  margin: 0;
+}
+
+.rail-ctl {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  align-items: center;
+}
+
+.rail-ctl .sg-edit {
+  margin-right: 8px;
+}
+
+.rail-btn {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--ink);
+}
+
+.rail-btn:hover {
+  border-color: var(--ink);
+}
+
+.rail-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.rail-track {
+  display: flex;
+  gap: 18px;
+  margin: 14px calc(-1 * clamp(8px, 1vw, 16px)) 0;
+  padding: 6px clamp(8px, 1vw, 16px) 14px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 16px;
+  scrollbar-width: thin;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rail-track:focus-visible {
+  outline-offset: -2px;
+}
+
+.rail-item {
+  flex: 0 0 min(284px, 78vw);
+  min-width: 0;
+  scroll-snap-align: start;
+  display: flex;
+}
+
+.rail-item .lcard {
+  width: 100%;
+  content-visibility: visible;
+}
+
+.rail-item .lc-body h3 {
+  min-height: 0;
+}
+
+.rail-track > .sk {
+  flex: 0 0 min(284px, 78vw);
+  height: 300px;
+  border-radius: 18px;
+}
+
+@media (max-width: 640px) {
+  .rail-head {
+    align-items: flex-start;
+  }
+
+  .rail-btn {
+    display: none;
+  }
+
+  .rail-ctl .sg-edit {
+    margin: 0;
+  }
+}

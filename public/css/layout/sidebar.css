@@ -1,0 +1,197 @@
+/* Phone menu: a sidebar that slides in from the left. On wide screens the three-lines button is hidden and the links stay in the top bar. */
+.menu-btn {
+  display: none;
+  place-items: center;
+  align-self: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.menu-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+#side-root .side-back {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(10, 14, 12, .45);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .25s, visibility .25s;
+}
+
+#side-root .side {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(84vw, 320px);
+  padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background: var(--white);
+  border-right: 1px solid var(--line);
+  box-shadow: 8px 0 32px var(--shadow);
+  transform: translateX(-102%);
+  visibility: hidden;
+  transition: transform .28s cubic-bezier(.2, .8, .2, 1), visibility .28s;
+}
+
+#side-root.open .side-back {
+  opacity: 1;
+  visibility: visible;
+}
+
+#side-root.open .side {
+  transform: none;
+  visibility: visible;
+}
+
+.side-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px 10px;
+}
+
+.side-who {
+  display: flex;
+  flex-direction: column;
+  margin: 0 4px 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--yellow-soft);
+  overflow: hidden;
+}
+
+.side-who b,
+.side-who span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-who span {
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.side-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-more {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.side a,
+.side-foot button {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.side .logo {
+  min-height: 0;
+  padding: 0;
+  width: auto;
+}
+
+.side-links a:hover,
+.side-foot button:hover {
+  background: var(--yellow-soft);
+}
+
+.side-links a[aria-current=page] {
+  background: var(--yellow);
+  box-shadow: inset 4px 0 0 var(--green);
+}
+
+.side svg {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.side-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft);
+}
+
+body.side-lock {
+  overflow: hidden;
+}
+
+@media (max-width: 800px) {
+  .menu-btn {
+    display: grid;
+  }
+  .nav {
+    flex-wrap: nowrap;
+    height: 60px;
+    gap: 12px;
+    align-items: center;
+  }
+  .nav .logo,
+  .nav-actions {
+    padding: 0;
+  }
+  .nav-links,
+  .nav-actions .tag,
+  .who-name {
+    display: none;
+  }
+}
+
+@media (min-width: 801px) {
+  #side-root {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #side-root .side,
+  #side-root .side-back {
+    transition: none;
+  }
+}

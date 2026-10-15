@@ -1,0 +1,33 @@
+/* Small labels such as Job, Verified, Verify phone */
+.tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+
+.tag svg {
+  width: 12px;
+  stroke-width: 3;
+}
+
+.tag-verified {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.tag-warn {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}

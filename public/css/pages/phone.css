@@ -1,0 +1,136 @@
+/* Phone verification page: a single card centred in the middle of the page. */
+main:has(> .phone-page) {
+  display: grid;
+  place-items: center;
+}
+
+.phone-page {
+  width: 100%;
+  min-height: calc(100vh - 200px); /* fallback where :has() above is unsupported */
+  padding: 40px 16px;
+  display: grid;
+  place-items: center;
+}
+
+.phone-card {
+  width: min(440px, 100%);
+  margin: 0;
+  padding: 36px 32px;
+  text-align: center;
+  box-shadow: 0 18px 50px -24px var(--shadow);
+}
+
+.phone-card h3 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.phone-card .desc {
+  line-height: 1.55;
+  margin-bottom: 24px;
+}
+
+.phone-card .form {
+  display: grid;
+  gap: 12px;
+}
+
+.phone-card .button {
+  width: 100%;
+}
+
+.phone-card .err:empty {
+  display: none;
+}
+
+.phone-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.phone-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Visible progress while verifying */
+.phone-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.phone-steps li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phone-steps i {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  font-style: normal;
+  font-size: 11px;
+}
+
+.phone-steps .now {
+  color: var(--ink);
+}
+
+.phone-steps .now i {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.phone-steps .done i {
+  background: var(--ok-bg);
+  border-color: transparent;
+  color: var(--ok-fg);
+}
+
+.phone-err {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  font-size: 14px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border: 2px solid var(--line);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

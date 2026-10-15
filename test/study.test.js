@@ -1,0 +1,14 @@
+import assert from 'node:assert';
+const m = await import('../public/js/features/suggestions/study.js');
+let n = 0; const ok = (c, msg) => { assert(c, msg); n++; };
+ok(m.yearsFor('UG').length === 5 && m.yearsFor('PG').length === 3 && !m.yearsFor('').length, 'years');
+ok(m.semestersFor(3).join() === '5,6', 'semesters of year 3');
+ok(m.cleanStudy({ programme: 'UG', studyYear: '2', semester: '4' }).semester === 4, 'valid');
+ok(m.cleanStudy({ programme: 'UG', studyYear: '2', semester: '5' }) === null, 'semester not in year');
+ok(m.cleanStudy({ programme: 'PG', studyYear: '4', semester: '7' }) === null, 'PG has no year 4');
+ok(m.stageOf({ programme: 'UG', studyYear: 1, semester: 1 }) === 'start' && m.stageOf({ programme: 'UG', studyYear: 4, semester: 7 }) === 'launch' && m.stageOf({ programme: 'PG', studyYear: 2, semester: 3 }) === 'launch' && m.stageOf({ programme: 'PG', studyYear: 1, semester: 1 }) === 'build', 'stages');
+const rows = [{ id: 1, type: 'Job' }, { id: 2, type: 'Internship' }, { id: 3, type: 'Course', level: 'p' }, { id: 4, type: 'Course', level: 'u' }];
+ok(m.preferFor(rows, { programme: 'UG', studyYear: 1, semester: 1 }).map(x => x.id).join() === '2,4,1,3', 'first year: internships and UG courses first');
+ok(m.preferFor(rows, { programme: 'UG', studyYear: 4, semester: 8 }).map(x => x.id).join() === '1,3,2,4', 'final year: jobs and PG-level courses first');
+ok(m.preferFor(rows, null) === rows, 'no study info: unchanged');
+console.log(`\n${n} passed, 0 failed`);

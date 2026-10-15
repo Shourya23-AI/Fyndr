@@ -1,0 +1,56 @@
+// Built-in catalog: thousands of courses (and, from Part 3, jobs and internships) that load from public/catalog/*.json.
+// They are merged into every listings request in core/api.js, so browse, search, suggestions and the saved list all see them.
+// The files are fetched once, expanded in the browser, and kept in memory. If a file is missing the site simply shows what it has.
+import { expandCourse, expandJob } from './meta.js';
+const FILES = [['catalog/catalog-courses.json', expandCourse], ['catalog/catalog-jobs.json', expandJob]];
+let mem = null;
+const url = f => {
+    try {
+        return new URL(f, document.baseURI).href;
+    } catch {
+        return f;
+    }
+};
+export function loadCatalog() {
+    if (!mem) {
+        mem = Promise.all(FILES.map(([f, expand]) => fetch(url(f)).then(r => {
+    if (!r.ok) {
+        console.warn('Fyndr catalog file not found: ' + f + ' (HTTP ' + r.status + '). Make sure public/catalog/ is uploaded.');
+        return { rows: [] };
+    }
+    return r.json();
+}).then(d => (d.rows || []).map(expand)).catch(() => []))).then(a => a.flat());
+    }
+    return mem;
+}
+// Same rules as the server's listing search: type, free text, location.
+export function filterCatalog(rows, qs) {
+    const q = new URLSearchParams(qs || '');
+    const words = (q.get('q') || '').toLowerCase().split(/[^a-z0-9+#.]+/).filter(Boolean);
+    const t = q.get('type');
+    const l = (q.get('loc') || '').toLowerCase();
+    const types = t ? t.split(',') : null;
+    return rows.filter(x => (!types || types.includes(x.type)) && (!words.length || (() => { const hay = (x.title + ' ' + x.orgName + ' ' + (x.skills || []).join(' ') + ' ' + x.description).toLowerCase(); return words.every(w => hay.includes(w)); })()) && (!l || String(x.location).toLowerCase().includes(l)));
+}
+export const mergeCatalog = (rows, cat, path) => {
+    const qs = path.includes('?') ? path.slice(path.indexOf('?') + 1) : '';
+    const have = new Set(rows.map(r => r.id));
+    return rows.concat(filterCatalog(cat, qs).filter(x => !have.has(x.id))).sort((a, b) => String(b.created).localeCompare(String(a.created)));
+};
+// Saved catalog items live on this device (they are not documents in the database).
+const KEY = 'fyndr-catsaved';
+export const catSaved = () => {
+    try {
+        return JSON.parse(localStorage.getItem(KEY)) || [];
+    } catch {
+        return [];
+    }
+};
+export function toggleCatSaved(id) {
+    const a = catSaved();
+    const saved = !a.includes(id);
+    try {
+        localStorage.setItem(KEY, JSON.stringify(saved ? a.concat(id) : a.filter(x => x !== id)));
+    } catch { }
+    return { saved };
+}

@@ -1,0 +1,12 @@
+node_modules/
+/data/
+.env
+*.zip
+.DS_Store
+.env.*
+!.env.example
+*serviceAccount*.json
+*service-account*.json
+*-firebase-adminsdk-*.json
+*.pem
+*.key

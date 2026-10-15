@@ -1,0 +1,65 @@
+/* Privacy & data panel, consent line in the apply popup, danger button */
+.priv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.priv-row:first-of-type {
+  margin-top: 12px;
+}
+
+.priv-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.priv-row .button {
+  flex: none;
+}
+
+.btn-danger {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  border-color: var(--bad-fg);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--bad-fg);
+  color: var(--white);
+}
+
+.btn-danger:disabled {
+  opacity: .6;
+}
+
+.ap-consent {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--yellow-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.ap-consent a {
+  text-decoration: underline;
+}
+
+.agree a {
+  color: var(--green);
+}
+
+@media (max-width: 560px) {
+  .priv-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

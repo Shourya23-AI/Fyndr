@@ -1,0 +1,81 @@
+/* Soft pass: rounder corners, gentler shadows and pastel chat bubbles. Loaded before dark.css, so dark mode still wins. */
+:root { --r-card: 20px; --r-soft: 14px; --shadow-soft: 0 6px 24px -10px var(--shadow); }
+.lcard, .bk-card, .cm-card, .gp-card, .panel, .empty { border-radius: var(--r-card); border-color: var(--line-soft); box-shadow: var(--shadow-soft); }
+.lcard, .bk-card, .cm-card { transition: transform .2s ease, box-shadow .2s ease; }
+.lcard:hover, .bk-card:hover, .cm-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -12px var(--shadow); }
+.button, .button-small, .search-button, .chip-c { border-radius: 999px; }
+.search-field input, .fld input, .fld textarea, .fld select { border-radius: var(--r-soft); }
+.ch { border-radius: 24px; box-shadow: var(--shadow-soft); }
+.ch-head, .ch-comp { background: color-mix(in srgb, var(--white) 88%, transparent); backdrop-filter: blur(10px); }
+.ch-bub { border-radius: 18px; box-shadow: 0 1px 3px -1px var(--shadow); }
+.ch-row.first.them .ch-bub { border-top-left-radius: 6px; }
+.ch-row.first.me .ch-bub { border-top-right-radius: 6px; }
+.ch-row.me .ch-bub { background: color-mix(in srgb, var(--green) 20%, var(--white)); }
+.ch-card, .bk-sheet, .ap-box { border-radius: 24px; }
+.cm-av { border-radius: 16px; background: linear-gradient(135deg, var(--yellow), var(--yellow-soft)); color: var(--deep); }
+.ch-send { box-shadow: 0 4px 12px -4px var(--green); }
+.hero-compact h1 { letter-spacing: -.01em; }
+@media (prefers-reduced-motion: reduce) { .lcard, .bk-card, .cm-card, .sh-btn { transition: none; } .lcard:hover, .bk-card:hover, .cm-card:hover { transform: none; } }
+
+/* ---------- Chat: a calmer, friendlier room ---------- */
+body.in-chat .footer { display: none; }
+body.in-chat { overflow: hidden; }
+.ch-wrap { padding: 14px clamp(8px, 2vw, 28px) 14px; }
+.ch { height: calc(100dvh - 68px - 28px); border: 1px solid var(--line-soft); border-radius: 28px; box-shadow: 0 18px 50px -24px var(--shadow);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--yellow-soft) 85%, var(--paper)) 0%, var(--paper) 55%, color-mix(in srgb, var(--yellow) 35%, var(--paper)) 100%); }
+.ch::before { inset: 0; opacity: .07; }
+.ch-head { gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--line-soft); background: color-mix(in srgb, var(--white) 82%, transparent); backdrop-filter: blur(14px); }
+.ch-head .cm-av { width: 44px; height: 44px; border-radius: 50%; font-size: 18px; font-weight: 700; box-shadow: 0 4px 12px -4px var(--shadow); }
+.ch-title b { font-size: 17px; letter-spacing: -.01em; }
+.ch-title small { margin-top: 1px; }
+.ch-back, .ch-ic { border-radius: 14px; color: var(--deep); }
+.ch-msgs { gap: 3px; padding: 18px clamp(12px, 4vw, 56px) 10px; scroll-behavior: smooth; }
+.ch-day span { padding: 5px 14px; border: 1px solid var(--line-soft); border-radius: 999px; background: color-mix(in srgb, var(--white) 80%, transparent); backdrop-filter: blur(8px); box-shadow: none; font-weight: 600; letter-spacing: .01em; }
+.ch-empty { padding: 28px 30px; border: 1px dashed var(--line); border-radius: 24px; background: color-mix(in srgb, var(--white) 75%, transparent); }
+.ch-empty b { font-size: 17px; }
+.ch-empty p { margin: 6px 0 0; color: var(--muted); }
+.ch-bub { max-width: min(76%, 540px); padding: 8px 12px 5px; border: 1px solid var(--line-soft); border-radius: 20px; box-shadow: 0 4px 14px -8px var(--shadow); }
+.ch-row.me .ch-bub { border-color: transparent; background: linear-gradient(135deg, color-mix(in srgb, var(--green) 30%, var(--white)), color-mix(in srgb, var(--green) 18%, var(--white))); }
+.ch-row.first.them .ch-bub { border-top-left-radius: 6px; }
+.ch-row.first.me .ch-bub { border-top-right-radius: 6px; }
+.ch-name { margin-bottom: 2px; font-size: 12.5px; letter-spacing: .01em; }
+.ch-text { font-size: 15px; line-height: 1.45; }
+.ch-img { border-radius: 14px; }
+.ch-quote { border-radius: 10px; background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.ch-react { border-radius: 999px; background: var(--white); box-shadow: 0 1px 4px -2px var(--shadow); }
+.ch-pop, .ch-menu { border-radius: 16px; border-color: var(--line-soft); box-shadow: 0 16px 40px -14px var(--shadow); }
+.ch-pop button, .ch-it { border-radius: 10px; }
+.ch-poll { padding: 4px 0 6px; }
+.ch-opt { border-radius: 12px; }
+
+/* the message box: one floating pill */
+.ch-comp { padding: 8px clamp(10px, 3vw, 28px) 14px; border-top: 0; background: transparent; }
+.ch-bar { align-items: center; gap: 2px; padding: 5px 6px; border: 1px solid var(--line-soft); border-radius: 30px; background: var(--white); box-shadow: 0 10px 30px -14px var(--shadow); transition: box-shadow .2s, border-color .2s; }
+.ch-bar:focus-within { border-color: color-mix(in srgb, var(--green) 55%, var(--line)); box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--green) 45%, transparent); }
+.ch-comp textarea { min-height: 38px; padding: 9px 8px; border: 0; border-radius: 0; background: transparent; outline: none; box-shadow: none; }
+.ch-bar .ch-ic { width: 38px; height: 38px; font-size: 20px; }
+.ch-send { width: 42px; height: 42px; background: linear-gradient(135deg, var(--green), var(--deep)); box-shadow: 0 6px 14px -6px var(--green); transition: transform .15s; }
+.ch-send:hover { transform: scale(1.06); }
+.ch-menu { bottom: 54px; padding: 8px; min-width: 210px; }
+.ch-tray { border-radius: 18px; background: var(--white); }
+.ch-dr { border-radius: 14px; background: color-mix(in srgb, var(--white) 85%, transparent); }
+.ch-join { margin: 8px clamp(10px, 3vw, 28px) 14px; padding: 14px 18px; border: 1px solid var(--line-soft); border-radius: 22px; background: var(--white); box-shadow: 0 10px 30px -16px var(--shadow); }
+.ch-info { border-radius: 28px 0 0 28px; background: var(--paper); }
+
+/* a shared job / course / book */
+.ch-share { width: min(340px, 100%); padding: 12px; border: 1px solid var(--line-soft); border-radius: 18px; background: var(--white); box-shadow: 0 6px 18px -12px var(--shadow); }
+.ch-share[data-k=job] .sh-pic { background: linear-gradient(135deg, #dce8f5, #c6d9ee); color: #3d6485; }
+.ch-share[data-k=course] .sh-pic { background: linear-gradient(135deg, #e6e0f4, #d4cbee); color: #5b4b8f; }
+.ch-share[data-k=book] .sh-pic { background: linear-gradient(135deg, #f6e9d2, #efdab6); color: #8a6420; }
+.sh-pic { width: 58px; height: 58px; border-radius: 16px; }
+.sh-btn { padding: 7px 14px; }
+.sh-btn:first-child { border-color: transparent; background: var(--green); color: #fff; }
+.sh-btn:first-child:hover { background: var(--deep); }
+
+@media (max-width: 600px) {
+  .ch-wrap { padding: 0; }
+  .ch { height: calc(100dvh - 68px); border-radius: 0; border-width: 1px 0 0; box-shadow: none; }
+  .ch-bub { max-width: 86%; }
+  .ch-head { padding: 10px 12px; }
+  .ch-info { border-radius: 0; }
+}

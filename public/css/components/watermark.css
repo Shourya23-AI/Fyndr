@@ -1,0 +1,29 @@
+/* Background pattern: branching lines and nodes, drawn in the theme's green. Only the shape comes from img/pattern.svg; the colour is --green. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--green);
+  opacity: .1;
+  -webkit-mask: url(../img/pattern.svg) center top / 640px 640px repeat;
+  mask: url(../img/pattern.svg) center top / 640px 640px repeat;
+}
+
+:root[data-theme=dark] body::before {
+  opacity: .12;
+}
+
+@media (max-width: 700px) {
+  body::before {
+    -webkit-mask-size: 440px 440px;
+    mask-size: 440px 440px;
+  }
+}
+
+@media print {
+  body::before {
+    display: none;
+  }
+}

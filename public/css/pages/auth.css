@@ -1,0 +1,378 @@
+/* Sign-in / create-account glass panel.
+   The same .auth-page / .glass / .auth-solo styles are reused by the verify-email, forgot-password, finish-setup and proof pages. */
+.auth-page {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(520px 520px at 15% 20%, var(--auth-blob1) 0, transparent 70%), radial-gradient(480px 480px at 85% 80%, var(--auth-blob2) 0, transparent 70%), radial-gradient(420px 420px at 70% 10%, var(--auth-blob3) 0, transparent 70%), var(--paper);
+}
+
+/* modal: blurred page behind, tinted from the click point */
+.auth-page.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  min-height: 0;
+  overflow: auto;
+  background: radial-gradient(circle at var(--ox, 50%) var(--oy, 50%), color-mix(in srgb, var(--auth-a) 16%, transparent), transparent 60%), color-mix(in srgb, var(--paper) 42%, transparent);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  animation: reveal .55s ease-out;
+}
+
+@keyframes reveal {
+  from {
+    clip-path: circle(0 at var(--ox, 50%) var(--oy, 50%));
+  }
+  to {
+    clip-path: circle(150% at var(--ox, 50%) var(--oy, 50%));
+  }
+}
+
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 20px 60px var(--shadow);
+  border-radius: 28px;
+}
+
+.auth-solo {
+  width: min(440px, 94vw);
+  padding: 36px;
+}
+
+.auth-solo h3 {
+  font-size: 26px;
+}
+
+.auth-solo.wide {
+  width: min(520px, 94vw);
+}
+
+/* the two-pane box */
+.auth-box {
+  position: relative;
+  width: min(760px, 94vw);
+  height: min(580px, calc(100vh - 32px));
+  height: min(580px, calc(100dvh - 32px));
+  min-height: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--white) 60%, transparent);
+}
+
+.auth-x {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 200;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.pane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  padding: 26px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow-y: auto;
+  transition: transform .6s ease, opacity .6s ease;
+  pointer-events: none;
+}
+
+.pane > :first-child {
+  margin-top: auto;
+}
+
+.pane > :last-child {
+  margin-bottom: auto;
+}
+
+.pane h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.pane.signin {
+  z-index: 2;
+}
+
+.pane.signup {
+  opacity: 0;
+  z-index: 1;
+}
+
+.auth-box.is-signup .pane.signin {
+  transform: translateX(100%);
+}
+
+.auth-box.is-signup .pane.signup {
+  transform: translateX(100%);
+  opacity: 1;
+  z-index: 5;
+}
+
+/* only the visible pane is clickable / visible, so the two never show through each other */
+.auth-box:not(.is-signup) .pane.signin,
+.auth-box.is-signup .pane.signup {
+  pointer-events: auto;
+}
+
+.auth-box.is-signup .pane.signin {
+  opacity: 0;
+  visibility: hidden;
+  transition: transform .6s ease, opacity .4s ease, visibility 0s .6s;
+}
+
+.auth-box:not(.is-signup) .pane.signup {
+  visibility: hidden;
+  transition: transform .6s ease, opacity .4s ease, visibility 0s .6s;
+}
+
+.auth-box.is-signup .pane.signup,
+.auth-box:not(.is-signup) .pane.signin {
+  visibility: visible;
+  transition: transform .6s ease, opacity .5s ease .1s, visibility 0s;
+}
+
+/* form pieces inside the panes */
+.pane .form {
+  gap: 8px;
+}
+
+.pane .form input:not([type=checkbox]) {
+  background: rgba(255, 255, 255, .6);
+  border-color: var(--glass-line);
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+:root[data-theme=dark] .pane .form input:not([type=checkbox]) {
+  background: rgba(0, 0, 0, .25);
+}
+
+.pane .button-dark,
+.pane .gbtn {
+  height: 42px;
+}
+
+.pane .button-dark {
+  background: linear-gradient(135deg, var(--auth-a), var(--auth-b));
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--auth-b) 25%, transparent);
+}
+
+.pane .or {
+  margin: 10px 0;
+}
+
+.role-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .07);
+}
+
+.role-switch button {
+  height: 32px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.role-switch .on {
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.org-only {
+  display: none;
+}
+
+.auth-box[data-role=org] .org-only {
+  display: grid;
+}
+
+.org-note {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.auth-box[data-role=org] .org-note {
+  display: inline;
+}
+
+.agree {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.agree input {
+  margin-top: 2px;
+}
+
+.agree a {
+  text-decoration: underline;
+}
+
+.swap {
+  display: none;
+  font-size: 13px;
+  text-align: center;
+  margin: 12px 0 0;
+}
+
+.swap button {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.pane .small {
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* sliding green overlay (desktop) */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 100;
+  transition: transform .6s ease;
+}
+
+.auth-box.is-signup .overlay {
+  transform: translateX(-100%);
+}
+
+.overlay-inner {
+  position: relative;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  color: #fff;
+  background: linear-gradient(135deg, var(--auth-a), var(--auth-b));
+  transition: transform .6s ease;
+}
+
+.auth-box.is-signup .overlay-inner {
+  transform: translateX(50%);
+}
+
+.ov {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 40px;
+  gap: 8px;
+  transition: transform .6s ease;
+}
+
+.ov p {
+  opacity: .9;
+  margin-bottom: 12px;
+}
+
+.ov h3 {
+  font-size: 22px;
+}
+
+.ov-left {
+  transform: translateX(-20%);
+}
+
+.ov-right {
+  right: 0;
+}
+
+.auth-box.is-signup .ov-left {
+  transform: none;
+}
+
+.auth-box.is-signup .ov-right {
+  transform: translateX(20%);
+}
+
+.btn-glass {
+  height: 44px;
+  padding: 0 28px;
+  border-radius: 999px;
+  color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, .8);
+  font-weight: 700;
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, .15);
+}
+
+/* phones: one pane at a time, no overlay */
+@media (max-width: 760px) {
+  .auth-box {
+    height: auto;
+    max-height: none;
+  }
+  .overlay {
+    display: none;
+  }
+  .swap {
+    display: block;
+  }
+  .auth-x {
+    top: 8px;
+    right: 10px;
+  }
+  .pane {
+    position: relative;
+    width: 100%;
+    height: auto;
+    padding: 26px 22px;
+    overflow: visible;
+    pointer-events: auto;
+  }
+  .pane.signup {
+    display: none;
+    opacity: 1;
+  }
+  .auth-box.is-signup .pane.signin {
+    display: none;
+  }
+  .auth-box.is-signup .pane.signup {
+    display: flex;
+    transform: none;
+  }
+}
+
+/* UG / PG, year and semester on the sign-up form */
+.auth-box[data-role=org] .cand-only { display: none; }
+.study-pick .study-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.study-pick .study-sub[hidden], .study-pick .study-note[hidden] { display: none; }
+.study-pick .study-note { margin: 2px 0 0; }

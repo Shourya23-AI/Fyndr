@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://www.gstatic.com https://eapi.phone.email https://www.phone.email https://openlibrary.org https://gutendex.com https://archive.org; frame-src 'self' blob: https://*.firebaseapp.com https://accounts.google.com https://apis.google.com https://www.phone.email https://archive.org https://www.gutenberg.org https://books.google.com; object-src 'self' blob:; worker-src 'self'; base-uri 'self'; form-action 'self'" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!-- Server address for static hosting (GitHub Pages). Leave empty when Node serves this page. See README "GitHub Pages". -->
+    <meta name="fyndr-api" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+    <!-- Font loads without blocking the first paint (system font shows until it arrives) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" /></noscript>
+    <link rel="stylesheet" href="css/app.css" />
+    <!--PRELOAD-->
+    <!--STATIC-PRELOAD-->
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js" crossorigin />
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js" crossorigin />
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js" crossorigin />
+    <link rel="modulepreload" href="js/core/api-base.js" />
+    <link rel="modulepreload" href="js/core/api.js" />
+    <link rel="modulepreload" href="js/core/dom.js" />
+    <link rel="modulepreload" href="js/core/errors.js" />
+    <link rel="modulepreload" href="js/core/events.js" />
+    <link rel="modulepreload" href="js/core/image.js" />
+    <link rel="modulepreload" href="js/core/motion.js" />
+    <link rel="modulepreload" href="js/core/reveal.js" />
+    <link rel="modulepreload" href="js/core/router.js" />
+    <link rel="modulepreload" href="js/core/skeleton.js" />
+    <link rel="modulepreload" href="js/core/state.js" />
+    <link rel="modulepreload" href="js/features/account-menu/account-menu.actions.js" />
+    <link rel="modulepreload" href="js/features/account-menu/account-menu.view.js" />
+    <link rel="modulepreload" href="js/features/apply/apply.actions.js" />
+    <link rel="modulepreload" href="js/features/apply/apply.view.js" />
+    <link rel="modulepreload" href="js/features/auth/auth-modal.js" />
+    <link rel="modulepreload" href="js/features/auth/auth-views.js" />
+    <link rel="modulepreload" href="js/features/auth/auth.actions.js" />
+    <link rel="modulepreload" href="js/features/auth/constants.js" />
+    <link rel="modulepreload" href="js/features/auth/load-me.js" />
+    <link rel="modulepreload" href="js/features/browse/banner.js" />
+    <link rel="modulepreload" href="js/features/browse/browse.actions.js" />
+    <link rel="modulepreload" href="js/features/browse/browse.js" />
+    <link rel="modulepreload" href="js/features/browse/card.js" />
+    <link rel="modulepreload" href="js/features/browse/careers.js" />
+    <link rel="modulepreload" href="js/features/browse/detail.js" />
+    <link rel="modulepreload" href="js/features/browse/filters.js" />
+    <link rel="modulepreload" href="js/features/browse/listings.js" />
+    <link rel="modulepreload" href="js/features/browse/place.js" />
+    <link rel="modulepreload" href="js/features/catalog/catalog.js" />
+    <link rel="modulepreload" href="js/features/catalog/meta.js" />
+    <link rel="modulepreload" href="js/features/chat/chat.data.js" />
+    <link rel="modulepreload" href="js/features/chat/chat.screen.js" />
+    <link rel="modulepreload" href="js/features/community/community.actions.js" />
+    <link rel="modulepreload" href="js/features/community/community.data.js" />
+    <link rel="modulepreload" href="js/features/community/community.helpers.js" />
+    <link rel="modulepreload" href="js/features/community/community.view.js" />
+    <link rel="modulepreload" href="js/features/dashboard/admin-dashboard.js" />
+    <link rel="modulepreload" href="js/features/dashboard/dashboard.actions.js" />
+    <link rel="modulepreload" href="js/features/dashboard/dashboard.js" />
+    <link rel="modulepreload" href="js/features/dashboard/org-dashboard.js" />
+    <link rel="modulepreload" href="js/features/dashboard/resume.js" />
+    <link rel="modulepreload" href="js/features/dashboard/user-dashboard.js" />
+    <link rel="modulepreload" href="js/features/groups/chat.helpers.js" />
+    <link rel="modulepreload" href="js/features/groups/chat.view.js" />
+    <link rel="modulepreload" href="js/features/groups/groups.actions.js" />
+    <link rel="modulepreload" href="js/features/groups/groups.data.js" />
+    <link rel="modulepreload" href="js/features/groups/groups.view.js" />
+    <link rel="modulepreload" href="js/features/home/home.js" />
+    <link rel="modulepreload" href="js/features/home/landing.js" />
+    <link rel="modulepreload" href="js/features/home/specimen.js" />
+    <link rel="modulepreload" href="js/features/insights/insights.js" />
+    <link rel="modulepreload" href="js/features/install/install.actions.js" />
+    <link rel="modulepreload" href="js/features/install/install.service.js" />
+    <link rel="modulepreload" href="js/features/layout/layout.actions.js" />
+    <link rel="modulepreload" href="js/features/layout/nav.js" />
+    <link rel="modulepreload" href="js/features/layout/sidebar.js" />
+    <link rel="modulepreload" href="js/features/legal/constants.js" />
+    <link rel="modulepreload" href="js/features/legal/legal.actions.js" />
+    <link rel="modulepreload" href="js/features/legal/legal.view.js" />
+    <link rel="modulepreload" href="js/features/library/books.js" />
+    <link rel="modulepreload" href="js/features/library/library.actions.js" />
+    <link rel="modulepreload" href="js/features/library/library.js" />
+    <link rel="modulepreload" href="js/features/liked/liked.actions.js" />
+    <link rel="modulepreload" href="js/features/liked/liked.data.js" />
+    <link rel="modulepreload" href="js/features/liked/liked.view.js" />
+    <link rel="modulepreload" href="js/features/listings/expiry.js" />
+    <link rel="modulepreload" href="js/features/listings/summary.js" />
+    <link rel="modulepreload" href="js/features/organizations/org-page.js" />
+    <link rel="modulepreload" href="js/features/password-reset/reset.actions.js" />
+    <link rel="modulepreload" href="js/features/password-reset/reset.view.js" />
+    <link rel="modulepreload" href="js/features/phone/phone.actions.js" />
+    <link rel="modulepreload" href="js/features/phone/phone.page.js" />
+    <link rel="modulepreload" href="js/features/phone/phone.service.js" />
+    <link rel="modulepreload" href="js/features/phone/phone.view.js" />
+    <link rel="modulepreload" href="js/features/privacy/analytics.actions.js" />
+    <link rel="modulepreload" href="js/features/privacy/consent.view.js" />
+    <link rel="modulepreload" href="js/features/privacy/privacy.actions.js" />
+    <link rel="modulepreload" href="js/features/privacy/privacy.view.js" />
+    <link rel="modulepreload" href="js/features/privacy/retention.js" />
+    <link rel="modulepreload" href="js/features/profile/constants.js" />
+    <link rel="modulepreload" href="js/features/profile/profile.actions.js" />
+    <link rel="modulepreload" href="js/features/profile/profile.view.js" />
+    <link rel="modulepreload" href="js/features/proof/proof.actions.js" />
+    <link rel="modulepreload" href="js/features/proof/proof.view.js" />
+    <link rel="modulepreload" href="js/features/proof/upload.js" />
+    <link rel="modulepreload" href="js/features/share/share.actions.js" />
+    <link rel="modulepreload" href="js/features/share/share.js" />
+    <link rel="modulepreload" href="js/features/share/share.view.js" />
+    <link rel="modulepreload" href="js/features/suggestions/engine.js" />
+    <link rel="modulepreload" href="js/features/suggestions/foryou.js" />
+    <link rel="modulepreload" href="js/features/suggestions/insights.js" />
+    <link rel="modulepreload" href="js/features/suggestions/personal.js" />
+    <link rel="modulepreload" href="js/features/suggestions/rail.js" />
+    <link rel="modulepreload" href="js/features/suggestions/study.js" />
+    <link rel="modulepreload" href="js/features/suggestions/suggest.js" />
+    <link rel="modulepreload" href="js/features/suggestions/taxonomy.js" />
+    <link rel="modulepreload" href="js/features/trust/trust.js" />
+    <link rel="modulepreload" href="js/main.js" />
+    <link rel="modulepreload" href="js/services/analytics/analytics.js" />
+    <link rel="modulepreload" href="js/services/cloud/cloud.js" />
+    <link rel="modulepreload" href="js/services/firebase/firebase-init.js" />
+    <link rel="modulepreload" href="js/services/firestore-api/blobs.js" />
+    <link rel="modulepreload" href="js/services/firestore-api/config.js" />
+    <link rel="modulepreload" href="js/services/firestore-api/fire-api.js" />
+    <link rel="modulepreload" href="js/services/firestore-api/fire.js" />
+    <link rel="modulepreload" href="js/services/firestore-api/helpers.js" />
+    <link rel="modulepreload" href="js/services/firestore-api/retention.js" />
+    <link rel="modulepreload" href="js/services/phone-email/phone-email.js" />
+    <!--/STATIC-PRELOAD-->
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Fyndr" />
+    <script>
+      // Keep the browser's install prompt so the footer "Get the app" button can use it later.
+      addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        window.__installPrompt = e;
+      });
+    </script>
+    <script>
+      // Apply the saved (or system) theme before first paint to avoid a flash.
+      document.documentElement.dataset.theme =
+        localStorage.theme ||
+        (matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light");
+    </script>
+    <title>Fyndr: internships and jobs, checked before you see them</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#f4f2ec" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1012" media="(prefers-color-scheme: dark)" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Fyndr" />
+    <meta property="og:title" content="Fyndr: internships and jobs, checked before you see them" />
+    <meta property="og:description" content="Fyndr lists internships, jobs and courses from organizations our team has verified." />
+    <meta name="twitter:card" content="summary" />
+    <meta name="description" content="Fyndr lists internships, jobs and courses from organizations our team has verified." />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav container" id="nav" aria-label="Main"><a class="logo" href="#/"><span class="logo-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 26V7.5h13"/><circle cx="16.2" cy="16.4" r="4.3"/><path d="m19.4 19.6 4.6 4.6"/></svg></span>Fyndr</a></nav>
+    </header>
+
+    <main id="app"><!-- Placeholder shown instantly; replaced as soon as the page is drawn -->
+      <div class="container sk-page" aria-busy="true" aria-label="Loading">
+        <div class="sk-hero"><div><span class="sk-line lg w70"></span><span class="sk-line lg w50"></span><span class="sk-line w90" style="margin-top:18px"></span><span class="sk-line w70"></span><span class="sk-line lg" style="margin-top:22px;max-width:520px;height:56px;border-radius:999px"></span></div><div class="sk-block tall"></div></div>
+        <div class="sk-card"><span class="sk-circle"></span><div><span class="sk-line w30"></span><span class="sk-line w70"></span><span class="sk-line w50" style="margin:0"></span></div><span class="sk-block" style="height:40px"></span></div>
+        <div class="sk-card"><span class="sk-circle"></span><div><span class="sk-line w30"></span><span class="sk-line w70"></span><span class="sk-line w50" style="margin:0"></span></div><span class="sk-block" style="height:40px"></span></div>
+      </div>
+    </main>
+
+    <footer class="footer container">
+      <a class="logo" href="#/">
+        <span class="logo-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 26V7.5h13"/><circle cx="16.2" cy="16.4" r="4.3"/><path d="m19.4 19.6 4.6 4.6"/></svg></span>
+        Fyndr
+      </a>
+      <p>Find work worth doing.</p>
+      <a href="#/organizations">For organizations</a>
+      <nav class="footer-links" aria-label="Legal">
+        <a href="#/terms">Terms &amp; Conditions</a>
+        <a href="#/privacy">Privacy Policy</a>
+        <a href="#/contact">Contact Us</a>
+      </nav>
+      <button class="install-btn" type="button" data-act="install-app">
+        <svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" /></svg>
+        Get the app
+      </button>
+      <span>© 2026 Fyndr</span>
+    </footer>
+
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
