@@ -1,0 +1,25 @@
+# Daily housekeeping: closes expired listings and deletes applications that outlived the retention limits in the Privacy Policy.
+# It does not need an admin to open the dashboard. Uses the same FIREBASE_SERVICE_ACCOUNT secret as the importer.
+name: Sweep
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: sweep
+  cancel-in-progress: false
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --ignore-scripts --no-audit --no-fund firebase-admin@12
+      - run: node scripts/sweep-firestore.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

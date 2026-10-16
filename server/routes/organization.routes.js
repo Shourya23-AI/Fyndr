@@ -89,6 +89,7 @@ R('DELETE', '/api/listings/:id', ['org', 'moderator', 'admin'], ({ user, p }) =>
     }
     db.listings = db.listings.filter(x => x !== l);
     db.applications = db.applications.filter(a => a.listingId !== l.id);
+    db.saved = (db.saved || []).filter(x => x.listingId !== l.id);
     save();
     return { ok: 1 };
 });

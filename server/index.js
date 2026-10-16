@@ -35,7 +35,10 @@ setInterval(() => {
     }
 }, 60000).unref();
 const ipOf = req => (PROD && (req.headers['x-forwarded-for'] || '').split(',').pop().trim()) || req.socket.remoteAddress || '?';
-const STRICT = { 'POST /api/phone/verify': [10, 10 * 60e3], 'POST /api/init': [20, 60 * 60e3] }; // [max requests, window]
+// [max requests, window]. Students on one campus Wi-Fi share one IP, so the numbers are generous; tune them with env vars.
+const num = (k, d) => +process.env[k] || d;
+const API_PER_MIN = num('RATE_API_PER_MIN', 1200);
+const STRICT = { 'POST /api/phone/verify': [num('RATE_PHONE_PER_10MIN', 40), 10 * 60e3], 'POST /api/init': [num('RATE_SIGNUP_PER_HOUR', 150), 60 * 60e3] };
 const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
     if (u.pathname === '/healthz') {
@@ -90,7 +93,7 @@ const server = http.createServer(async (req, res) => {
         }
         const ip = ipOf(req);
         const sk = STRICT[req.method + ' ' + u.pathname];
-        if (limited('a:' + ip, 300, 60e3) || (sk && limited(req.method + u.pathname + ':' + ip, sk[0], sk[1]))) {
+        if (limited('a:' + ip, API_PER_MIN, 60e3) || (sk && limited(req.method + u.pathname + ':' + ip, sk[0], sk[1]))) {
             res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '60' });
             return res.end(JSON.stringify({ error: 'Too many requests. Please wait a bit and try again.' }));
         }

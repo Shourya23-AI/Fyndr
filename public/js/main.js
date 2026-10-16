@@ -28,6 +28,10 @@ route();
 
 // Keep dashboards current: refetch when you come back to the tab and every minute while one is open.
 // Skipped while you are typing or choosing something, so it never interrupts an edit.
+// Admin and moderator dashboards read every user, listing and application, so they refresh at most every 10 minutes
+// (a refresh every minute would use up the free Firestore read quota in under an hour).
+const STAFF = /^(admin|moderator)$/;
+let lastDash = 0;
 const refreshDashboard = () => {
     const el = document.activeElement;
     // never wipe a half-filled "post an opportunity" form
@@ -35,6 +39,10 @@ const refreshDashboard = () => {
     if (typing || document.hidden || !S.me || !location.hash.startsWith('#/dashboard') || (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName))) {
         return;
     }
+    if (Date.now() - lastDash < (STAFF.test(S.me.role) ? 10 * 60e3 : 20e3)) {
+        return;
+    }
+    lastDash = Date.now();
     clearApiCache();
     dashboard().catch(() => {});
 };

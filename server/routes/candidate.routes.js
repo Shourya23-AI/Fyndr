@@ -36,6 +36,9 @@ R('POST', '/api/apply/:id', ['user'], ({ user, p, body: b }) => {
 });
 R('POST', '/api/save/:id', ['user'], ({ user, p }) => {
     onboarded(user);
+    if (!db.listings.some(x => x.id === p[0])) {
+        bad(404, 'Listing not found');
+    }
     const i = db.saved.findIndex(s => s.userId === user.id && s.listingId === p[0]);
     if (i >= 0) {
         db.saved.splice(i, 1);

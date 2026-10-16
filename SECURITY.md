@@ -21,6 +21,6 @@ The code can only do part of this. The items in **bold** are settings only you c
 8. **GitHub**: turn on branch protection for `main`, 2FA on your GitHub account, Dependabot alerts, and keep the service-account key only as a repository *secret*.
 
 ## Honest limits
-- Phone verification is checked in the browser (no server). A skilled person could fake it. A Cloud Function would close that gap.
+- Phone verification is checked in the browser unless you set up the Cloud Function in `functions/` (README: "Server-side phone check") and publish `firestore.rules.strict-phone`. Until then a skilled person could fake it.
 - No system can promise "totally safe". The trust score and your review queue catch common scams, not every one.
 - Because the site is hosted on GitHub Pages, real HTTP security headers cannot be set; the meta tags are the closest equivalent. Hosting behind Cloudflare or using the Node server adds them.

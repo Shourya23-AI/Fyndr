@@ -131,3 +131,18 @@ export async function lookupPhone(token, id) {
     const ph = d && d.status === 200 && d.phone_no ? '+' + String(d.country_code || '').replace(/\D/g, '') + String(d.phone_no).replace(/\D/g, '') : '';
     return /^\+\d{8,15}$/.test(ph) ? ph : null;
 }
+
+// Optional: the address of the server-side check (functions/index.js, "verifyPhone"). When config/phone-email.json has a "verifyUrl",
+// the number is verified and saved by that server and the browser can no longer claim a number by itself. Empty = the older browser-side check.
+let verifyUrl;
+export async function phoneVerifyUrl() {
+    if (verifyUrl === undefined) {
+        try {
+            const u = String((await (await fetch('config/phone-email.json')).json()).verifyUrl || '');
+            verifyUrl = /^https:\/\/[^\s"<>]+$/.test(u) ? u : '';
+        } catch {
+            verifyUrl = '';
+        }
+    }
+    return verifyUrl;
+}

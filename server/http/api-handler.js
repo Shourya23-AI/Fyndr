@@ -3,6 +3,7 @@ const { verifyFb } = require('../auth/firebase-token');
 const { db, save } = require('../db/store');
 const { isAdminEmail } = require('../config');
 const { applyStaff } = require('../lib/helpers');
+const readBody = require('../lib/body');
 // Finds the route, checks the Firebase token + role, parses the JSON body, runs the handler.
 module.exports = async function handleApi(req, res, u) {
     const send = (c, d) => {
@@ -51,13 +52,7 @@ module.exports = async function handleApi(req, res, u) {
                 return send(403, { error: 'Forbidden' });
             }
         }
-        let raw = '';
-        for await (const c of req) {
-            raw += c;
-            if (raw.length > 3.2e6) {
-                bad(413, 'Upload too large');
-            }
-        }
+        const raw = await readBody(req, 3.2e6, () => bad(413, 'Upload too large'));
         let body = {};
         try {
             body = raw ? JSON.parse(raw) : {};

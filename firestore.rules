@@ -302,7 +302,7 @@ service cloud.firestore {
       allow create, update: if signedIn()
         && request.resource.data.owner == me()
         && request.resource.data.kind in ['resume', 'proof']
-        && blobId.matches(me() + '_' + request.resource.data.kind + '_[0-9]+')
+        && blobId.matches(me() + '_' + request.resource.data.kind + '_[0-7]') // at most 8 chunks (about 5 MB) per file
         && request.resource.data.keys().hasOnly(['owner', 'kind', 'i', 'data'])
         && request.resource.data.data is string
         && request.resource.data.data.size() <= 750000;
@@ -313,7 +313,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['owner', 'kind', 'i', 'appId', 'orgId', 'data'])
         && request.resource.data.keys().hasAll(['owner', 'kind', 'i', 'appId', 'orgId', 'data'])
         && request.resource.data.appId.matches(me() + '_[A-Za-z0-9]+')
-        && blobId.matches('ar_' + request.resource.data.appId + '_[0-9]+')
+        && blobId.matches('ar_' + request.resource.data.appId + '_[0-5]')
         && request.resource.data.data is string
         && request.resource.data.data.size() <= 750000
         && getAfter(/databases/$(database)/documents/applications/$(request.resource.data.appId)).data.userId == me()

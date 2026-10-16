@@ -12,7 +12,7 @@
 //   staff/{email}               admin / moderator roles
 import { fs, friendly, SITE_VERSION } from './fire.js';
 import { staffOf, staffMap, setStaff } from '../cloud/cloud.js';
-import { phoneClientId, lookupPhone } from '../phone-email/phone-email.js';
+import { phoneClientId, lookupPhone, phoneVerifyUrl } from '../phone-email/phone-email.js';
 import { putBlob, dropBlob, getBlob, putAppBlob, dropAppBlob, getAppBlob } from './blobs.js';
 import { expiredApps } from './retention.js';
 import { POLICY_VERSION } from '../../features/legal/constants.js';
@@ -80,6 +80,16 @@ async function run(path, method, b, fu) {
             await bt.commit();
         }
     };
+    // An organization that stops being verified must not keep live listings: they go back to 'pending' until staff look again.
+    const hideOrgListings = async orgId => {
+        const live = await m.getDocs(m.query(col('listings'), m.where('orgId', '==', orgId), m.where('status', '==', 'approved')));
+        for (let i = 0; i < live.docs.length; i += 400) {
+            const bt = m.writeBatch(db);
+            live.docs.slice(i, i + 400).forEach(d => bt.update(d.ref, { status: 'pending' }));
+            await bt.commit();
+        }
+        memo.listings = null;
+    };
     const wipe = async refs => {
         for (let i = 0; i < refs.length; i += 400) {
             const bt = m.writeBatch(db);
@@ -94,7 +104,7 @@ async function run(path, method, b, fu) {
     if (k === 'GET /listings') {
         if (!memo.listings || Date.now() - memo.listings.t > LIFE) {
             const s = await m.getDocs(m.query(col('listings'), m.where('status', '==', 'approved')));
-            memo.listings = { t: Date.now(), d: rows(s).map(x => ({ ...x, orgVerified: x.source !== 'import' })) };
+            memo.listings = { t: Date.now(), d: rows(s).filter(x => !isExpired(x)).map(x => ({ ...x, orgVerified: x.source !== 'import' })) };
         }
         return filterListings(memo.listings.d, q);
     }
@@ -306,10 +316,30 @@ async function run(path, method, b, fu) {
                 f.verified = b.status === 'verified';
             }
             await m.updateDoc(ref('users', id), f);
+            if (u.role === 'org' && f.verified === false) {
+                await hideOrgListings(id);
+            }
             return { ok: 1 };
         }
         case 'POST /phone/verify': {
             only('user', 'org');
+            // Preferred: a server (functions/index.js) checks the phone.email token and saves the number with admin rights.
+            const serverUrl = await phoneVerifyUrl();
+            if (serverUrl) {
+                let r;
+                try {
+                    r = await fetch(serverUrl, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await fu.getIdToken() }, body: JSON.stringify({ access_token: String(b.access_token || '') })
+                    });
+                } catch {
+                    bad('Could not reach the phone verification service. Please try again.', 'PHONE_UNREACHABLE');
+                }
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok || !d.phone) {
+                    bad(d.error || 'Phone verification failed or expired. Please try again.', d.code || 'PHONE_FAILED');
+                }
+                return meOf({ ...user, phone: d.phone });
+            }
             const cid = await phoneClientId();
             if (!cid) {
                 bad('Phone verification is not set up yet. Add your Client ID to config/phone-email.json', 'NOT_CONFIGURED');
@@ -768,6 +798,9 @@ async function run(path, method, b, fu) {
                 bad('Not found');
             }
             await m.updateDoc(ref('users', id), { verified: !!b.verified });
+            if (u.role === 'org' && !b.verified) {
+                await hideOrgListings(id);
+            }
             return { ok: 1 };
         }
         case 'DELETE /admin/users/:id': {

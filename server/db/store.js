@@ -2,16 +2,39 @@ const fs = require('fs');
 const { DB_FILE, SEED_DEMO } = require('../config');
 const { uid } = require('../lib/helpers');
 // JSON-file database. `db` is loaded (or seeded) once; call save() after changing it.
-let db;
+// Safety: a missing file starts a new database, but a file that EXISTS and cannot be read is never overwritten.
+// The newest readable backup is used instead (the broken file is kept next to it as *.corrupt-<time>); with no backup the server refuses to start.
+const BAK = DB_FILE + '.bak';
+const readJson = f => JSON.parse(fs.readFileSync(f));
+let db = null;
 try {
-    db = JSON.parse(fs.readFileSync(DB_FILE));
-} catch {
-    db = null;
+    db = readJson(DB_FILE);
+} catch (e) {
+    if (e.code !== 'ENOENT') {
+        const keep = DB_FILE + '.corrupt-' + Date.now();
+        try {
+            fs.copyFileSync(DB_FILE, keep);
+        } catch { }
+        try {
+            db = readJson(BAK);
+            console.error('Database file was unreadable (' + e.message + '). Restored from ' + BAK + '. The broken file was kept as ' + keep);
+        } catch {
+            throw new Error('Database file ' + DB_FILE + ' is unreadable (' + e.message + ') and no backup could be loaded. Nothing was changed. A copy is at ' + keep);
+        }
+    }
 }
 // Write to a temp file then rename, so a crash mid-write can never leave a half-written database.
+// A backup of the previous version is refreshed at most every 10 minutes (copying a big file on every save would be slow).
+let lastBak = 0;
 const save = () => {
     const t = DB_FILE + '.tmp';
-    fs.writeFileSync(t, JSON.stringify(db, null, 1));
+    fs.writeFileSync(t, JSON.stringify(db));
+    if (Date.now() - lastBak > 10 * 60e3) {
+        try {
+            fs.copyFileSync(DB_FILE, BAK);
+            lastBak = Date.now();
+        } catch { }
+    }
     fs.renameSync(t, DB_FILE);
 };
 if (!db && !SEED_DEMO) {

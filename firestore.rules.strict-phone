@@ -1,0 +1,461 @@
+// STRICT PHONE VARIANT of firestore.rules. Publish THIS file instead of firestore.rules ONLY AFTER the verifyPhone Cloud Function is deployed
+// and "verifyUrl" is set in config/phone-email.json (see README section "Server-side phone check"). Everything else is identical.
+// Difference: phone numbers can no longer be written (or claimed) from a browser, so verification cannot be faked.
+// Firestore security rules for Fyndr (GitHub Pages / no server).
+// Firebase Console > Build > Firestore Database > Rules > paste this whole file > Publish.
+//
+// There is no server in this mode, so THESE RULES are the backend's security. In short:
+//   - Everyone must have a verified email to touch anything except reading approved listings.
+//   - A user can only edit their own account, and never their own staff/verification fields.
+//   - Organizations can post only when staff verified them AND they have a phone; a post waits as "pending" until staff approve it.
+//   - Staff can import listings found by scripts/import-jobs.js (ids imp_*, https apply link, trust score). Imported listings are applied for on the employer's own page, never through Fyndr.
+//   - Candidates apply once per listing; only the organization that owns the listing can change an application's status.
+//   - When a candidate applies, the resume they chose is COPIED into the application (blobs/ar_{appId}_{i}). The organization reads only that
+//     copy. Withdrawing or deleting the application (or closing the listing, or the retention cleanup) removes the organization's access.
+//   - Every account records that the person accepted the Terms and Privacy Policy (users/{uid}.consent).
+//   - People can delete their own account and applications (withdraw); organizations can delete theirs.
+//   - Staff roles live in staff/{email}; only admins can change them. The main admin below can never be changed.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function me() {
+      return request.auth.uid;
+    }
+    function mail() {
+      return request.auth.token.email.lower();
+    }
+    // Keep in sync with ADMIN_EMAILS in public/js/services/firestore-api/config.js
+    function isMain() {
+      return signedIn() && mail() == 'admin.fyndr@gmail.com';
+    }
+    function hasStaffDoc() {
+      return signedIn() && exists(/databases/$(database)/documents/staff/$(mail()));
+    }
+    function staffRole() {
+      return get(/databases/$(database)/documents/staff/$(mail())).data.role;
+    }
+    function isAdmin() {
+      return isMain() || (hasStaffDoc() && staffRole() == 'admin');
+    }
+    function isStaff() {
+      return isMain() || (hasStaffDoc() && staffRole() in ['admin', 'moderator']);
+    }
+    function myDoc() {
+      return get(/databases/$(database)/documents/users/$(me())).data;
+    }
+    function changed() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+    function isFreeMail() {
+      return mail().matches('.*@(gmail|yahoo|outlook|hotmail|proton|protonmail|icloud|aol)[.].*');
+    }
+    // Free email addresses may post only if the organization is "small" (default) or an admin allowed it.
+    function mayPostWithThisEmail(u) {
+      return !isFreeMail() || (u.get('gmailOk', null) != null ? u.get('gmailOk', null) == true : u.get('orgType', 'small') == 'small');
+    }
+
+    // A job, course or book shared into a group or community chat (see public/js/features/share/share.js).
+    // Only plain text and https links are accepted, so a shared card can never carry a script or a javascript: link.
+    function shareOk(s) {
+      return s is map
+        && s.keys().hasOnly(['kind', 'id', 'title', 'sub', 'tag', 'url', 'img'])
+        && s.keys().hasAll(['kind', 'id', 'title'])
+        && s.kind in ['job', 'course', 'book']
+        && s.id is string && s.id.size() >= 1 && s.id.size() <= 120
+        && s.title is string && s.title.size() >= 1 && s.title.size() <= 160
+        && s.get('sub', '') is string && s.get('sub', '').size() <= 160
+        && s.get('tag', '') is string && s.get('tag', '').size() <= 40
+        && s.get('url', '') is string && s.get('url', '').size() <= 500
+        && (s.get('url', '') == '' || s.get('url', '').matches('https://[^ ]+'))
+        && s.get('img', '') is string && s.get('img', '').size() <= 500
+        && (s.get('img', '') == '' || s.get('img', '').matches('https://[^ ]+'));
+    }
+
+    // ---------- staff roles ----------
+    // Keyed by email so a role can be given before the person has an account.
+    match /staff/{email} {
+      allow read: if signedIn() && (mail() == email || isAdmin());
+      allow create, update: if isAdmin()
+        && email != 'admin.fyndr@gmail.com'
+        && request.resource.data.role in ['admin', 'moderator']
+        && request.resource.data.keys().hasOnly(['role', 'by', 'at']);
+      allow delete: if isAdmin() && email != 'admin.fyndr@gmail.com';
+    }
+
+    // ---------- accounts ----------
+    match /users/{userId} {
+      // The owner, staff, and an organization the candidate has applied to (the candidate lists it in sharedWith).
+      allow get: if signedIn() && (userId == me() || isStaff() || me() in resource.data.sharedWith);
+      allow list: if isStaff();
+
+      allow create: if signedIn() && userId == me()
+        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'orgName', 'orgType', 'website', 'verified', 'sharedWith', 'consent', 'created'])
+        && request.resource.data.keys().hasAll(['name', 'email', 'role', 'verified', 'sharedWith', 'consent', 'created'])
+        && request.resource.data.consent.keys().hasOnly(['v', 'at'])
+        && request.resource.data.consent.v is string && request.resource.data.consent.at is string
+        && request.resource.data.email == mail()
+        && request.resource.data.role in ['user', 'org']
+        && request.resource.data.verified == false
+        && request.resource.data.sharedWith.size() == 0
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && (request.resource.data.role == 'user'
+            || (request.resource.data.orgType in ['small', 'enterprise']
+                && request.resource.data.orgName is string
+                && !(request.resource.data.orgType == 'enterprise' && isFreeMail())));
+
+      allow update: if signedIn() && (
+        // the person themselves: never role, email, verified, orgType, gmailOk
+        (userId == me()
+          && changed().hasOnly(['name', 'website', 'profile', 'resume', 'photo', 'proof', 'sharedWith', 'consent'])
+          && (!changed().hasAny(['consent'])
+              || (request.resource.data.consent.keys().hasOnly(['v', 'at']) && request.resource.data.consent.v is string && request.resource.data.consent.at is string))
+          && request.resource.data.get('photo', '').size() <= 120000
+          && request.resource.data.get('sharedWith', []).size() < 500
+          // proof: always starts as 'pending', and its careers-page link must be a plain https address (the admin page turns it into a clickable link,
+          // so a javascript: link stored here would run in the admin's browser)
+          && (!changed().hasAny(['proof'])
+              || (request.resource.data.proof.status == 'pending'
+                  && request.resource.data.proof.get('portal', '') is string
+                  && request.resource.data.proof.get('portal', '').size() <= 200
+                  && (request.resource.data.proof.get('portal', '') == '' || request.resource.data.proof.get('portal', '').matches('https://[^ ]+'))))
+          // sizes: a name or website cannot grow until the 1 MB document limit
+          && (!changed().hasAny(['name']) || (request.resource.data.name is string && request.resource.data.name.size() <= 80))
+          && (!changed().hasAny(['website']) || (request.resource.data.website is string && request.resource.data.website.size() <= 200))
+          // the phone number is written ONLY by the verifyPhone Cloud Function (it checks the phone.email token); a browser cannot set it
+          && !changed().hasAny(['phone', 'phoneId', 'phoneAt']))
+        // moderators and admins: verify organizations and proof documents
+        || (isStaff() && changed().hasOnly(['verified', 'proof']))
+        // admins only: organization size and the Gmail-posting override
+        || (isAdmin() && changed().hasOnly(['orgType', 'gmailOk']))
+      );
+
+      // Admins, or the person deleting their own account (the app removes their data first, then this document).
+      allow delete: if isAdmin() || (signedIn() && userId == me());
+
+      match /saved/{listingId} {
+        allow read, write: if signedIn() && userId == me();
+        allow delete: if isAdmin();
+      }
+
+      // Books the person liked (users/{uid}/likedBooks/{key}). Only the owner can see or change them.
+      match /likedBooks/{key} {
+        allow read, delete: if signedIn() && userId == me();
+        allow create, update: if signedIn() && userId == me()
+          && request.resource.data.keys().hasOnly(['id', 'title', 'authors', 'year', 'cover', 'access', 'read', 'info', 'epub', 'src', 'at'])
+          && request.resource.data.keys().hasAll(['id', 'title', 'at'])
+          && request.resource.data.id is string && request.resource.data.id.size() <= 120
+          && request.resource.data.title is string && request.resource.data.title.size() >= 1 && request.resource.data.title.size() <= 160
+          && request.resource.data.get('authors', []) is list && request.resource.data.get('authors', []).size() <= 3
+          && request.resource.data.get('cover', '') is string && request.resource.data.get('cover', '').size() <= 400
+          && request.resource.data.get('info', '') is string && request.resource.data.get('info', '').size() <= 500
+          && request.resource.data.get('epub', '') is string && request.resource.data.get('epub', '').size() <= 500
+          && request.resource.data.get('src', '') is string && request.resource.data.get('src', '').size() <= 40;
+      }
+    }
+
+    // ---------- one verified phone number = one account ----------
+    match /phones/{digits} {
+      // claims are created only by the verifyPhone Cloud Function; a person can read just their own, and can release it only while deleting their account
+      allow get: if signedIn() && resource.data.uid == me();
+      allow create, update: if false;
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == me() && !existsAfter(/databases/$(database)/documents/users/$(me())));
+    }
+
+    // ---------- listings (jobs, internships, courses) ----------
+    match /listings/{listingId} {
+      // Approved listings are public. The owner sees their own; staff see everything.
+      allow get, list: if resource.data.status == 'approved'
+        || (signedIn() && resource.data.orgId == me())
+        || isStaff();
+
+      allow create: if signedIn()
+        && !listingId.matches('imp_.*') // imp_ ids belong to the importer; an organization must not squat on one
+        && request.resource.data.orgId == me()
+        && myDoc().role == 'org'
+        && myDoc().verified == true
+        && myDoc().get('phone', '') != ''
+        && mayPostWithThisEmail(myDoc())
+        && request.resource.data.orgName == myDoc().orgName
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['orgId', 'orgName', 'title', 'type', 'location', 'pay', 'duration', 'description', 'image', 'logo', 'status', 'created'])
+        && request.resource.data.keys().hasAll(['orgId', 'orgName', 'title', 'type', 'location', 'pay', 'image', 'status', 'created'])
+        && request.resource.data.type in ['Job', 'Internship', 'Course']
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+        && request.resource.data.location is string && request.resource.data.location.size() <= 120
+        && request.resource.data.pay is string && request.resource.data.pay.size() <= 80
+        && request.resource.data.get('duration', '').size() <= 40
+        && request.resource.data.get('description', '').size() <= 4000
+        // cover image and logo are small data URLs stored inside the listing
+        && request.resource.data.image.size() <= 160000
+        && request.resource.data.image.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+')
+        && request.resource.data.get('logo', '').size() <= 40000
+        && (request.resource.data.get('logo', '') == '' || request.resource.data.logo.matches('data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+'));
+
+      // Staff can load imported listings (scripts/import-jobs.js): public data with an https apply link and a trust score.
+      // Trust 50 or more arrives as 'approved', the rest as 'pending' for review. The id always starts with imp_ so it can never clash with a posted listing.
+      allow create: if isStaff()
+        && listingId.matches('imp_[a-z0-9]+')
+        && request.resource.data.orgId == 'import'
+        && request.resource.data.source == 'import'
+        && request.resource.data.status in ['approved', 'pending']
+        && request.resource.data.keys().hasOnly(['orgId', 'orgName', 'title', 'type', 'location', 'pay', 'duration', 'description', 'image', 'logo', 'status', 'created', 'source', 'origin', 'applyUrl', 'trust', 'trustReasons'])
+        && request.resource.data.keys().hasAll(['orgId', 'orgName', 'title', 'type', 'location', 'pay', 'status', 'created', 'source', 'applyUrl', 'trust'])
+        && request.resource.data.type in ['Job', 'Internship', 'Course']
+        && request.resource.data.applyUrl.matches('https://[^ ]+')
+        && request.resource.data.applyUrl.size() <= 500
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.get('description', '').size() <= 4000
+        && request.resource.data.trust is int && request.resource.data.trust >= 0 && request.resource.data.trust <= 100;
+
+      // Only staff review (approve / reject) a listing. Nobody edits the content afterwards.
+      allow update: if isStaff()
+        && changed().hasOnly(['status'])
+        && request.resource.data.status in ['approved', 'rejected', 'pending'];
+
+      // Staff (or the daily auto-close) close an old listing. Closing starts the retention clock for its applications.
+      allow update: if isStaff()
+        && changed().hasOnly(['status', 'closedAt'])
+        && request.resource.data.status == 'closed'
+        && request.resource.data.closedAt is string;
+
+      allow delete: if isStaff() || (signedIn() && resource.data.orgId == me());
+    }
+
+    // ---------- usage counters: ONE document per day, only totals (no user, no listing, no time of day) ----------
+    // Anyone signed in may add small amounts (each counter at most +50 per write) to the fixed counters, and to the 'empty' (searches that
+    // found nothing) and 'skills' maps. Only staff read them. The values inside the two maps are not range-checked by the rules (the app caps them);
+    // a determined signed-in person could skew the numbers, which is why the Insights page treats them as hints, not facts.
+    match /analytics/{day} {
+      function inc(k) {
+        return request.resource.data.get(k, 0) - (resource == null ? 0 : resource.data.get(k, 0));
+      }
+      allow read: if isStaff();
+      allow create, update: if signedIn()
+        && day.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+        && request.resource.data.keys().hasOnly(['views', 'searches', 'emptySearches', 'saves', 'applyClicks', 'empty', 'skills'])
+        && inc('views') <= 50 && inc('searches') <= 50 && inc('emptySearches') <= 50 && inc('saves') <= 50 && inc('applyClicks') <= 50
+        && inc('views') >= 0 && inc('searches') >= 0 && inc('emptySearches') >= 0 && inc('saves') >= 0 && inc('applyClicks') >= 0
+        && request.resource.data.get('empty', {}).keys().size() <= 300
+        && request.resource.data.get('skills', {}).keys().size() <= 300;
+      allow delete: if isAdmin();
+    }
+
+    // ---------- applications: one per candidate per listing, id = {candidateUid}_{listingId} ----------
+    match /applications/{applicationId} {
+      allow get, list: if isStaff()
+        || (signedIn() && (resource.data.userId == me() || resource.data.orgId == me()));
+
+      allow create: if signedIn()
+        && request.resource.data.userId == me()
+        && applicationId == me() + '_' + request.resource.data.listingId
+        && request.resource.data.status == 'applied'
+        && request.resource.data.resumeType in ['site', 'own']
+        && request.resource.data.keys().hasOnly(['userId', 'listingId', 'orgId', 'orgName', 'title', 'type', 'name', 'email', 'status', 'resumeType', 'consentAt', 'snapChunks', 'created', 'form'])
+        && request.resource.data.keys().hasAll(['userId', 'listingId', 'orgId', 'status', 'resumeType', 'consentAt', 'snapChunks'])
+        && request.resource.data.consentAt is string
+        // the organization sees these words and this address: they must be the candidate's own, and of a sane size
+        && request.resource.data.get('email', mail()) == mail()
+        && request.resource.data.get('name', '').size() <= 80
+        && request.resource.data.get('title', '').size() <= 200
+        && request.resource.data.get('orgName', '').size() <= 120
+        && (!('form' in request.resource.data) || (request.resource.data.form is map && request.resource.data.form.note.size() <= 1500 && request.resource.data.form.fullName.size() <= 80))
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.get('source', '') != 'import'
+        && request.resource.data.snapChunks is int && request.resource.data.snapChunks >= 1 && request.resource.data.snapChunks <= 6
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.status == 'approved'
+        && request.resource.data.orgId == get(/databases/$(database)/documents/listings/$(request.resource.data.listingId)).data.orgId
+        && myDoc().role == 'user'
+        && myDoc().get('phone', '') != ''
+        && myDoc().get('profile', {}).get('done', false) == true;
+
+      // Only the organization that owns the listing moves an application through the pipeline.
+      allow update: if signedIn()
+        && resource.data.orgId == me()
+        && changed().hasOnly(['status'])
+        && request.resource.data.status in ['applied', 'reviewing', 'interview', 'accepted', 'rejected'];
+
+      // The organization, staff, and the candidate (withdrawing their own application).
+      allow delete: if isStaff() || (signedIn() && (resource.data.orgId == me() || resource.data.userId == me()));
+    }
+
+    // ---------- files: resume PDFs and proof documents, stored as base64 text chunks ----------
+    match /blobs/{blobId} {
+      allow get: if signedIn() && (
+        resource.data.owner == me()
+        || (resource.data.kind == 'proof' && isStaff())
+        // the resume copy shared by an application: the organization it was shared with
+        || (resource.data.kind == 'appresume' && resource.data.orgId == me())
+        // applications made before resume copies existed: the candidate listed the organization in sharedWith
+        || (resource.data.kind == 'resume' && me() in get(/databases/$(database)/documents/users/$(resource.data.owner)).data.sharedWith)
+      );
+      allow create, update: if signedIn()
+        && request.resource.data.owner == me()
+        && request.resource.data.kind in ['resume', 'proof']
+        && blobId.matches(me() + '_' + request.resource.data.kind + '_[0-7]') // at most 8 chunks (about 5 MB) per file
+        && request.resource.data.keys().hasOnly(['owner', 'kind', 'i', 'data'])
+        && request.resource.data.data is string
+        && request.resource.data.data.size() <= 750000;
+      // A resume copy belongs to one application: it is written in the same batch as the application, for the organization that owns the listing.
+      allow create: if signedIn()
+        && request.resource.data.owner == me()
+        && request.resource.data.kind == 'appresume'
+        && request.resource.data.keys().hasOnly(['owner', 'kind', 'i', 'appId', 'orgId', 'data'])
+        && request.resource.data.keys().hasAll(['owner', 'kind', 'i', 'appId', 'orgId', 'data'])
+        && request.resource.data.appId.matches(me() + '_[A-Za-z0-9]+')
+        && blobId.matches('ar_' + request.resource.data.appId + '_[0-5]')
+        && request.resource.data.data is string
+        && request.resource.data.data.size() <= 750000
+        && getAfter(/databases/$(database)/documents/applications/$(request.resource.data.appId)).data.userId == me()
+        && getAfter(/databases/$(database)/documents/applications/$(request.resource.data.appId)).data.orgId == request.resource.data.orgId;
+      // Owner, admins, the organization it was shared with, and staff cleaning up a deleted listing.
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.owner == me())
+        || (signedIn() && resource.data.kind == 'appresume' && (resource.data.orgId == me() || isStaff()));
+    }
+
+    // ---------- communities ----------
+    // Open discussion spaces. Anyone with a verified email can see every community, join any of them, and post once they have joined.
+    //   communities/{cid}             name, desc, creatorId, creatorName, createdAt, memberCount
+    //   memberships/{cid}_{uid}       one per person per community (written in the same batch that changes memberCount, so the count cannot be faked)
+    //   communities/{cid}/posts/{id}  a chat message by a member (same kinds as a group's); its author, the creator or staff can delete it
+    match /communities/{cid} {
+      function memberDoc() {
+        return /databases/$(database)/documents/memberships/$(cid + '_' + me());
+      }
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'desc', 'creatorId', 'creatorName', 'createdAt', 'memberCount'])
+        && request.resource.data.keys().hasAll(['name', 'desc', 'creatorId', 'creatorName', 'createdAt', 'memberCount'])
+        && request.resource.data.creatorId == me()
+        && request.resource.data.name is string && request.resource.data.name.size() >= 3 && request.resource.data.name.size() <= 60
+        && request.resource.data.desc is string && request.resource.data.desc.size() <= 300
+        && request.resource.data.creatorName is string && request.resource.data.creatorName.size() <= 80
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.memberCount == 1
+        && existsAfter(memberDoc());
+      // The only change anyone may make to a community: the member count goes up by one when they join, or down by one when they leave.
+      allow update: if signedIn() && changed().hasOnly(['memberCount']) && (
+        (request.resource.data.memberCount == resource.data.memberCount + 1 && !exists(memberDoc()) && existsAfter(memberDoc()))
+        || (request.resource.data.memberCount == resource.data.memberCount - 1 && exists(memberDoc()) && !existsAfter(memberDoc())));
+      allow delete: if isStaff() || (signedIn() && resource.data.creatorId == me());
+
+      // A community is a chat room like a group: text, a photo (small data URL), a poll, a quoted reply, or a shared job / course / book.
+      // Anyone signed in can READ; only members can write. Members change only their own vote and reaction.
+      // A message can be deleted by its author, by the community's creator, or by staff.
+      match /posts/{pid} {
+        allow read: if signedIn();
+        allow create: if signedIn() && exists(memberDoc())
+          && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'text', 'createdAt', 'img', 'reply', 'poll', 'votes', 'share'])
+          && request.resource.data.keys().hasAll(['authorId', 'authorName', 'text', 'createdAt'])
+          && request.resource.data.authorId == me()
+          && request.resource.data.authorName is string && request.resource.data.authorName.size() <= 80
+          && request.resource.data.text is string && request.resource.data.text.size() <= 1000
+          && (request.resource.data.text.size() >= 1 || request.resource.data.keys().hasAny(['img', 'poll', 'share']))
+          && (!request.resource.data.keys().hasAny(['img'])
+              || (request.resource.data.img is string && request.resource.data.img.size() <= 280000 && request.resource.data.img[0:11] == 'data:image/'))
+          && (!request.resource.data.keys().hasAny(['reply'])
+              || (request.resource.data.reply.keys().hasOnly(['id', 'name', 'text']) && request.resource.data.reply.get('name', '').size() <= 80 && request.resource.data.reply.get('text', '').size() <= 80))
+          && (!request.resource.data.keys().hasAny(['poll'])
+              || (request.resource.data.poll.keys().hasOnly(['q', 'opts', 'multi']) && request.resource.data.poll.q is string && request.resource.data.poll.q.size() <= 200
+                  && request.resource.data.poll.opts is list && request.resource.data.poll.opts.size() >= 2 && request.resource.data.poll.opts.size() <= 6
+                  && request.resource.data.get('votes', {}).size() == 0))
+          && (!request.resource.data.keys().hasAny(['share']) || shareOk(request.resource.data.share))
+          && request.resource.data.createdAt == request.time;
+        allow update: if signedIn() && exists(memberDoc())
+          && changed().hasOnly(['votes', 'reactions'])
+          && (!changed().hasAny(['votes'])
+              || ('poll' in resource.data
+                  && request.resource.data.votes.diff(resource.data.get('votes', {})).affectedKeys().hasOnly([me()])
+                  && request.resource.data.votes[me()] is list && request.resource.data.votes[me()].size() <= 6))
+          && (!changed().hasAny(['reactions'])
+              || (request.resource.data.reactions.diff(resource.data.get('reactions', {})).affectedKeys().hasOnly([me()])
+                  && request.resource.data.reactions[me()] is string && request.resource.data.reactions[me()].size() <= 8));
+        allow delete: if signedIn() && (resource.data.authorId == me() || isStaff()
+          || get(/databases/$(database)/documents/communities/$(cid)).data.creatorId == me());
+      }
+    }
+    match /memberships/{mid} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['cid', 'uid', 'name', 'joinedAt'])
+        && request.resource.data.keys().hasAll(['cid', 'uid', 'name', 'joinedAt'])
+        && request.resource.data.uid == me()
+        && request.resource.data.cid is string
+        && mid == request.resource.data.cid + '_' + me()
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.joinedAt == request.time
+        && existsAfter(/databases/$(database)/documents/communities/$(request.resource.data.cid));
+      allow delete: if signedIn() && resource.data.uid == me();
+    }
+    // ---------- groups ----------
+    // Private groups. The person who creates a group is its leader. ONLY the leader can add or remove people (by email).
+    //   groups/{gid}             name, desc, leaderId, leaderName, leaderEmail, members[] (lower-case emails), createdAt
+    //   groups/{gid}/posts/{id}  a message from a member (text / photo / poll / reply); members change only their own vote and reaction; its author or the leader can delete it
+    // Only people on the members list can see a group or its messages. A member can take themselves off the list (leave).
+    match /groups/{gid} {
+      function onList() {
+        return signedIn() && mail() in get(/databases/$(database)/documents/groups/$(gid)).data.members;
+      }
+      allow read: if signedIn() && mail() in resource.data.members;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'desc', 'leaderId', 'leaderName', 'leaderEmail', 'members', 'createdAt'])
+        && request.resource.data.keys().hasAll(['name', 'desc', 'leaderId', 'leaderName', 'leaderEmail', 'members', 'createdAt'])
+        && request.resource.data.leaderId == me()
+        && request.resource.data.leaderEmail == mail()
+        && request.resource.data.name is string && request.resource.data.name.size() >= 3 && request.resource.data.name.size() <= 60
+        && request.resource.data.desc is string && request.resource.data.desc.size() <= 300
+        && request.resource.data.leaderName is string && request.resource.data.leaderName.size() <= 80
+        && request.resource.data.members is list && request.resource.data.members.size() >= 1 && request.resource.data.members.size() <= 50
+        && mail() in request.resource.data.members
+        && request.resource.data.createdAt == request.time;
+      // Only the members list ever changes. The leader may add or remove anyone (but stays on the list);
+      // anyone else may only remove their own email (leave).
+      allow update: if signedIn() && changed().hasOnly(['members']) && request.resource.data.members is list
+        && request.resource.data.members.size() <= 50 && (
+          (resource.data.leaderId == me() && resource.data.leaderEmail in request.resource.data.members)
+          || (mail() in resource.data.members && resource.data.leaderId != me()
+              && !(mail() in request.resource.data.members)
+              && request.resource.data.members.toSet().difference(resource.data.members.toSet()).size() == 0
+              && resource.data.members.toSet().difference(request.resource.data.members.toSet()).size() == 1));
+      allow delete: if isStaff() || (signedIn() && resource.data.leaderId == me());
+
+      match /posts/{pid} {
+        allow read: if onList();
+        // A message: text, and/or a photo (small data URL), and/or a poll; optionally a quoted reply.
+        allow create: if onList()
+          && request.resource.data.keys().hasOnly(['authorId', 'authorName', 'text', 'createdAt', 'img', 'reply', 'poll', 'votes', 'share'])
+          && request.resource.data.keys().hasAll(['authorId', 'authorName', 'text', 'createdAt'])
+          && request.resource.data.authorId == me()
+          && request.resource.data.authorName is string && request.resource.data.authorName.size() <= 80
+          && request.resource.data.text is string && request.resource.data.text.size() <= 1000
+          && (request.resource.data.text.size() >= 1 || request.resource.data.keys().hasAny(['img', 'poll', 'share']))
+          && (!request.resource.data.keys().hasAny(['img'])
+              || (request.resource.data.img is string && request.resource.data.img.size() <= 280000 && request.resource.data.img[0:11] == 'data:image/'))
+          && (!request.resource.data.keys().hasAny(['reply'])
+              || (request.resource.data.reply.keys().hasOnly(['id', 'name', 'text']) && request.resource.data.reply.get('name', '').size() <= 80 && request.resource.data.reply.get('text', '').size() <= 80))
+          && (!request.resource.data.keys().hasAny(['poll'])
+              || (request.resource.data.poll.keys().hasOnly(['q', 'opts', 'multi']) && request.resource.data.poll.q is string && request.resource.data.poll.q.size() <= 200
+                  && request.resource.data.poll.opts is list && request.resource.data.poll.opts.size() >= 2 && request.resource.data.poll.opts.size() <= 6
+                  && request.resource.data.get('votes', {}).size() == 0))
+          && (!request.resource.data.keys().hasAny(['share']) || shareOk(request.resource.data.share))
+          && request.resource.data.createdAt == request.time;
+        // Anyone on the list may change ONLY their own vote and their own reaction (stored under their own uid).
+        allow update: if onList()
+          && changed().hasOnly(['votes', 'reactions'])
+          && (!changed().hasAny(['votes'])
+              || ('poll' in resource.data
+                  && request.resource.data.votes.diff(resource.data.get('votes', {})).affectedKeys().hasOnly([me()])
+                  && request.resource.data.votes[me()] is list && request.resource.data.votes[me()].size() <= 6))
+          && (!changed().hasAny(['reactions'])
+              || (request.resource.data.reactions.diff(resource.data.get('reactions', {})).affectedKeys().hasOnly([me()])
+                  && request.resource.data.reactions[me()] is string && request.resource.data.reactions[me()].size() <= 8));
+        allow delete: if signedIn() && (resource.data.authorId == me() || isStaff()
+          || get(/databases/$(database)/documents/groups/$(gid)).data.leaderId == me());
+      }
+    }
+  }
+}

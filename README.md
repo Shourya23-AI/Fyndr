@@ -451,3 +451,28 @@ If a title is spelled wrong, the page says "Did you mean ...?" (from a list of w
 Code: `public/js/features/library/` (`books.js` logic, `library.js` page and reader, `library.actions.js` clicks). Tests: `node test/library.test.js`, `node test/library-ui.test.js`.
 
 **Phone sidebar.** Under 800 px wide the top-bar links are replaced by a three-lines button that slides a sidebar in from the left (Jobs & Internships, Courses, Library, then Dashboard / profile, dark mode, sign in or out). Code: `public/js/features/layout/sidebar.js`, `public/css/layout/sidebar.css`.
+
+---
+
+## Server-side phone check (closes the "fake phone verification" gap)
+
+Without this, the browser tells the database "this number is verified" and the rules have to trust it. With it, a small Cloud Function asks
+phone.email who the token belongs to and saves the number itself. Do these steps **in this order** (the strict rules before step 4 would stop everyone verifying):
+
+1. Install the Firebase CLI and log in: `npm i -g firebase-tools && firebase login`.
+2. Create `functions/.env` with two lines: `PHONE_EMAIL_CLIENT_ID=<your Client ID>` and `ALLOWED_ORIGINS=https://<you>.github.io`.
+3. Deploy: `firebase deploy --only functions` (the Blaze plan is required; usage at Fyndr's size stays inside the free allowance). It prints the address of `verifyPhone`.
+4. Put that address into `config/phone-email.json` **and** `public/config/phone-email.json`: `{ "clientId": "...", "verifyUrl": "https://asia-south1-<project>.cloudfunctions.net/verifyPhone" }`. Publish the site and check that verifying a phone still works.
+5. Only now: Firebase Console > Firestore > Rules > paste `firestore.rules.strict-phone` > Publish.
+
+If something goes wrong, paste the normal `firestore.rules` back and remove `verifyUrl`; the old browser-side check works again.
+
+## Daily sweep
+
+`.github/workflows/sweep.yml` runs `scripts/sweep-firestore.js` every night with the same `FIREBASE_SERVICE_ACCOUNT` secret as the importer. It closes listings that outlived their life
+and deletes applications (and the resume copies shared with organizations) that outlived the retention limits in the Privacy Policy, so this no longer depends on an admin opening the dashboard.
+
+## Node server data safety
+
+`data.json` is never overwritten when it cannot be read: the server restores `data.json.bak` (refreshed at most every 10 minutes) and keeps the damaged file as `data.json.corrupt-<time>`,
+or refuses to start if there is no backup. Rate limits can be tuned with `RATE_API_PER_MIN` (default 1200), `RATE_PHONE_PER_10MIN` (40) and `RATE_SIGNUP_PER_HOUR` (150), because a whole college can share one IP.

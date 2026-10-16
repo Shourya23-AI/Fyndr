@@ -1,9 +1,24 @@
 const { R, bad, need } = require('../lib/router');
 const { db, save } = require('../db/store');
 const { adminData, ORG_TYPES, applyStaff, staffLevel } = require('../lib/helpers');
-const { isAdminEmail } = require('../config');
+const { isAdminEmail, UP_DIR } = require('../config');
+const fs = require('fs');
+const path = require('path');
 // Staff: moderators review proofs, listings and verification; admins can also change organization settings, delete accounts and manage the team.
 const MOD = ['admin', 'moderator'];
+// When an organization stops being verified, its live listings go back to 'pending' so nothing unverified stays public.
+const hideListings = orgId => {
+    for (const l of db.listings) {
+        if (l.orgId === orgId && l.status === 'approved') {
+            l.status = 'pending';
+        }
+    }
+};
+const rmFile = f => {
+    try {
+        fs.unlinkSync(path.join(UP_DIR, f));
+    } catch { }
+};
 R('PATCH', '/api/admin/proof/:id', MOD, ({ p, body: b }) => {
     const u = db.users.find(x => x.id === p[0]);
     if (!u?.proof) {
@@ -15,6 +30,9 @@ R('PATCH', '/api/admin/proof/:id', MOD, ({ p, body: b }) => {
     u.proof.status = b.status;
     if (u.role === 'org') {
         u.verified = b.status === 'verified';
+        if (!u.verified) {
+            hideListings(u.id);
+        }
     }
     save();
     return { ok: 1 };
@@ -62,6 +80,9 @@ R('PATCH', '/api/admin/users/:id', MOD, ({ p, body: b }) => {
         bad(404, 'Not found');
     }
     u.verified = !!b.verified;
+    if (!u.verified && u.role === 'org') {
+        hideListings(u.id);
+    }
     save();
     return { ok: 1 };
 });
@@ -76,6 +97,9 @@ R('DELETE', '/api/admin/users/:id', ['admin'], ({ user, p }) => {
     db.users = db.users.filter(u => u.id !== p[0]);
     db.listings = db.listings.filter(l => l.orgId !== p[0]);
     db.applications = db.applications.filter(a => a.userId !== p[0] && db.listings.some(l => l.id === a.listingId));
+    db.saved = (db.saved || []).filter(x => x.userId !== p[0] && db.listings.some(l => l.id === x.listingId));
+    rmFile(p[0] + '.pdf'); // resume, ID/proof document: personal files must not outlive the account
+    rmFile('proof-' + p[0]);
     save();
     return { ok: 1 };
 });

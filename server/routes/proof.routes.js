@@ -34,11 +34,18 @@ R('GET', '/api/proof/file/:id', ['user', 'org', 'moderator', 'admin'], ({ user, 
     if (!u?.proof || (u.id !== user.id && (user.role !== 'admin' && user.role !== 'moderator'))) {
         bad(404, 'Not found');
     }
+    let data;
+    try {
+        data = fs.readFileSync(path.join(UP, 'proof-' + u.id)).toString('base64');
+    } catch {
+        bad(404, 'The file is missing');
+    }
     if (u.id !== user.id) {
-        (db.adminLog = db.adminLog || []).push({
+        // who looked at whose document, newest 2000 entries only (the log must not grow forever)
+        db.adminLog = [...(db.adminLog || []), {
             admin: user.id, target: u.id, at: new Date().toISOString()
-        });
+        }].slice(-2000);
         save();
     }
-    return { mime: u.proof.mime, data: fs.readFileSync(path.join(UP, 'proof-' + u.id)).toString('base64') };
+    return { mime: u.proof.mime, data };
 });
