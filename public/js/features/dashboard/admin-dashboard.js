@@ -67,7 +67,8 @@ function reports(d) {
         const real = !String(r.listingId).startsWith('cat_');
         return `<tr><td><b>${esc(r.title || r.listingId)}</b><br><span class="desc">${esc(r.orgName || '')}${real ? '' : ' · search link (not a posting)'}</span></td><td>${r.count}</td><td>${why}</td><td>${r.notes.length ? r.notes.map(n => `<span class="desc">“${esc(n)}”</span>`).join('<br>') : '<span class="desc">No note</span>'}</td><td>${fmt(r.last)}</td><td><button class="mini ok" data-act="rpclose" data-id="${esc(r.listingId)}" data-s="dismissed">Dismiss</button> ${real ? `<button class="mini no" data-act="rphide" data-id="${esc(r.listingId)}">Hide listing</button>` : `<button class="mini" data-act="rpclose" data-id="${esc(r.listingId)}" data-s="actioned">Fixed</button>`}</td></tr>`;
     });
-    return head('Reports', 'What candidates and organizations reported. Scam-type reports come first. Reading one never changes a listing; you decide.') + `<div class="panel">${table(['Listing', 'Reports', 'Reasons', 'Notes', 'Latest', ''], rows)}</div>`;
+    const warn = d.reportsError ? `<div class="panel"><p class="err">Reports could not be read (${esc(d.reportsError)}). If this says permission-denied, publish the latest firestore.rules in Firebase and make sure your account has a staff record, then reload.</p></div>` : '';
+    return head('Reports', 'What candidates and organizations reported. Scam-type reports come first. Reading one never changes a listing; you decide.') + warn + `<div class="panel">${table(['Listing', 'Reports', 'Reasons', 'Notes', 'Latest', ''], rows)}</div>`;
 }
 function verify(d) {
     const CK = {

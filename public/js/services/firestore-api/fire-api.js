@@ -641,7 +641,7 @@ async function run(path, method, b, fu) {
 
         case 'GET /admin/data': {
             only('admin', 'moderator');
-            const [us, ls, ap, rp] = await Promise.all([m.getDocs(col('users')), m.getDocs(col('listings')), m.getDocs(col('applications')), m.getDocs(m.query(col('reports'), m.where('status', '==', 'open'))).catch(() => ({ docs: [] }))]);
+            const [us, ls, ap, rp] = await Promise.all([m.getDocs(col('users')), m.getDocs(col('listings')), m.getDocs(col('applications')), m.getDocs(m.query(col('reports'), m.where('status', '==', 'open'))).catch(e => ({ docs: [], failed: e.code || e.message || 'error' }))]);
             const users = rows(us);
             let apps = rows(ap);
             let cleaned = 0;
@@ -666,6 +666,7 @@ async function run(path, method, b, fu) {
             }
             const d = adminData(users, rows(ls), apps);
             d.cleaned = cleaned;
+            d.reportsError = rp.failed || ''; // shown on the Reports tab, so a rules problem is not mistaken for "no reports"
             d.reports = rows(rp).slice(0, 500).map(({ id: _i, userId: _u, ...r }) => r); // (who reported is kept out of the dashboard)
             if (user.role !== 'admin') {
                 return d; // moderators do not see the Team tab
