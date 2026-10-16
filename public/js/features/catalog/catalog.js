@@ -1,4 +1,4 @@
-// Built-in catalog: ~1,350 course topics and ~320 job and internship roles, each with links to the providers' and job boards' own search pages.
+// Built-in catalog: ~1,350 course topics and ~1,700 role-in-city job and internship cards, each with links to the providers' and job boards' own search pages.
 // They load from public/catalog/*.json (compact rows, see group.js), are merged into every listings request in core/api.js,
 // so browse, search, suggestions and the saved list all see them. The files are fetched once, grouped in the browser and kept in memory.
 // If a file is missing the site simply shows what it has.

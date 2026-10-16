@@ -1201,3 +1201,22 @@ body.dt-lock {
 .rp-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 
 .rf{margin-top:8px}.rf-l{color:var(--muted);font-size:.8rem;font-weight:700}.rf-clear{border-style:dashed;color:var(--muted)}
+
+/* ---- fixes: grouped search-link cards, link chips, detail popup, report dialog ---- */
+.lcard-group .lc-org, .lcard .lc-title, .lcard .lc-org { overflow-wrap: anywhere; min-width: 0; }
+.lcard-group .lc-org { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lcard-group .lc-body { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
+.lcard-group .lc-links { margin-top: auto; padding-top: 6px; }
+.lc-link { white-space: nowrap; max-width: 100%; cursor: pointer; line-height: 1.2; }
+.lc-link:focus-visible, .dt-board:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.dt-boardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.dt-board { min-width: 0; overflow-wrap: anywhere; }
+.dt-boards select { max-width: 100%; }
+.dt-report { margin-top: 6px; }
+.rp-box { width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; }
+.rp-box textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+@media (max-width: 640px) {
+  .dt-boardlist { grid-template-columns: 1fr 1fr; }
+  .lc-links { gap: 5px; }
+  .lc-link { padding: 5px 9px; font-size: 12px; }
+}

@@ -34,7 +34,7 @@ const splitAbout = t => {
 // (the select), and the buttons follow it. Free sites come first for courses.
 function boardsBlock(l) {
     const jobs = l.type !== 'Course';
-    const place = placeNow();
+    const place = l.home || placeNow();
     const opts = jobs ? [[NATION, 'All India'], ...(l.cities || []).map(c => [c, c]), ['', 'Remote only']] : [];
     if (jobs && place !== NATION && !opts.some(o => o[0] === place)) {
         opts.splice(1, 0, [place, place]);

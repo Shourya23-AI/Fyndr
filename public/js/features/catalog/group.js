@@ -2,7 +2,7 @@
 //
 // The rows are "topic x provider" and "role x job board x city" combinations: 23,778 and 8,657 of them. As cards they were near-duplicates
 // (the same role once per board and once per city). Here every topic or role becomes a single listing that carries its provider / board
-// links, so the page shows ~1,350 courses and ~320 roles, each with buttons such as "Open on LinkedIn / Naukri / Indeed".
+// links, so the page shows ~1,350 courses and ~1,700 role-in-city cards, each with buttons such as "Open on LinkedIn / Naukri / Indeed".
 //
 // HONEST NOTE: these listings are SEARCH LINKS. Each button opens the provider's or job board's own search page for the topic or role.
 // Fyndr has not checked any single page behind them, so they carry no legitimacy score and never claim "verified" (see origin.js).
@@ -65,13 +65,14 @@ const jobLocation = cities => (cities.length ? cities.join(', ') + ' · Remote' 
 function jobGroup({ id, title, intern, cat, skills, boards, cities, created }) {
     const q2 = searchFor(title, intern);
     const bi = [...new Set([...MAIN[intern ? 'intern' : 'job'], ...boards])];
-    const links = bi.map(i => ({ n: BOARDS[i][0], bi: i, u: boardUrl(i, q2, NATION) }));
+    const home = cities[0] || NATION; // one card is one role in one city (or remote / all India when it has no city)
+    const links = bi.map(i => ({ n: BOARDS[i][0], bi: i, u: boardUrl(i, q2, home) }));
     const d = `${title} openings across ${links.length} job boards. Each button opens that board's own live search for this role, because openings change every day. Fyndr has not checked the individual postings there. ${intern ? 'Check the stipend, duration and whether it is on-site before you apply.' : 'Check the salary, location and experience asked for before you apply.'} Never pay money to get a job or internship.\nBest for: ${intern ? 'UG students looking for their first internship; PG students; final-year students' : 'Final-year students; fresh graduates; PG students'}\nWhat you get: ${intern ? 'Hands-on experience; a certificate or letter in many cases; a possible full-time offer' : 'A first full-time role; on-the-job training'}`;
     return {
         id, type: intern ? 'Internship' : 'Job', title, orgName: joinNames(links.map(x => x.n)), orgId: 'catalog', orgVerified: false,
         location: jobLocation(cities), cities, remote: true, pay: intern ? 'Stipend varies · check listing' : 'Salary varies · check listing', duration: intern ? '1 to 6 months, usually' : '',
         description: d, applyUrl: links[0].u, cat, skills: skills ? skills.split(',') : undefined, status: 'approved', source: 'import', origin: 'catalog',
-        search: true, q: q2, links, created
+        search: true, q: q2, home: cities[0] || '', links, created
     };
 }
 // The links of a job listing for one place: a city name, '' (remote) or NATION (all of India).
@@ -106,18 +107,16 @@ export function groupCourses(rows) {
 export function groupJobs(rows) {
     const by = new Map();
     rows.forEach((r, i) => {
-        const g = by.get(r[0]) || { title: r[0], intern: r[1] === 'i', cat: r[4], skills: r[5] || '', boards: new Set(), cities: [], first: i, rows: [] };
+        const key = r[0] + '|' + (r[3] || '');
+        const g = by.get(key) || { title: r[0], intern: r[1] === 'i', cat: r[4], skills: r[5] || '', boards: new Set(), cities: r[3] ? [r[3]] : [], first: i, rows: [] };
         g.boards.add(r[2]);
-        if (r[3] && !g.cities.includes(r[3])) {
-            g.cities.push(r[3]);
-        }
         g.rows.push(i);
-        by.set(r[0], g);
+        by.set(key, g);
     });
     const ids = new Map();
     const legacy = new Map();
     const list = [...by.values()].map(g => {
-        const id = unique(ids, groupId('j', g.title));
+        const id = unique(ids, groupId('j', g.title + '|' + (g.cities[0] || '')));
         ids.set(id, 1);
         g.rows.forEach(i => legacy.set('cat_j' + i, id));
         return jobGroup({ id, title: g.title, intern: g.intern, cat: g.cat, skills: g.skills, boards: [...g.boards], cities: g.cities, created: fakeDate(g.first, 40503) });
