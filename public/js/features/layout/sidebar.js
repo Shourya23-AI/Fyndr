@@ -22,7 +22,7 @@ export const MENU_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M
 
 function html() {
     const me = S.me;
-    const main = [link('#/jobs', 'jobs', 'jobs', 'Jobs &amp; Internships'), link('#/courses', 'courses', 'courses', 'Courses')];
+    const main = [link('#/jobs', 'jobs', 'jobs', 'Jobs &amp; Internships'), link('#/courses', 'courses', 'courses', 'Courses'), link('#/library', 'library', 'library', 'Library')];
     if (me) {
         main.push(link('#/community', 'community', 'community', 'Community'), link('#/groups', 'groups', 'groups', 'Groups'), link('#/liked', 'liked', 'liked', 'Liked'));
     }

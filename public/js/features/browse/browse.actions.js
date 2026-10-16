@@ -4,7 +4,7 @@ import { S } from '../../core/state.js';
 import { api } from '../../core/api.js';
 import { toast } from '../../core/dom.js';
 import { openAuth } from '../auth/auth-modal.js';
-import { loadListings, drawListings } from './listings.js';
+import { loadListings, drawListings, drawMore } from './listings.js';
 import { paintFilters } from './filters.js';
 import { browse } from './browse.js';
 import { dashboard } from '../dashboard/dashboard.js';
@@ -63,7 +63,7 @@ export const actions = {
         browse(S.scope);
     },
     more() {
-        drawListings((S.lshown || 24) + 24);
+        drawMore();
     },
     railnext() {
         slide(1);

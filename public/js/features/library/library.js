@@ -5,7 +5,7 @@ import { HEART, SHARE_ICON } from '../share/share.view.js';
 import { urls, FIND, mapOpenLibrary, mapGutendex, mapGoogle, mapArchive, mapWikibooks, merge, dedupe, didYouMean, readUrl, safeCover, STARTER, localMatches } from './books.js';
 // Library page (#/library). Open to everyone, signed in or not. Searches Open Library, Project Gutenberg and Google Books from the browser
 // (see books.js for what each one gives) and opens free books in an animated reader. Nothing is stored on Fyndr.
-const PAGE = 24;
+const PAGE = 36; // books drawn at a time; the next batch loads by itself as you scroll (see core/autoload.js)
 // [key, label, subject searched at Open Library / Google, topic searched at Project Gutenberg]
 export const CATS = [
     ['fiction', 'Fiction', 'fiction', 'fiction'], ['science', 'Science', 'science', 'science'], ['cs', 'Computers & coding', 'computer science', 'computers'],

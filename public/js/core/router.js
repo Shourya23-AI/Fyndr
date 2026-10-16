@@ -24,6 +24,7 @@ import { askAnalytics } from '../features/privacy/analytics.actions.js';
 import { communityView } from '../features/community/community.view.js';
 import { groupsView } from '../features/groups/groups.view.js';
 import { likedView } from '../features/liked/liked.view.js';
+import { libraryView } from '../features/library/library.actions.js';
 // Hash router: '#/organizations', '#/dashboard', ... Decides which page to draw and redirects people who are signed out or not set up yet.
 export async function route() {
     const rid = route.n = (route.n || 0) + 1;
@@ -31,7 +32,7 @@ export async function route() {
     capturePhoneToken();
     // Signed-out visitors (nothing remembered on this device) see public pages at once, without waiting for Firebase to start.
     const raw = (location.hash.slice(2) || '').split('?')[0];
-    const PUBLIC = { '': home, organizations: orgPage, terms: termsView, privacy: privacyView, contact: contactView };
+    const PUBLIC = { '': home, library: libraryView, organizations: orgPage, terms: termsView, privacy: privacyView, contact: contactView };
     if (!S.me && !cachedMe() && raw === '') {
         sessionStorage.fyLanded = '1';
     }
@@ -77,7 +78,7 @@ export async function route() {
     }
     if (gate === 'verify' || gate === 'setup') {
         r = gate;
-    } else if (!S.me && !['', 'login', 'register', 'forgot', 'verify', 'setup', 'organizations', 'terms', 'privacy', 'contact', 'reset'].includes(r)) {
+    } else if (!S.me && !['', 'library', 'login', 'register', 'forgot', 'verify', 'setup', 'organizations', 'terms', 'privacy', 'contact', 'reset'].includes(r)) {
         r = 'login';
     } else if (S.me && ['login', 'register', 'forgot'].includes(r)) {
         const n = sessionStorage.next;
@@ -101,9 +102,6 @@ export async function route() {
     }
     if (S.me?.role === 'org' && !S.me.proofStatus && ['', 'dashboard'].includes(r)) {
         r = 'proof';
-    }
-    if (r === 'library') {
-        r = '';
     }
     // Every fresh visit opens on the landing page (signed-in people get "Continue" buttons there).
     if (S.me && r === '') {
@@ -133,7 +131,7 @@ export async function route() {
             }, register: () => {
                 home();
                 openAuth('signup');
-            }, jobs: () => browse('jobs'), courses: () => browse('courses'), community: communityView, groups: groupsView, liked: () => likedView(), organizations: orgPage, proof: proofView, forgot: () => authView('forgot'), verify: () => authView('verify'), setup: () => authView('setup'), dashboard, profile: profileView, phone: phoneView, terms: termsView, privacy: privacyView, contact: contactView, reset: resetView, consent: consentView, apply: applyView
+            }, jobs: () => browse('jobs'), courses: () => browse('courses'), community: communityView, groups: groupsView, liked: () => likedView(), library: libraryView, organizations: orgPage, proof: proofView, forgot: () => authView('forgot'), verify: () => authView('verify'), setup: () => authView('setup'), dashboard, profile: profileView, phone: phoneView, terms: termsView, privacy: privacyView, contact: contactView, reset: resetView, consent: consentView, apply: applyView
         }[r] || home)();
         askAnalytics();
     } catch (e) {

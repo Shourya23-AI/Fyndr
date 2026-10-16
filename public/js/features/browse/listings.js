@@ -10,7 +10,7 @@ import { cityIn } from './place.js';
 import { esc } from '../../core/dom.js';
 import { byPlace, bySuit } from './filters.js';
 import { preferFor, cleanStudy } from '../suggestions/study.js';
-const PAGE = 24; // cards drawn at a time (keeps the page light when there are many listings)
+export const PAGE = 48; // cards drawn at a time; the next batch loads by itself as you scroll (see core/autoload.js)
 const EMPTY = '<div class="empty"><b>No matches yet</b><p>Try fewer keywords, another category or a different location.</p><button class="button button-dark button-small" data-act="clear">Clear search</button></div>';
 // The list after the category chip is applied.
 export const visible = () => (S.cat ? (S.lall || []).filter(l => catKey(l) === S.cat) : (S.lall || []));
@@ -25,6 +25,19 @@ export function drawListings(n = PAGE) {
     if (c) {
         c.textContent = (all.length ? `${all.length.toLocaleString()} ${all.length === 1 ? 'result' : 'results'}${S.fitSort ? ', best fit for your profile first' : ''}` : '') + (S.fnote ? (all.length ? ' · ' : '') + S.fnote : '');
     }
+}
+// Adds the next batch of cards under the ones already drawn (no full redraw, so the page does not jump or reload pictures).
+export function drawMore() {
+    const all = visible();
+    const from = S.lshown || PAGE;
+    const to = from + PAGE;
+    const g = $('#grid');
+    if (!g || from >= all.length) {
+        return;
+    }
+    g.querySelector('.more')?.remove();
+    g.insertAdjacentHTML('beforeend', all.slice(from, to).map(l => card(l, S.smatch && S.smatch[l.id])).join('') + (all.length > to ? `<div class="more"><button class="button" data-act="more">Show more (${all.length - to})</button></div>` : ''));
+    S.lshown = to;
 }
 export async function loadListings(mineP) {
     $('#grid').setAttribute('aria-busy', 'true');

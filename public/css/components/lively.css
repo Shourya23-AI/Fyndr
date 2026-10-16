@@ -1,0 +1,90 @@
+/* Livelier look: colour wash, gradient buttons, tinted chips, accent on cards.
+   LIGHT MODE ONLY: every rule is scoped to :root:not([data-theme=dark]), so dark mode keeps its flat style from dark.css. */
+:root:not([data-theme=dark]) {
+  --lv-teal: #2aa198;
+  --lv-blue: #3b82c4;
+  --lv-wash-a: rgba(42, 161, 152, .13);
+  --lv-wash-b: rgba(59, 130, 196, .12);
+  --lv-wash-c: rgba(240, 190, 90, .10);
+}
+
+/* soft colour wash behind every page (fixed, so it never scrolls or adds width) */
+:root:not([data-theme=dark]) body {
+  background:
+    radial-gradient(900px 420px at 8% -5%, var(--lv-wash-a), transparent 70%),
+    radial-gradient(800px 420px at 100% 0, var(--lv-wash-b), transparent 70%),
+    radial-gradient(900px 500px at 50% 105%, var(--lv-wash-c), transparent 70%),
+    var(--paper);
+  background-attachment: fixed;
+}
+
+/* primary buttons: teal to blue */
+:root:not([data-theme=dark]) .button-dark,
+:root:not([data-theme=dark]) .btn-primary,
+:root:not([data-theme=dark]) .search-button {
+  background: linear-gradient(135deg, var(--lv-teal), var(--lv-blue));
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(42, 130, 170, .28);
+}
+
+:root:not([data-theme=dark]) .button-dark:hover,
+:root:not([data-theme=dark]) .btn-primary:hover,
+:root:not([data-theme=dark]) .search-button:hover {
+  filter: brightness(1.06);
+}
+
+/* topic and filter chips: each one gets its own soft tint */
+:root:not([data-theme=dark]) .chip-c,
+:root:not([data-theme=dark]) .chip-f {
+  background: color-mix(in srgb, var(--chip-h, var(--lv-teal)) 12%, var(--white));
+  border-color: color-mix(in srgb, var(--chip-h, var(--lv-teal)) 30%, var(--line));
+  color: var(--ink);
+}
+
+:root:not([data-theme=dark]) .chip-c:nth-child(5n+1), :root:not([data-theme=dark]) .chip-f:nth-child(5n+1) { --chip-h: #2aa198; }
+:root:not([data-theme=dark]) .chip-c:nth-child(5n+2), :root:not([data-theme=dark]) .chip-f:nth-child(5n+2) { --chip-h: #3b82c4; }
+:root:not([data-theme=dark]) .chip-c:nth-child(5n+3), :root:not([data-theme=dark]) .chip-f:nth-child(5n+3) { --chip-h: #8b6fcf; }
+:root:not([data-theme=dark]) .chip-c:nth-child(5n+4), :root:not([data-theme=dark]) .chip-f:nth-child(5n+4) { --chip-h: #e0883e; }
+:root:not([data-theme=dark]) .chip-c:nth-child(5n+5), :root:not([data-theme=dark]) .chip-f:nth-child(5n+5) { --chip-h: #d9577a; }
+
+:root:not([data-theme=dark]) .chip-c.on,
+:root:not([data-theme=dark]) .chip-f.on {
+  background: var(--chip-h, var(--lv-teal));
+  border-color: var(--chip-h, var(--lv-teal));
+  color: #fff;
+}
+
+/* cards: gradient accent line on top */
+:root:not([data-theme=dark]) .lcard,
+:root:not([data-theme=dark]) .bk-cover {
+  position: relative;
+}
+
+:root:not([data-theme=dark]) .lcard::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  z-index: 1;
+  background: linear-gradient(90deg, var(--lv-teal), var(--lv-blue));
+  opacity: .85;
+}
+
+:root:not([data-theme=dark]) .lcard:hover {
+  border-color: var(--lv-teal);
+  box-shadow: 0 12px 28px rgba(42, 130, 170, .18);
+}
+
+/* panels: faint tint instead of flat off-white */
+:root:not([data-theme=dark]) .panel {
+  background: linear-gradient(180deg, var(--white), color-mix(in srgb, var(--lv-blue) 4%, var(--white)));
+}
+
+/* tags */
+:root:not([data-theme=dark]) .tag {
+  background: color-mix(in srgb, var(--lv-blue) 14%, var(--white));
+  color: #2c5f8e;
+}
+
+:root:not([data-theme=dark]) .tag-verified { background: var(--ok-bg); color: var(--ok-fg); }
+:root:not([data-theme=dark]) .tag-warn { background: var(--warn-bg); color: var(--warn-fg); }

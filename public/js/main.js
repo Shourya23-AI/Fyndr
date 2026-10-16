@@ -9,6 +9,7 @@ import { clearApiCache } from './core/api.js';
 import { cachedMe } from './features/auth/load-me.js';
 import { initReveal } from './core/reveal.js';
 import { initMotion } from './core/motion.js';
+import { initAutoload } from './core/autoload.js';
 import { loadCatalog } from './features/catalog/catalog.js';
 // Entry point. Draw the shell INSTANTLY from what this device remembers (header + page-shaped placeholders),
 // then wire up events and let route() fill in the real page as soon as Firebase and the server have answered.
@@ -23,6 +24,7 @@ $('#app').innerHTML = skeleton(skeletonFor(location.hash.slice(2), !!hint));
 bindEvents();
 initReveal();
 initMotion();
+initAutoload();
 addEventListener('hashchange', route);
 route();
 
