@@ -8,16 +8,22 @@
 // On static hosting (GitHub Pages) nothing replaces the token above, so the cache name is a fixed label.
 // CHANGE THE LABEL below whenever you publish a new version, so visitors drop the old cached files.
 const BUILD = '__BUILD__';
-const CACHE = 'fyndr-' + (BUILD.indexOf('__') === 0 ? 'static-2026-10-16-cards-v27' : BUILD);
+const CACHE = 'fyndr-' + (BUILD.indexOf('__') === 0 ? 'static-2026-10-16-instant-v30' : BUILD);
 const SHELL = ['./', 'index.html', 'css/app.css', 'js/main.js', 'favicon.svg', 'icons/icon-192.png'];
 const CONFIG_API = ['/api/firebase-config', '/api/phone-config'];
 
 self.addEventListener('install', event => {
     // Pre-save the shell. A missing file must not block installing, so each one is added on its own.
+    // The shell first (so the page works at once), then everything in precache.json (all scripts, styles, catalogs) so later page
+    // changes never wait for the network. A file that fails is skipped; it is saved the first time it is used instead.
     event.waitUntil(
-        caches.open(CACHE)
-            .then(cache => Promise.all(SHELL.map(u => cache.add(u).catch(() => {}))))
-            .then(() => self.skipWaiting())
+        caches.open(CACHE).then(async cache => {
+            await Promise.all(SHELL.map(u => cache.add(u).catch(() => {})));
+            try {
+                const list = await (await fetch('precache.json', { cache: 'no-store' })).json();
+                await Promise.all(list.filter(u => !SHELL.includes(u)).map(u => cache.add(u).catch(() => {})));
+            } catch { /* no list (older deploy): the shell is enough */ }
+        }).then(() => self.skipWaiting())
     );
 });
 

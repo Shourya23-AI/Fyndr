@@ -31,7 +31,20 @@ export function initMotion() {
         setTimeout(() => b.classList.remove('is-pressed'), 180);
     }, { passive: true });
     // Page-change motion: re-trigger the entrance on every route
-    addEventListener('hashchange', () => { scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); });
+    // Instant jump to the top (a smooth scroll over a long list feels like lag), then the new page fades in once.
+    const app = document.getElementById('app');
+    let fresh = false;
+    addEventListener('hashchange', () => { scrollTo({ top: 0, behavior: 'auto' }); fresh = true; });
+    if (app && !reduce) {
+        new MutationObserver(() => {
+            if (!fresh) { return; }
+            fresh = false; // the first thing drawn for a new page (placeholder or content) fades in; later redraws of the same page do not
+            app.classList.remove('fy-enter');
+            void app.offsetWidth;
+            app.classList.add('fy-enter');
+        }).observe(app, { childList: true });
+        app.addEventListener('animationend', e => { e.target === app && app.classList.remove('fy-enter'); });
+    }
 }
 export function landingMotion() {
     initMotion();

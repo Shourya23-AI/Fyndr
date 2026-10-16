@@ -3,6 +3,11 @@
 Versions follow [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH. MAJOR = a change that breaks existing data or API callers
 (then a new `/api/v2` is added and `/api/v1` keeps working), MINOR = new features, PATCH = fixes. Change `version` in `package.json`; `/readyz` shows it.
 
+## 1.1.1
+### Fixed
+- Tracker (Dashboard > Tracker): rewrote its styles. The five stage columns now sit in one row (swipe sideways on phones) instead of wrapping with "Closed" alone on a second row; buttons no longer stretch across the whole card; cleaner "Add an opening" form, follow-up banner, inputs and focus rings (light and dark).
+- Service worker cache label bumped (v30) so visitors get the new stylesheet instead of the cached old one.
+
 ## 1.1.0
 ### Added
 - Reliability: the app now times out hung requests, retries safe ones with exponential backoff + jitter, and stops hammering a server that is down (circuit breaker).

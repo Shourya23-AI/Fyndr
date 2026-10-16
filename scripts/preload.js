@@ -13,3 +13,12 @@ const block = `<!--STATIC-PRELOAD-->\n    ${links}\n    <!--/STATIC-PRELOAD-->`;
 h = /<!--STATIC-PRELOAD-->[\s\S]*<!--\/STATIC-PRELOAD-->/.test(h) ? h.replace(/<!--STATIC-PRELOAD-->[\s\S]*<!--\/STATIC-PRELOAD-->/, block) : h.replace('<!--PRELOAD-->', '<!--PRELOAD-->\n    ' + block);
 fs.writeFileSync(p, h);
 console.log('preload tags written');
+
+// precache.json: every file the service worker saves on the first visit, so the whole site (scripts, styles, catalogs) is on the device
+// after one load and every page change after that is instant. Re-run this script after adding files.
+const all = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? all(path.join(d, e.name)) : [path.join(d, e.name)]);
+const rel = f => path.relative(PUB, f).split(path.sep).join('/');
+const keep = rel => /^(js\/.+\.js|css\/app\.css|catalog\/.+\.json|icons\/.+\.(png|svg)|favicon\.svg|config\/(firebase-config|phone-email)\.json)$/.test(rel);
+const list = ['index.html', ...all(PUB).map(rel).filter(keep).sort()];
+fs.writeFileSync(path.join(PUB, 'precache.json'), JSON.stringify(list));
+console.log('precache.json:', list.length, 'files');

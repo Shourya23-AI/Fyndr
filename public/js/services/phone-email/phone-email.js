@@ -122,14 +122,51 @@ export function startLogin(id) {
     return wait;
 }
 
-// Browser-only (Live Server) mode: no Node server, so ask phone.email directly.
-export async function lookupPhone(token, id) {
-    const fd = new FormData();
-    fd.append('access_token', token);
-    fd.append('client_id', id);
-    const d = await (await fetch('https://eapi.phone.email/getuser', { method: 'POST', body: fd })).json();
-    const ph = d && d.status === 200 && d.phone_no ? '+' + String(d.country_code || '').replace(/\D/g, '') + String(d.phone_no).replace(/\D/g, '') : '';
+// Reads a phone.email answer into "+<country><number>" or null. phone.email answers differ between setups, so the field names the Node server
+// accepts are accepted here too, and only an explicit non-200 status is a refusal.
+export function parsePhone(d) {
+    if (!d || typeof d !== 'object') {
+        return null;
+    }
+    const cc = String(d.country_code ?? d.user_country_code ?? '').replace(/\D/g, '');
+    const no = String(d.phone_no ?? d.user_phone_number ?? d.phone_number ?? '').replace(/\D/g, '');
+    const ok = d.status === undefined || Number(d.status) === 200;
+    const ph = ok && no ? '+' + cc + no : '';
     return /^\+\d{8,15}$/.test(ph) ? ph : null;
+}
+
+// Browser-only (no server) mode: ask phone.email directly. The token is either an access_token (checked with their getuser API)
+// or, in some setups, a user_json_url on a phone.email address. One retry, because their API is sometimes slow.
+export async function lookupPhone(token, id) {
+    token = String(token || '').trim();
+    if (!token || token.length > 4000) {
+        return null;
+    }
+    const viaUrl = /^https:\/\/[a-z0-9.-]+\.phone\.email\//i.test(token);
+    let last;
+    for (let i = 0; i < 2; i++) {
+        try {
+            let r;
+            if (viaUrl) {
+                r = await fetch(token);
+            } else {
+                const fd = new FormData();
+                fd.append('access_token', token);
+                fd.append('client_id', id);
+                r = await fetch('https://eapi.phone.email/getuser', { method: 'POST', body: fd });
+            }
+            const d = await r.json();
+            const ph = parsePhone(d);
+            if (ph) {
+                return ph;
+            }
+            console.warn('phone.email did not accept the token. status=' + (d && d.status) + ' message=' + ((d && d.message) || '') + ' keys=' + Object.keys(d || {}).join(','));
+            return null; // an answer that says no is final; only a network failure is retried
+        } catch (e) {
+            last = e;
+        }
+    }
+    throw last || new Error('phone.email unreachable');
 }
 
 // Optional: the address of the server-side check (functions/index.js, "verifyPhone"). When config/phone-email.json has a "verifyUrl",

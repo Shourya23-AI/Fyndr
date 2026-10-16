@@ -60,7 +60,8 @@ function courseGroup({ id, topic, cat, flag, skills, provs, created }) {
 export const searchFor = (title, intern) => (intern ? String(title).replace(/ Intern$/, '') + ' intern' : String(title).replace(/ \(Fresher\)$/, '') + ' fresher');
 // Boards we always offer for a role, best first (the first three are the buttons shown on the card).
 const MAIN = { intern: [3, 0, 2, 1, 4, 5, 15], job: [0, 2, 1, 4, 5, 8, 7] }; // indexes into BOARDS
-const jobLocation = cities => (cities.length ? cities.join(', ') + ' · Remote' : 'India · many cities and remote');
+// A card is one role in one city, so it says that city only (not "remote"); a card without a city is the India-wide / remote search.
+const jobLocation = cities => (cities.length ? cities.join(', ') : 'India · many cities and remote');
 
 function jobGroup({ id, title, intern, cat, skills, boards, cities, created }) {
     const q2 = searchFor(title, intern);
@@ -70,7 +71,7 @@ function jobGroup({ id, title, intern, cat, skills, boards, cities, created }) {
     const d = `${title} openings across ${links.length} job boards. Each button opens that board's own live search for this role, because openings change every day. Fyndr has not checked the individual postings there. ${intern ? 'Check the stipend, duration and whether it is on-site before you apply.' : 'Check the salary, location and experience asked for before you apply.'} Never pay money to get a job or internship.\nBest for: ${intern ? 'UG students looking for their first internship; PG students; final-year students' : 'Final-year students; fresh graduates; PG students'}\nWhat you get: ${intern ? 'Hands-on experience; a certificate or letter in many cases; a possible full-time offer' : 'A first full-time role; on-the-job training'}`;
     return {
         id, type: intern ? 'Internship' : 'Job', title, orgName: joinNames(links.map(x => x.n)), orgId: 'catalog', orgVerified: false,
-        location: jobLocation(cities), cities, remote: true, pay: intern ? 'Stipend varies · check listing' : 'Salary varies · check listing', duration: intern ? '1 to 6 months, usually' : '',
+        location: jobLocation(cities), cities, remote: !cities.length, pay: intern ? 'Stipend varies · check listing' : 'Salary varies · check listing', duration: intern ? '1 to 6 months, usually' : '',
         description: d, applyUrl: links[0].u, cat, skills: skills ? skills.split(',') : undefined, status: 'approved', source: 'import', origin: 'catalog',
         search: true, q: q2, home: cities[0] || '', links, created
     };
