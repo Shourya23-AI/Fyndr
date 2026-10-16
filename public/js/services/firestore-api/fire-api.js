@@ -18,7 +18,7 @@ import { expiredApps } from './retention.js';
 import { POLICY_VERSION } from '../../features/legal/constants.js';
 import { ADMIN_EMAILS } from './config.js';
 import { trustScore, decide } from '../../features/trust/trust.js';
-import { isExpired } from '../../features/listings/expiry.js';
+import { isExpired, dropExpired } from '../../features/listings/expiry.js';
 import { QUAL, EXP, JT, ORG_TYPES, IMG_MAX, now, lc, bad, isMain, isFree, gmailAllowed, pub, meOf, completion, cleanExtras, need, imgOk, filterListings, adminData, cleanForm, cleanImport, hash, studyFrom } from './helpers.js';
 
 const NUM = ['views', 'searches', 'emptySearches', 'saves', 'applyClicks'];
@@ -104,7 +104,7 @@ async function run(path, method, b, fu) {
     if (k === 'GET /listings') {
         if (!memo.listings || Date.now() - memo.listings.t > LIFE) {
             const s = await m.getDocs(m.query(col('listings'), m.where('status', '==', 'approved')));
-            memo.listings = { t: Date.now(), d: rows(s).filter(x => !isExpired(x)).map(x => ({ ...x, orgVerified: x.source !== 'import' })) };
+            memo.listings = { t: Date.now(), d: dropExpired(rows(s)).map(x => ({ ...x, orgVerified: x.source !== 'import' })) };
         }
         return filterListings(memo.listings.d, q);
     }

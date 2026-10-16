@@ -476,3 +476,10 @@ and deletes applications (and the resume copies shared with organizations) that 
 
 `data.json` is never overwritten when it cannot be read: the server restores `data.json.bak` (refreshed at most every 10 minutes) and keeps the damaged file as `data.json.corrupt-<time>`,
 or refuses to start if there is no backup. Rate limits can be tuned with `RATE_API_PER_MIN` (default 1200), `RATE_PHONE_PER_10MIN` (40) and `RATE_SIGNUP_PER_HOUR` (150), because a whole college can share one IP.
+
+## Operating the Node server
+
+Health: `/healthz` (alive) and `/readyz` (ready). Numbers: `/metrics` (production needs `METRICS_TOKEN`). Every API call has a request id (`X-Request-Id`) and one JSON log line;
+server errors show the user a "ref ..." to search for. Incident switches: `READ_ONLY=1` (refuse all changes), `MAX_INFLIGHT` (load shedding). Run all tests with `npm test`.
+Read `docs/RUNBOOK.md` (incidents, rollback, restore, scaling limits), `docs/SLO.md` (targets and alerts), `docs/POSTMORTEM_TEMPLATE.md`, and `docs/BACKEND-CHECKLIST.md` (111 backend topics, what applies and what was added).
+To get alerts, set the repository variables `SITE_URL` (and `API_URL`) so `.github/workflows/uptime.yml` runs.

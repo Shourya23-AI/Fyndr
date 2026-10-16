@@ -6,7 +6,8 @@ services:
     plan: starter
     buildCommand: echo "nothing to build"
     startCommand: node server.js
-    healthCheckPath: /healthz
+    healthCheckPath: /healthz # liveness. /readyz is the readiness probe (503 while shutting down); /metrics needs METRICS_TOKEN
+    numInstances: 1 # KEEP AT 1: data.json and the rate limiter live in this one process. See docs/RUNBOOK.md, "Scaling limits"
     disk:
       name: fyndr-data
       mountPath: /data
@@ -20,3 +21,5 @@ services:
         sync: false
       - key: ADMIN_EMAILS
         sync: false
+      - key: METRICS_TOKEN
+        generateValue: true

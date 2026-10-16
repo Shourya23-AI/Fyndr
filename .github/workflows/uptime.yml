@@ -1,0 +1,23 @@
+# Alert: every 15 minutes check that the live site answers. A failed run makes GitHub email the repository owner (Actions > failed workflow notification).
+# Setup: Settings > Secrets and variables > Actions > Variables > New variable  SITE_URL = https://your-site (no trailing slash).
+# Optional second variable API_URL = https://your-render-app  to also check the Node server's /healthz and /readyz.
+name: Uptime
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ vars.SITE_URL != '' }}
+    steps:
+      - name: Site answers
+        run: curl --fail --silent --show-error --location --max-time 20 --retry 2 --retry-delay 5 "${{ vars.SITE_URL }}/" > /dev/null
+      - name: Server is alive and ready
+        if: ${{ vars.API_URL != '' }}
+        run: |
+          curl --fail --silent --show-error --max-time 20 --retry 2 --retry-delay 5 "${{ vars.API_URL }}/healthz"
+          curl --fail --silent --show-error --max-time 20 --retry 2 --retry-delay 5 "${{ vars.API_URL }}/readyz"

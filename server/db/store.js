@@ -1,6 +1,8 @@
 const fs = require('fs');
 const { DB_FILE, SEED_DEMO } = require('../config');
 const { uid } = require('../lib/helpers');
+const dailyBackup = require('./backup');
+const migrate = require('./migrate');
 // JSON-file database. `db` is loaded (or seeded) once; call save() after changing it.
 // Safety: a missing file starts a new database, but a file that EXISTS and cannot be read is never overwritten.
 // The newest readable backup is used instead (the broken file is kept next to it as *.corrupt-<time>); with no backup the server refuses to start.
@@ -25,16 +27,23 @@ try {
 }
 // Write to a temp file then rename, so a crash mid-write can never leave a half-written database.
 // A backup of the previous version is refreshed at most every 10 minutes (copying a big file on every save would be slow).
+// Plus one backup per day, newest 7 kept (backup.js).
 let lastBak = 0;
+let lastDay = '';
 const save = () => {
     const t = DB_FILE + '.tmp';
     fs.writeFileSync(t, JSON.stringify(db));
-    if (Date.now() - lastBak > 10 * 60e3) {
-        try {
+    try {
+        const today = new Date().toISOString().slice(0, 10);
+        if (today !== lastDay) {
+            dailyBackup(DB_FILE);
+            lastDay = today;
+        }
+        if (Date.now() - lastBak > 10 * 60e3) {
             fs.copyFileSync(DB_FILE, BAK);
             lastBak = Date.now();
-        } catch { }
-    }
+        }
+    } catch { } // no file yet on the very first save: nothing to back up
     fs.renameSync(t, DB_FILE);
 };
 if (!db && !SEED_DEMO) {
@@ -58,6 +67,14 @@ if (!db) {
         ],
         applications: [], saved: []
     };
+    save();
+}
+// Bring an older file up to the current layout (see migrate.js). A copy of the file as it was is kept first.
+const before = Number.isInteger(db.schemaVersion) ? db.schemaVersion : 0;
+if (migrate(db).to !== before) {
+    try {
+        fs.copyFileSync(DB_FILE, DB_FILE + '.pre-v' + before);
+    } catch { } // a database that was just created has nothing to keep
     save();
 }
 module.exports = { db, save };

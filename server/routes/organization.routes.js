@@ -34,13 +34,18 @@ R('POST', '/api/listings', ['org'], async ({ user, body: b }) => {
     save();
     return { ok: 1 };
 });
-R('GET', '/api/org/listings', ['org'], ({ user }) => db.listings.filter(l => l.orgId === user.id).map(l => ({ ...l, applicants: db.applications.filter(a => a.listingId === l.id).length })));
+R('GET', '/api/org/listings', ['org'], ({ user }) => {
+    const count = new Map(); // applicants per listing, counted in ONE pass (not one scan of all applications per listing)
+    db.applications.forEach(a => count.set(a.listingId, (count.get(a.listingId) || 0) + 1));
+    return db.listings.filter(l => l.orgId === user.id).map(l => ({ ...l, applicants: count.get(l.id) || 0 }));
+});
 R('GET', '/api/org/applications', ['org'], ({ user }) => {
-    const mine = db.listings.filter(l => l.orgId === user.id);
-    return db.applications.filter(a => mine.some(l => l.id === a.listingId)).map(a => {
-        const u = db.users.find(x => x.id === a.userId) || {};
+    const mine = new Map(db.listings.filter(l => l.orgId === user.id).map(l => [l.id, l]));
+    const users = new Map(db.users.map(u => [u.id, u])); // one lookup table instead of a scan of all users per application
+    return db.applications.filter(a => mine.has(a.listingId)).map(a => {
+        const u = users.get(a.userId) || {};
         return {
-            ...a, title: mine.find(l => l.id === a.listingId).title, name: u.name, email: u.email
+            ...a, title: mine.get(a.listingId).title, name: u.name, email: u.email
         };
     });
 });

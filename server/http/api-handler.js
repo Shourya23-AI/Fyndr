@@ -4,6 +4,7 @@ const { db, save } = require('../db/store');
 const { isAdminEmail } = require('../config');
 const { applyStaff } = require('../lib/helpers');
 const readBody = require('../lib/body');
+const { log } = require('../lib/observe');
 // Finds the route, checks the Firebase token + role, parses the JSON body, runs the handler.
 module.exports = async function handleApi(req, res, u) {
     const send = (c, d) => {
@@ -64,8 +65,9 @@ module.exports = async function handleApi(req, res, u) {
         }));
     } catch (e) {
         if (!e.c) {
-            console.error('API error:', req.method, u.pathname, e);
+            log('error', { msg: 'API error', id: req.id, method: req.method, path: u.pathname, err: String((e && e.stack) || e) });
         }
-        send(e.c || 500, { error: e.m || 'Server error', code: e.k });
+        // An unexpected failure carries the request id, so "it said ref 1a2b3c" leads straight to the log line.
+        send(e.c || 500, { error: e.m || 'Server error', code: e.k, requestId: e.c ? undefined : req.id });
     }
 };

@@ -15,9 +15,4 @@ jobs:
         with:
           node-version: 22
       - name: Run tests
-        run: |
-          set -e
-          for f in test/*.test.js; do
-            echo "== $f"
-            node "$f"
-          done
+        run: npm test

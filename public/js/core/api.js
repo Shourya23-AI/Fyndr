@@ -1,5 +1,6 @@
 import { fb } from '../services/firebase/firebase-init.js';
 import { API_BASE } from './api-base.js';
+import { fetchRetry } from './net.js';
 import { fireApi } from '../services/firestore-api/fire-api.js';
 import { loadCatalog, mergeCatalog, catSaved, toggleCatSaved } from '../features/catalog/catalog.js';
 // Every call to the backend goes through api(): the Node server normally, or Firebase Firestore directly when there is no server (GitHub Pages).
@@ -24,12 +25,13 @@ export function forgetDeviceCache() {
 }
 async function call(p, m, b) {
     const t = await fb.token();
-    const r = await fetch(API_BASE + '/api' + p, {
+    const r = await fetchRetry(API_BASE + '/api' + p, {
         method: m, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: b ? JSON.stringify(b) : undefined
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) {
-        const e = new Error(d.error || 'Something went wrong');
+        // An unexpected server failure comes with a reference that finds the exact log line: shown so a user can quote it.
+        const e = new Error((d.error || 'Something went wrong') + (d.requestId ? ' (ref ' + d.requestId + ')' : ''));
         e.code = d.code;
         throw e;
     }
