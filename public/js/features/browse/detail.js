@@ -1,7 +1,10 @@
 import { S } from '../../core/state.js';
 import { esc, fmt, TICK, safeUrl } from '../../core/dom.js';
-import { coverOf, logoOf, heart, canApply, whyBlock, trustChip } from './card.js';
-import { summarize, hostOf, sourceOf } from '../listings/summary.js';
+import { coverOf, logoOf, heart, canApply, whyBlock, trustChip, placeNow, shortName } from './card.js';
+import { summarize, hostOf } from '../listings/summary.js';
+import { originOf, isSearch, seenAgo } from '../listings/origin.js';
+import { linksFor, tierText } from '../catalog/group.js';
+import { NATION } from '../catalog/meta.js';
 import { track } from '../../services/analytics/analytics.js';
 // "View Details" popup. On a phone it slides up as a sheet with the Apply button pinned at the bottom.
 // Order: what it is -> quick facts -> who it is best for -> what it gives you -> about -> how to apply -> the official link.
@@ -27,6 +30,32 @@ const splitAbout = t => {
     const at = cut > 240 ? cut + 1 : t.slice(0, 460).replace(/\s+\S*$/, '').length;
     return [t.slice(0, at).trim(), t.slice(at).trim()];
 };
+// The buttons of a course topic or job role: every learning site / job board that has its own search for it. Job boards can look in one city
+// (the select), and the buttons follow it. Free sites come first for courses.
+function boardsBlock(l) {
+    const jobs = l.type !== 'Course';
+    const place = placeNow();
+    const opts = jobs ? [[NATION, 'All India'], ...(l.cities || []).map(c => [c, c]), ['', 'Remote only']] : [];
+    if (jobs && place !== NATION && !opts.some(o => o[0] === place)) {
+        opts.splice(1, 0, [place, place]);
+    }
+    const rows = linksFor(l, place).map(k => `<li><a class="dt-board" href="${esc(safeUrl(k.u))}" target="_blank" rel="noopener noreferrer nofollow" data-act="extclick" data-bi="${k.bi ?? ''}"><b>${esc(shortName(k.n))}</b><span>${jobs ? 'live search' : esc([tierText(k.tier), k.cert ? 'certificate' : ''].filter(Boolean).join(' · '))}</span></a></li>`).join('');
+    return `<section class="dt-sec dt-boards"><h4 class="dt-h">${jobs ? 'Look for this role on' : 'Find this course on'}</h4>${jobs ? `<label class="dt-place">Where<select data-place-for="${esc(l.id)}" aria-label="Place to search">${opts.map(([v, t]) => `<option value="${esc(v)}" ${v === place ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select></label>` : ''}<ul class="dt-boardlist">${rows}</ul><p class="dt-none">${jobs ? 'Each button opens that board\'s own live search, so you see what is open today.' : 'Each button opens that site\'s own search. Compare level, price and certificate there.'} Never pay a fee or share an OTP to get a job or internship.</p></section>`;
+}
+// Changing the place in the popup rewrites every board link to look in that place.
+export function setPlace(sel) {
+    const l = S.lmap[sel.dataset.placeFor];
+    if (!l || !el) {
+        return;
+    }
+    const by = new Map(linksFor(l, sel.value).map(k => [String(k.bi), k.u]));
+    el.querySelectorAll('.dt-board').forEach(a => {
+        const u = safeUrl(by.get(a.dataset.bi));
+        if (u) {
+            a.href = u;
+        }
+    });
+}
 export function closeDetail() {
     if (el) {
         el.remove();
@@ -51,31 +80,36 @@ export function openDetail(id) {
     const noun = course ? 'course' : l.type === 'Internship' ? 'internship' : 'job';
     const ext = l.source === 'import' && safeUrl(l.applyUrl); // only ever an https address
     const sm = summarize(l);
-    const via = sourceOf(l);
+    const og = originOf(l);
+    const search = isSearch(l);
+    const seen = og.k === 'direct' ? seenAgo(l) : '';
     track('view', { skills: sm.skills });
     const fact = (icon, k, v) => real(v) ? `<div class="dt-fact"><i>${icon}</i><span>${k}</span><b>${esc(v)}</b></div>` : '';
     const list = (a, empty) => a.length ? `<ul class="dt-list">${a.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : `<p class="dt-none">${empty}</p>`;
     const [lead, more] = splitAbout(sm.about || '');
     const host = ext ? hostOf(ext) : '';
-    const cta = ext && canApply() ? `<a class="button button-dark dt-cta" href="${esc(ext)}" data-act="extclick" target="_blank" rel="noopener noreferrer nofollow">${course ? 'Go to course page' : 'Apply on ' + esc(host)}<span class="dt-ico">${I.out}</span></a>`
+    const first = search ? safeUrl(l.links[0].u) : '';
+    const cta = search && first ? `<a class="button button-dark dt-cta" href="${esc(first)}" data-act="extclick" target="_blank" rel="noopener noreferrer nofollow">Open on ${esc(shortName(l.links[0].n))}<span class="dt-ico">${I.out}</span></a>`
+        : ext && canApply() ? `<a class="button button-dark dt-cta" href="${esc(ext)}" data-act="extclick" target="_blank" rel="noopener noreferrer nofollow">${course ? 'Go to course page' : 'Apply on ' + esc(host)}<span class="dt-ico">${I.out}</span></a>`
         : !ext && canApply() ? `<button class="button button-dark dt-cta" data-act="apply" data-id="${l.id}" ${ap ? 'disabled' : ''}>${ap ? 'Applied' : course ? 'Enrol / Apply' : 'Apply now'}</button>` : '';
     el = document.createElement('div');
     el.className = 'ap-back dt-back';
     el.innerHTML = `<div class="ap-box dt-box" role="dialog" aria-modal="true" aria-labelledby="dt-title" tabindex="-1"><button class="dt-x" data-dt-close aria-label="Close">×</button>
 <div class="lc-media dt-media">${coverOf(l)}<span class="lc-logo">${logoOf(l)}</span></div>
 <div class="dt-body">
-<div class="tags"><span class="tag">${esc(l.type)}</span>${l.orgVerified ? `<span class="tag tag-verified">${TICK}Verified</span>` : ''}${via ? `<span class="tag">From ${esc(via)}</span>` : ''}</div>
-<h3 class="dt-title" id="dt-title">${esc(l.title)}</h3><p class="lc-org dt-org">${course ? '<span>Provider</span> ' : ''}${esc(l.orgName)}</p>
-<div class="dt-facts">${fact(I.pin, 'Location', l.location)}${fact(I.pay, course ? 'Price' : 'Pay', l.pay)}${fact(I.clock, 'Duration', l.duration)}${fact(I.cap, 'Experience', sm.experience)}${fact(I.cal, 'Posted', l.created ? fmt(l.created) : '')}</div>
-<p class="dt-rate">${trustChip(l)}</p>
+<div class="tags"><span class="tag">${esc(l.type)}</span><span class="tag ${og.k === 'direct' || og.k === 'posted' ? 'tag-verified' : ''}" title="${esc(og.note)}">${og.k === 'direct' || og.k === 'posted' ? TICK : ''}${esc(og.label)}</span>${l.orgVerified && !search ? `<span class="tag tag-verified">${TICK}Verified organization</span>` : ''}</div>
+<h3 class="dt-title" id="dt-title">${esc(l.title)}</h3><p class="lc-org dt-org">${search ? `<span>${course ? 'On' : 'Search on'}</span> ` : course ? '<span>Provider</span> ' : ''}${esc(l.orgName)}</p>
+<div class="dt-facts">${fact(I.pin, 'Location', l.location)}${fact(I.pay, course ? 'Price' : 'Pay', l.pay)}${fact(I.clock, 'Duration', l.duration)}${fact(I.cap, 'Experience', sm.experience)}${search ? '' : fact(I.cal, 'Posted', l.created ? fmt(l.created) : '')}${seen ? fact(I.cal, 'Seen open on their page', seen) : ''}</div>
+<p class="dt-rate">${search ? `<span class="dt-origin-note">${esc(og.note)}</span>` : trustChip(l)}<button type="button" class="dt-report" data-act="reportopen" data-id="${esc(l.id)}" title="Tell us if this looks like a scam, is misleading or is closed">&#9873; ${search ? 'Report a problem' : 'Report this listing'}</button></p>
+${search ? boardsBlock(l) : ''}
 ${whyBlock(S.match?.[l.id])}
 <section class="dt-sec dt-best"><h4 class="dt-h">Who it is best for</h4>${list(sm.bestFor, `This ${noun} does not say who it suits. Read the requirements in the description and on the official page.`)}</section>
 <section class="dt-sec dt-get"><h4 class="dt-h">What it gives you</h4>${list(sm.provides, 'No perks or benefits are mentioned. Check the official page for the details.')}</section>
 <section class="dt-sec"><h4 class="dt-h">About this ${noun}</h4><p class="dt-desc">${esc(lead || sm.overview)}</p>${more ? `<details class="dt-more"><summary>Read more</summary><p class="dt-desc">${esc(more)}</p></details>` : ''}${sm.skills.length ? `<p class="why-row dt-skills"><span>Key skills</span>${sm.skills.map(x => `<span class="why-tag on">${esc(x)}</span>`).join('')}</p>` : ''}</section>
 <section class="dt-sec"><h4 class="dt-h">How to apply</h4><ol class="dt-desc dt-steps">${sm.steps.map(x => `<li>${x}</li>`).join('')}</ol></section>
-${ext ? `<div class="dt-link"><span>Official page</span><a href="${esc(ext)}" target="_blank" rel="noopener noreferrer nofollow" ${canApply() ? 'data-act="extclick"' : ''}>${esc(ext)}</a><small>Opens in a new tab on ${esc(host)}. Never pay a fee or share an OTP to apply.</small></div>` : ''}
+${ext && !search ? `<div class="dt-link"><span>Official page</span><a href="${esc(ext)}" target="_blank" rel="noopener noreferrer nofollow" ${canApply() ? 'data-act="extclick"' : ''}>${esc(ext)}</a><small>Opens in a new tab on ${esc(host)}. Never pay a fee or share an OTP to apply.</small></div>` : ''}
 </div>
-<div class="dt-foot">${S.me?.role === 'user' ? heart(l, sv) : ''}${S.me && !l.virtual ? `<button type="button" class="button dt-share" data-act="shareopen" data-id="${esc(l.id)}" data-s="listing" aria-label="Share to a group or community">Share</button>` : ''}${cta || '<button class="button dt-cta" data-dt-close>Close</button>'}</div></div>`;
+<div class="dt-foot">${S.me?.role === 'user' ? heart(l, sv) : ''}${S.me ? `<button type="button" class="button dt-share" data-act="shareopen" data-id="${esc(l.id)}" data-s="listing" aria-label="Share to a group or community">Share</button>` : ''}${cta || '<button class="button dt-cta" data-dt-close>Close</button>'}</div></div>`;
     el.addEventListener('click', e => {
         if (e.target === el || e.target.closest('[data-dt-close]')) {
             closeDetail();

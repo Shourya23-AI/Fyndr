@@ -10,6 +10,7 @@
 //   blobs/ar_{appId}_{i}        the resume copy shared by ONE application            (candidate, that organization; deleted with the application)
 //   phones/{digits}             one verified phone number belongs to one account
 //   staff/{email}               admin / moderator roles
+//   reports/{listingId}_{uid}   "Report this listing": one report per person per listing           (the reporter writes; staff read)
 import { fs, friendly, SITE_VERSION } from './fire.js';
 import { staffOf, staffMap, setStaff } from '../cloud/cloud.js';
 import { phoneClientId, lookupPhone, phoneVerifyUrl } from '../phone-email/phone-email.js';
@@ -18,6 +19,7 @@ import { expiredApps } from './retention.js';
 import { POLICY_VERSION } from '../../features/legal/constants.js';
 import { ADMIN_EMAILS } from './config.js';
 import { trustScore, decide } from '../../features/trust/trust.js';
+import { cleanReport, cleanTitle, cleanOrg, isCatalogId, reportId } from '../../features/report/report.rules.js';
 import { isExpired, dropExpired } from '../../features/listings/expiry.js';
 import { QUAL, EXP, JT, ORG_TYPES, IMG_MAX, now, lc, bad, isMain, isFree, gmailAllowed, pub, meOf, completion, cleanExtras, need, imgOk, filterListings, adminData, cleanForm, cleanImport, hash, studyFrom } from './helpers.js';
 
@@ -61,7 +63,7 @@ async function run(path, method, b, fu) {
     const p = url.pathname;
     const q = url.searchParams;
     const id = p.split('/').pop();
-    const k = method + ' ' + p.replace(/^(\/(?:apply|save|listings|applications|admin\/listings|admin\/staff|admin\/orgs|admin\/users|admin\/proof|proof\/file))\/[^/]+$/, '$1/:id');
+    const k = method + ' ' + p.replace(/^(\/(?:apply|save|report|admin\/reports|listings|applications|admin\/listings|admin\/staff|admin\/orgs|admin\/users|admin\/proof|proof\/file))\/[^/]+$/, '$1/:id');
     const col = n => m.collection(db, n);
     const ref = (n, i) => m.doc(db, n, i);
     const loadUser = async i => {
@@ -165,17 +167,18 @@ async function run(path, method, b, fu) {
     // Removes an account and everything that hangs off it: applications (with their resume copies), listings, saved items, files, phone claim.
     const purge = async u => {
         const org = u.role === 'org';
-        const [ls, ap, sv] = await Promise.all([
+        const [ls, ap, sv, rp] = await Promise.all([
             org ? m.getDocs(m.query(col('listings'), m.where('orgId', '==', u.id))) : { docs: [] },
             m.getDocs(m.query(col('applications'), m.where(org ? 'orgId' : 'userId', '==', u.id))),
-            m.getDocs(m.collection(db, 'users', u.id, 'saved'))
+            m.getDocs(m.collection(db, 'users', u.id, 'saved')),
+            m.getDocs(m.query(col('reports'), m.where('userId', '==', u.id))).catch(() => ({ docs: [] })) // (a person can only list their own reports if the rules allow it; staff deleting an account can)
         ]);
         await dropApps(rows(ap));
         const bt = m.writeBatch(db);
         await dropBlob(bt, u.id, 'resume', u.resume?.chunks || 0);
         await dropBlob(bt, u.id, 'proof', u.proof?.chunks || 0);
         await bt.commit();
-        const refs = [...ls.docs.map(x => x.ref), ...sv.docs.map(x => x.ref)];
+        const refs = [...ls.docs.map(x => x.ref), ...sv.docs.map(x => x.ref), ...rp.docs.map(x => x.ref)];
         if (u.phone) {
             refs.push(ref('phones', digits(u.phone)));
         }
@@ -445,6 +448,44 @@ async function run(path, method, b, fu) {
             }
             return { ok: 1 };
         }
+        case 'POST /report/:id': { // a signed-in person reports a listing (scam, misleading, closed); sending again replaces the first report
+            only('user', 'org');
+            const clean = cleanReport(b);
+            if (!clean) {
+                bad('Choose what is wrong with this listing');
+            }
+            let title;
+            let orgName;
+            if (isCatalogId(id)) { // a search link from the built-in catalog is not stored, so the report carries its title
+                title = cleanTitle(b.title);
+                orgName = cleanOrg(b.orgName);
+                if (!title) {
+                    bad('Missing listing title');
+                }
+            } else {
+                const ls = await m.getDoc(ref('listings', id));
+                if (!ls.exists() || ls.data().status !== 'approved') {
+                    bad('Listing not found');
+                }
+                title = ls.data().title;
+                orgName = ls.data().orgName;
+            }
+            await m.setDoc(ref('reports', reportId(id, user.id)), { listingId: id, userId: user.id, ...clean, title, orgName, status: 'open', created: now() });
+            return { ok: 1 };
+        }
+        case 'PATCH /admin/reports/:id': { // staff close every open report about one listing
+            only('admin', 'moderator');
+            if (!['dismissed', 'actioned'].includes(b.status)) {
+                bad('Bad status');
+            }
+            const rs = await m.getDocs(m.query(col('reports'), m.where('listingId', '==', id), m.where('status', '==', 'open')));
+            for (let i = 0; i < rs.docs.length; i += 400) {
+                const bt = m.writeBatch(db);
+                rs.docs.slice(i, i + 400).forEach(d => bt.update(d.ref, { status: b.status }));
+                await bt.commit();
+            }
+            return { ok: 1, closed: rs.docs.length };
+        }
         case 'POST /save/:id': {
             only('user');
             onboarded();
@@ -600,7 +641,7 @@ async function run(path, method, b, fu) {
 
         case 'GET /admin/data': {
             only('admin', 'moderator');
-            const [us, ls, ap] = await Promise.all([m.getDocs(col('users')), m.getDocs(col('listings')), m.getDocs(col('applications'))]);
+            const [us, ls, ap, rp] = await Promise.all([m.getDocs(col('users')), m.getDocs(col('listings')), m.getDocs(col('applications')), m.getDocs(m.query(col('reports'), m.where('status', '==', 'open'))).catch(() => ({ docs: [] }))]);
             const users = rows(us);
             let apps = rows(ap);
             let cleaned = 0;
@@ -625,6 +666,7 @@ async function run(path, method, b, fu) {
             }
             const d = adminData(users, rows(ls), apps);
             d.cleaned = cleaned;
+            d.reports = rows(rp).slice(0, 500).map(({ id: _i, userId: _u, ...r }) => r); // (who reported is kept out of the dashboard)
             if (user.role !== 'admin') {
                 return d; // moderators do not see the Team tab
             }

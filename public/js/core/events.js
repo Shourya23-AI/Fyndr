@@ -19,10 +19,11 @@ import * as community from '../features/community/community.actions.js';
 import * as groups from '../features/groups/groups.actions.js';
 import * as liked from '../features/liked/liked.actions.js';
 import * as share from '../features/share/share.actions.js';
+import * as report from '../features/report/report.actions.js';
 // One delegated listener per event type. Each feature owns its handlers:
 //   data-act="name"  -> features/<feature>/<feature>.actions.js  `actions.name`
 //   data-form="name" -> features/<feature>/<feature>.actions.js  `forms.name`
-const features = [auth, accountMenu, browse, dashboard, layout, legal, reset, phone, profile, proof, install, privacy, apply, analytics, library, community, groups, liked, share];
+const features = [auth, accountMenu, browse, dashboard, layout, legal, reset, phone, profile, proof, install, privacy, apply, analytics, library, community, groups, liked, share, report];
 const ACTIONS = Object.assign(Object.create(null), ...features.map(f => f.actions || {}));
 const FORMS = Object.assign(Object.create(null), ...features.map(f => f.forms || {}));
 export function bindEvents() {

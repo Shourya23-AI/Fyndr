@@ -21,15 +21,17 @@ export function skillsIn(text) {
     const t = ' ' + text.toLowerCase().replace(/[^a-z0-9+# ]/g, ' ').replace(/\s+/g, ' ') + ' ';
     return [...new Set(POOL.filter(([k]) => t.includes(' ' + k.replace(/[^a-z0-9+# ]/g, ' ').trim() + ' ')).map(([, label]) => label))].slice(0, 8);
 }
-// Where a listing came from (shown as "Listed via ...").
+// Where a listing came from (shown as "Listed via ..."). Search links (the built-in catalog) are not listed "via" anywhere: see origin.js.
 export const SOURCES = {
     greenhouse: 'the employer\'s Greenhouse job board',
     lever: 'the employer\'s Lever job board',
+    ashby: 'the employer\'s Ashby job board',
+    smartrecruiters: 'the employer\'s SmartRecruiters job board',
     page: 'the employer\'s careers page',
     catalog: 'Fyndr\'s picked course list',
     adzuna: 'Adzuna'
 };
-export const sourceOf = l => l.source === 'import' ? (SOURCES[l.origin] || 'the official page') : '';
+export const sourceOf = l => (l.search || String(l.id).startsWith('cat_') ? '' : l.source === 'import' ? (SOURCES[l.origin] || 'the official page') : '');
 
 // ---------- 1. lines the writer labelled themselves ----------
 const LABELS = {
@@ -235,7 +237,12 @@ export function summarize(l) {
     const bestFor = lab.bestFor.length ? lab.bestFor : bestForByRules(l, level, skills, text);
     const provides = lab.provides.length ? lab.provides : providesByRules(l, skills, text);
     const steps = [];
-    if (l.applyUrl) {
+    if (l.search) {
+        steps.push(`Pick a ${course ? 'learning site' : 'job board'} below. The first buttons are the most popular ones.`);
+        steps.push(`It opens that ${course ? 'site' : 'board'}'s own search for ${escH(l.title)} in a new tab. Fyndr has not checked what you will find there.`);
+        steps.push(course ? 'Compare level, price, reviews and whether you get a certificate before you enrol.' : 'Check the company, the stipend or salary and whether it is on-site before you apply.');
+        steps.push('A real employer never asks you to pay a fee or share an OTP. Apply or enrol on that site\'s own page.');
+    } else if (l.applyUrl) {
         steps.push(`Press <b>${course ? 'Go to the course page' : 'Apply on the official page'}</b>. It opens ${escH(hostOf(l.applyUrl))} in a new tab.`);
         steps.push('Check the address bar. A real employer never asks you to pay a fee or share an OTP.');
         steps.push(course ? 'Follow the enrolment steps on that page.' : 'Create an account or fill their form there, and attach your resume.');

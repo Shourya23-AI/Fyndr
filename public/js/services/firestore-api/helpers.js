@@ -149,7 +149,7 @@ export const cleanImport = it => {
     return {
         orgId: 'import', orgName: T(it.orgName, 80), title: T(it.title, 120), type: JT.includes(it.type) && it.type !== 'Freelance' ? it.type : 'Job',
         location: T(it.location, 120) || 'See listing', pay: T(it.pay, 80) || 'See listing', duration: T(it.duration, 40), description: T(it.description, 4000),
-        image: '', logo: '', applyUrl, source: 'import', origin: T(it.source, 20) || 'page'
+        image: '', logo: '', applyUrl, source: 'import', origin: T(it.source, 20) || 'page', remote: it.remote === true
     };
 };
 

@@ -137,7 +137,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Fyndr" />
     <script>
-      // Keep the browser's install prompt so the footer "Get the app" button can use it later.
+      // Keep the browser's install prompt so the sidebar "Get the app" button can use it later.
       addEventListener("beforeinstallprompt", (e) => {
         e.preventDefault();
         window.__installPrompt = e;
@@ -149,16 +149,16 @@
         localStorage.theme ||
         (matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light");
     </script>
-    <title>Fyndr: internships and jobs, checked before you see them</title>
+    <title>Fyndr: internships, jobs and courses for students</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#f4f2ec" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f1012" media="(prefers-color-scheme: dark)" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Fyndr" />
-    <meta property="og:title" content="Fyndr: internships and jobs, checked before you see them" />
-    <meta property="og:description" content="Fyndr lists internships, jobs and courses from organizations our team has verified." />
+    <meta property="og:title" content="Fyndr: internships, jobs and courses for students" />
+    <meta property="og:description" content="Fyndr brings internships, jobs and courses into one place: openings from verified organizations and company career pages, plus quick links to job boards and course sites." />
     <meta name="twitter:card" content="summary" />
-    <meta name="description" content="Fyndr lists internships, jobs and courses from organizations our team has verified." />
+    <meta name="description" content="Fyndr brings internships, jobs and courses into one place: openings from verified organizations and company career pages, plus quick links to job boards and course sites." />
   </head>
   <body>
     <header class="site-header">
@@ -178,18 +178,14 @@
         <span class="logo-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 26V7.5h13"/><circle cx="16.2" cy="16.4" r="4.3"/><path d="m19.4 19.6 4.6 4.6"/></svg></span>
         Fyndr
       </a>
-      <p>Find work worth doing.</p>
-      <a href="#/organizations">For organizations</a>
       <nav class="footer-links" aria-label="Legal">
         <a href="#/terms">Terms &amp; Conditions</a>
         <a href="#/privacy">Privacy Policy</a>
         <a href="#/contact">Contact Us</a>
       </nav>
-      <button class="install-btn" type="button" data-act="install-app">
+      <button class="install-btn install-round" type="button" data-act="install-app" aria-label="Get the app" title="Get the app">
         <svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" /></svg>
-        Get the app
       </button>
-      <span>© 2026 Fyndr</span>
     </footer>
 
     <div id="toast" role="status" aria-live="polite" hidden></div>

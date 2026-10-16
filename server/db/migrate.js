@@ -8,6 +8,12 @@ const MIGRATIONS = [
                 d[k] = [];
             }
         }
+    },
+    // 2: reports about listings ("Report this listing")
+    d => {
+        if (!Array.isArray(d.reports)) {
+            d.reports = [];
+        }
     }
 ];
 module.exports = function migrate(d) {

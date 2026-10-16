@@ -52,7 +52,7 @@ export function nearestCity(lat, lng, max = 120) {
     }
     return best && best.d <= max ? best.c : null;
 }
-export const isRemote = l => /\b(remote|work from home|wfh|anywhere|online)\b/i.test(String(l && l.location || ''));
+export const isRemote = l => (l && l.remote === true) || /\b(remote|work from home|wfh|anywhere|online)\b/i.test(String(l && l.location || ''));
 // "India · many cities and remote": a board search across many places, not one city
 const spread = l => /many cities/i.test(String(l && l.location || ''));
 // Rows in or near `origin` (a city from CITIES), nearest first; rows in the same distance keep their order.
@@ -62,11 +62,11 @@ export function nearRows(rows, origin, maxKm = NEAR_KM) {
     }
     const out = [];
     rows.forEach((l, i) => {
-        if (l.type === 'Course' || isRemote(l) || spread(l)) {
+        // a job role grouped from the catalog lists every city it has (l.cities): it is near when any of them is
+        if (l.type === 'Course' || (!l.cities && (isRemote(l) || spread(l)))) {
             return;
         }
-        const c = cityIn(l.location);
-        const d = c ? km(origin, c) : Infinity;
+        const d = l.cities ? Math.min(Infinity, ...l.cities.map(n => { const c = cityIn(n); return c ? km(origin, c) : Infinity; })) : (c => (c ? km(origin, c) : Infinity))(cityIn(l.location));
         if (d <= maxKm) {
             out.push({ l, i, d });
         }

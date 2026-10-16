@@ -47,7 +47,7 @@ export async function api(p, m = 'GET', b) {
         return toggleCatSaved(p.slice('/save/'.length));
     }
     if (m === 'GET' && p === '/my') {
-        const d = await apiCore(p, m, b);
+        const [d] = await Promise.all([apiCore(p, m, b), loadCatalog()]); // (the catalog being loaded also moves older saved items to their new ids)
         return d && Array.isArray(d.saved) ? { ...d, saved: d.saved.concat(catSaved()) } : d;
     }
     return apiCore(p, m, b);

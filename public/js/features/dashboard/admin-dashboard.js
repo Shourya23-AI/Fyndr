@@ -4,9 +4,10 @@ import { api } from '../../core/api.js';
 import { RETENTION } from '../privacy/retention.js';
 import { trustScore, TRUST_MIN } from '../trust/trust.js';
 import { aggregate, weeklyReport } from '../insights/insights.js';
+import { groupReports, reasonText } from '../report/report.rules.js';
 // Admin dashboard (sidebar like the candidate one): Overview · Organizations · Listings · Verification · Candidates.
 // Data comes from GET /admin/data. Org size + Gmail-posting controls are <select>s handled by onChange in dashboard.actions.js.
-const TABS = [['overview', 'Overview', 'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z'], ['orgs', 'Organizations', 'M4 21V7l8-4 8 4v14M9 21v-6h6v6'], ['listings', 'Listings', 'M4 7h16v12H4zM9 7V4h6v3'], ['verify', 'Verification', 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4'], ['people', 'Candidates', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0'], ['insights', 'Insights', 'M4 20V10M10 20V4M16 20v-7M22 20H2'], ['team', 'Team', 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 11a2.5 2.5 0 1 0 0-5M17 14.5a5 5 0 0 1 4 5.5']];
+const TABS = [['overview', 'Overview', 'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z'], ['orgs', 'Organizations', 'M4 21V7l8-4 8 4v14M9 21v-6h6v6'], ['listings', 'Listings', 'M4 7h16v12H4zM9 7V4h6v3'], ['reports', 'Reports', 'M5 21V4h11l-1.5 3.5L16 11H5'], ['verify', 'Verification', 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4'], ['people', 'Candidates', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0'], ['insights', 'Insights', 'M4 20V10M10 20V4M16 20v-7M22 20H2'], ['team', 'Team', 'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 11a2.5 2.5 0 1 0 0-5M17 14.5a5 5 0 0 1 4 5.5']];
 const isAdmin = () => S.me?.role === 'admin'; // moderators see everything they can act on, nothing more
 const SIZE = { small: 'Small business', enterprise: 'Enterprise' };
 const head = (t, d) => `<div class="dash-head"><h2>${t}</h2><p class="desc">${d}</p></div>`;
@@ -24,7 +25,7 @@ function overview(d) {
     const free = d.orgs.filter(o => o.free);
     const tile = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
     const todo = (n, t, tab) => n ? `<div class="todo"><span><b>${n}</b> ${t}</span><button class="button button-small" data-act="atab" data-id="${tab}">Review</button></div>` : '';
-    const items = todo(s.pendingListings, 'listing(s) waiting for approval', 'listings') + todo(s.pendingVerifications, 'verification document(s) to review', 'verify') + todo(free.length, `organization(s) use a Gmail-type email (${free.filter(o => o.gmailAllowed).length} can post)`, 'orgs');
+    const items = todo(s.pendingListings, 'listing(s) waiting for approval', 'listings') + todo(groupReports(d.reports || []).length, 'listing(s) reported by users', 'reports') + todo(s.pendingVerifications, 'verification document(s) to review', 'verify') + todo(free.length, `organization(s) use a Gmail-type email (${free.filter(o => o.gmailAllowed).length} can post)`, 'orgs');
     return head('Overview', 'What needs your attention right now.') + `<div class="stats3">${tile(s.candidates, 'Candidates') + tile(s.organizations, 'Organizations') + tile(s.listings, 'Listings') + tile(s.pendingListings, 'Listings pending') + tile(s.pendingVerifications, 'Verifications pending') + tile(s.applications, 'Applications')}</div>
 <div class="panel"><h3>Needs attention</h3>${items || '<p class="desc">All caught up.</p>'}</div>
 ${isAdmin() ? `<div class="panel"><h3>Data retention</h3><p class="desc">Applications (and the resume copies shared with organizations) are deleted ${RETENTION.closedListingDays} days after a listing is closed, and ${RETENTION.maxApplicationDays} days after the candidate applied. This runs when an admin opens this dashboard (at most once an hour)${d.cleaned ? `: <b>${d.cleaned}</b> removed just now` : ''}.</p><button class="button button-small" style="margin-top:12px" data-act="cleanup">Run cleanup now</button></div>` : ''}
@@ -56,6 +57,17 @@ function insights(d, x) {
 <div class="panel"><h3>Searches that found nothing</h3>${table(['Search words', 'Times'], a30.topEmpty.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`))}</div>
 <div class="panel"><h3>Skills: demand and supply</h3><p class="desc">Views are how often listings mentioning the skill were opened. Listings is how many open listings mention it.</p>${table(['Skill', 'Views', 'Listings', 'Read'], [...a30.shortage.map(s => `<tr><td>${esc(s.skill)}</td><td>${s.views}</td><td>${s.listings}</td><td><span class="tag tag-warn">Needs more listings</span></td></tr>`), ...a30.surplus.map(s => `<tr><td>${esc(s.skill)}</td><td>${s.views}</td><td>${s.listings}</td><td><span class="tag">Plenty of listings</span></td></tr>`)])}</div>
 <div class="panel"><h3>Weekly report</h3><p class="desc">Written from the totals above only. Copy it into an email to yourself.</p><div class="ins-report" id="weekrep">${esc(weeklyReport(a7))}</div><button class="button button-small" style="margin-top:12px" data-act="copyrep">Copy</button></div>`;
+}
+// Reports from candidates and organizations ("Report this listing"). One row per listing, the most worrying first. A report never hides a listing by itself:
+// a person decides here. "Hide listing" rejects it (it leaves the public list at once); "Dismiss" says nothing was wrong.
+function reports(d) {
+    const g = groupReports(d.reports || []);
+    const rows = g.map(r => {
+        const why = Object.entries(r.reasons).map(([k, n]) => `<span class="tag ${['scam', 'id', 'fake'].includes(k) ? 'tag-warn' : ''}">${esc(reasonText(k))} ×${n}</span>`).join(' ');
+        const real = !String(r.listingId).startsWith('cat_');
+        return `<tr><td><b>${esc(r.title || r.listingId)}</b><br><span class="desc">${esc(r.orgName || '')}${real ? '' : ' · search link (not a posting)'}</span></td><td>${r.count}</td><td>${why}</td><td>${r.notes.length ? r.notes.map(n => `<span class="desc">“${esc(n)}”</span>`).join('<br>') : '<span class="desc">No note</span>'}</td><td>${fmt(r.last)}</td><td><button class="mini ok" data-act="rpclose" data-id="${esc(r.listingId)}" data-s="dismissed">Dismiss</button> ${real ? `<button class="mini no" data-act="rphide" data-id="${esc(r.listingId)}">Hide listing</button>` : `<button class="mini" data-act="rpclose" data-id="${esc(r.listingId)}" data-s="actioned">Fixed</button>`}</td></tr>`;
+    });
+    return head('Reports', 'What candidates and organizations reported. Scam-type reports come first. Reading one never changes a listing; you decide.') + `<div class="panel">${table(['Listing', 'Reports', 'Reasons', 'Notes', 'Latest', ''], rows)}</div>`;
 }
 function verify(d) {
     const CK = {
@@ -110,13 +122,13 @@ async function drawAdmin(a) {
     const d = await api('/admin/data');
     S.atab = S.atab || 'overview';
     const extra = S.atab === 'insights' ? await api('/admin/insights') : null;
-    const badge = { listings: d.stats.pendingListings, verify: d.stats.pendingVerifications };
+    const badge = { listings: d.stats.pendingListings, verify: d.stats.pendingVerifications, reports: groupReports(d.reports || []).length };
     const tabs = TABS.filter(t => t[0] !== 'team' || isAdmin());
     if (!tabs.some(t => t[0] === S.atab)) {
         S.atab = 'overview';
     }
     const body = {
-        overview, orgs, listings, verify, people, team, insights
+        overview, orgs, listings, reports, verify, people, team, insights
     }[S.atab](d, extra);
     const keep = document.activeElement?.id === 'tq'; // keep typing in the search box after a redraw
     a.innerHTML = `<div class="dash-layout"><aside class="dash-side"><nav>${tabs.map(([id, t, ic]) => `<button class="side-btn ${S.atab === id ? 'on' : ''}" data-act="atab" data-id="${id}"><svg viewBox="0 0 24 24"><path d="${ic}"/></svg>${t}${badge[id] ? `<span class="side-badge">${badge[id]}</span>` : ''}</button>`).join('')}</nav><span class="side-link">${S.me.permanent ? '★ Main admin (permanent)' : S.me.role === 'moderator' ? 'Signed in as moderator' : 'Signed in as admin'}</span><span class="side-link desc" style="font-size:11px">Build ${BUILD()}</span></aside><main class="dash-main">${body}</main></div>`;

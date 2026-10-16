@@ -1172,3 +1172,32 @@ body.dt-lock {
   height: 22px;
   background: var(--line, rgba(128, 128, 128, .35));
 }
+
+/* ---- Grouped listings: one card per role or topic, with provider / job board buttons (features/catalog/group.js) ---- */
+.lc-origin { display: flex; align-items: center; gap: 5px; margin: 0 0 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.lc-origin svg { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.lc-origin[data-k="direct"], .lc-origin[data-k="posted"] { color: var(--ok-fg); }
+.lc-links { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.lc-link { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.lc-link:hover { border-color: var(--green); color: var(--green); }
+.lc-link i { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--ok-fg); background: var(--ok-bg); padding: 1px 6px; border-radius: 999px; }
+.lc-more { color: var(--muted); }
+.dt-origin-note { display: block; margin: 0 0 8px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.dt-report { margin-left: 8px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.dt-report:hover { border-color: #d6455d; color: #d6455d; }
+.dt-boards .dt-place { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+.dt-boards select { padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); color: var(--ink); font: inherit; }
+.dt-boardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0 0 10px; padding: 0; list-style: none; }
+.dt-board { display: flex; flex-direction: column; gap: 2px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); text-decoration: none; }
+.dt-board:hover { border-color: var(--green); }
+.dt-board span { color: var(--muted); font-size: 12px; }
+
+/* ---- Report this listing window ---- */
+.rp-back { z-index: 1300; }
+.rp-box { max-width: 460px; }
+.rp-reasons { margin: 0 0 12px; padding: 0; border: 0; }
+.rp-reasons legend { margin-bottom: 6px; font-weight: 700; }
+.rp-r { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; }
+.rp-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+.rf{margin-top:8px}.rf-l{color:var(--muted);font-size:.8rem;font-weight:700}.rf-clear{border-style:dashed;color:var(--muted)}

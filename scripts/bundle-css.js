@@ -10,7 +10,7 @@ const ORDER = [
     'components/logo.css', 'components/buttons.css', 'components/forms.css', 'components/panel.css', 'components/table.css', 'components/tags.css', 'components/hero.css', 'components/how-it-works.css', 'components/toast.css', 'components/install.css', 'components/skeleton.css', 'components/reveal.css',
     'layout/header.css', 'layout/footer.css', 'layout/account-menu.css', 'layout/sidebar.css',
     'pages/home.css', 'pages/landing.css', 'pages/browse.css', 'pages/organizations.css', 'pages/dashboard.css', 'pages/profile.css', 'pages/proof.css', 'pages/phone.css', 'pages/auth.css', 'pages/legal.css', 'pages/privacy.css', 'pages/apply.css', 'pages/community.css', 'pages/library.css',
-    'components/banner.css', 'components/watermark.css', 'components/chat.css', 'components/share.css', 'components/soft.css', 'pages/motion.css', 'components/lively.css',
+    'components/banner.css', 'components/poster.css', 'components/watermark.css', 'components/chat.css', 'components/share.css', 'components/soft.css', 'pages/motion.css', 'components/lively.css',
     'base/dark.css'
 ];
 const mini = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').replace(/\s*([{};,>])\s*/g, '$1').replace(/;}/g, '}').trim();

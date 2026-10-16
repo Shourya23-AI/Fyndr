@@ -3,6 +3,7 @@ require('./config.routes');
 require('./account.routes');
 require('./listings.routes');
 require('./candidate.routes');
+require('./report.routes');
 require('./profile.routes');
 require('./proof.routes');
 require('./organization.routes');

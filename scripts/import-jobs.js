@@ -20,6 +20,7 @@
 // Run:  node scripts/import-jobs.js [companies.json] [output.json]      (Node 18 or newer)
 const fs = require('fs');
 const path = require('path');
+const facts = require('./lib/facts');
 const UA = 'FyndrImporter/1.0 (+job listing aggregator; respects robots.txt)';
 const strip = h => String(h || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/<\/(p|div|li|h\d|br)>/gi, '\n').replace(/<li>/gi, '- ').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 const typeOf = t => /intern/i.test(t) ? 'Internship' : /course|bootcamp|training programme|certificate/i.test(t) ? 'Course' : 'Job';
@@ -150,13 +151,13 @@ function placeOk(it, keep) {
 async function fromGreenhouse(c) {
     const d = await get(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(c.board)}/jobs?content=true`, true);
     return (d.jobs || []).map(j => ({
-        orgName: c.name, title: j.title, type: typeOf(j.title), location: j.location && j.location.name, pay: '', description: strip(j.content), applyUrl: j.absolute_url, source: 'greenhouse'
+        orgName: c.name, title: j.title, type: typeOf(j.title), location: j.location && j.location.name, pay: facts.payFromGreenhouse(j), description: strip(j.content), applyUrl: j.absolute_url, source: 'greenhouse'
     }));
 }
 async function fromLever(c) {
     const d = await get(`https://api.lever.co/v0/postings/${encodeURIComponent(c.board)}?mode=json`, true);
     return (Array.isArray(d) ? d : []).map(j => ({
-        orgName: c.name, title: j.text, type: typeOf(j.text), location: j.categories && j.categories.location, pay: '', description: j.descriptionPlain || strip(j.description), applyUrl: j.hostedUrl || j.applyUrl, source: 'lever'
+        orgName: c.name, title: j.text, type: typeOf(j.text), location: j.categories && j.categories.location, pay: facts.payFromLever(j), description: j.descriptionPlain || strip(j.description), applyUrl: j.hostedUrl || j.applyUrl, source: 'lever'
     }));
 }
 async function fromPage(c) {
@@ -207,7 +208,7 @@ async function fromAshby(c) {
     return (d.jobs || []).filter(j => j.isListed !== false && (j.jobUrl || j.applyUrl)).map(j => ({
         orgName: c.name, title: j.title, type: typeOf(j.title),
         location: [j.location, ...(j.secondaryLocations || []).map(x => (x && x.location) || x)].filter(x => typeof x === 'string' && x).join('; ') || (j.isRemote ? 'Remote' : ''),
-        pay: '', description: j.descriptionPlain || strip(j.descriptionHtml), applyUrl: j.jobUrl || j.applyUrl, source: 'ashby'
+        pay: facts.payFromAshby(j), description: j.descriptionPlain || strip(j.descriptionHtml), applyUrl: j.jobUrl || j.applyUrl, source: 'ashby'
     }));
 }
 // SmartRecruiters' public Posting API. The list gives title, place, department and experience level (no long text), which is enough for the filters.
@@ -320,6 +321,8 @@ async function fromMsLearn(c) {
         };
     });
 }
+// Fills stipend and duration from the posting's own words when the company's system gave none (never guessed).
+const withFacts = x => (x.type === 'Course' || x.source === 'catalog' ? x : { ...x, pay: x.pay || facts.stipendFrom(x.description), duration: x.duration || (x.type === 'Internship' ? facts.durationFrom(x.description) : ''), remote: facts.remoteFrom(x.location, x.description) });
 const SOURCES = { mslearn: fromMsLearn, greenhouse: fromGreenhouse, lever: fromLever, ashby: fromAshby, smartrecruiters: fromSmartRecruiters, page: fromPage, catalog: fromCatalog, adzuna: fromAdzuna };
 const COMPLETE = new Set(['greenhouse', 'lever', 'ashby', 'smartrecruiters', 'page', 'catalog']); // sources that return a company's WHOLE list (not a sample)
 const keyOf = c => `${c.type}:${c.board || c.url || c.file || c.country || c.name}`;
@@ -359,7 +362,7 @@ async function collect(list, log = console.log, report = { complete: new Set(), 
             if (cfg.studentFriendlyOnly !== false) {
                 r = r.filter(studentFriendly);
             }
-            r = r.filter(x => placeOk(x, cfg.keepLocations)).slice(0, cfg.maxPerSource || 60).map(x => ({ ...x, srcKey: keyOf(src), site: c.site || '' }));
+            r = r.filter(x => placeOk(x, cfg.keepLocations)).slice(0, cfg.maxPerSource || 60).map(x => withFacts(x)).map(x => ({ ...x, srcKey: keyOf(src), site: c.site || '' }));
             log(`${c.name}: ${raw.length} found, ${r.length} kept`);
             if (raw.length && COMPLETE.has(src.type)) {
                 report.complete.add(keyOf(src));

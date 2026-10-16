@@ -226,6 +226,41 @@ service cloud.firestore {
       allow delete: if isStaff() || (signedIn() && resource.data.orgId == me());
     }
 
+    // ---------- reports: "Report this listing" ----------
+    // One report per person per listing (id = listingId_uid). The reporter can send it again to replace it. Only staff read reports and close them.
+    // Nothing here stops a determined person from sending many reports about different listings: that is why a report never hides a listing by
+    // itself. Staff look at them (Dashboard > Reports) and decide.
+    match /reports/{rid} {
+      function reportOk(d) {
+        return d.reason in ['scam', 'id', 'fake', 'closed', 'other']
+          && d.note is string && d.note.size() <= 300
+          && d.title is string && d.title.size() <= 120
+          && d.orgName is string && d.orgName.size() <= 80
+          && d.created is string;
+      }
+      allow create: if signedIn()
+        && myDoc().role in ['user', 'org']
+        && rid == request.resource.data.listingId + '_' + me()
+        && request.resource.data.keys().hasOnly(['listingId', 'userId', 'reason', 'note', 'title', 'orgName', 'status', 'created'])
+        && request.resource.data.userId == me()
+        && request.resource.data.status == 'open'
+        && reportOk(request.resource.data);
+      allow update: if signedIn()
+        && resource.data.userId == me()
+        && request.resource.data.userId == me()
+        && request.resource.data.listingId == resource.data.listingId
+        && request.resource.data.status == 'open'
+        && reportOk(request.resource.data);
+      allow update: if isStaff()
+        && changed().hasOnly(['status'])
+        && request.resource.data.status in ['open', 'dismissed', 'actioned'];
+      allow get: if signedIn() && resource.data.userId == me();
+      allow get, list: if isStaff();
+      // A person's own reports (needed when their account is deleted)
+      allow list: if signedIn() && resource.data.userId == me();
+      allow delete: if isStaff() || (signedIn() && resource.data.userId == me());
+    }
+
     // ---------- usage counters: ONE document per day, only totals (no user, no listing, no time of day) ----------
     // Anyone signed in may add small amounts (each counter at most +50 per write) to the fixed counters, and to the 'empty' (searches that
     // found nothing) and 'skills' maps. Only staff read them. The values inside the two maps are not range-checked by the rules (the app caps them);

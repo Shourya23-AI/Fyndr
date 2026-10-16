@@ -6,13 +6,14 @@ import { railHTML, rail } from '../suggestions/rail.js';
 import { loadListings } from './listings.js';
 import { CAT_CHIPS } from './banner.js';
 import { searchTerms } from '../suggestions/personal.js';
-import { filterRow } from './filters.js';
+import { filterRow, refineRow } from './filters.js';
 import { adviceFor, cleanStudy } from '../suggestions/study.js';
 // Signed-in listing pages. scope 'jobs' = jobs + internships (#/jobs), scope 'courses' = courses only (#/courses).
 export async function browse(scope = 'jobs') {
     if (S.scope !== scope) {
         S.f.type = '';
         S.cat = '';
+        S.rf = { src: '', pay: '', dur: '', price: '', cert: false, remote: false };
     }
     S.scope = scope;
     const courses = scope === 'courses';
@@ -21,8 +22,8 @@ export async function browse(scope = 'jobs') {
         S.mine = x;
     }).catch(() => { }) : Promise.resolve();
     const chips = `<div class="chips-row" role="group" aria-label="Category">${[['', 'All']].concat(CAT_CHIPS).map(([k, t]) => `<button class="chip-c ${(S.cat || '') === k ? 'on' : ''}" data-act="cat" data-id="${k}">${t}</button>`).join('')}</div>`;
-    $('#app').innerHTML = `${railHTML()}<section class="hero hero-compact container"><div><h1>${courses ? 'Courses to build your skills' : 'Jobs &amp; internships for you'}</h1><p class="lead">${courses ? 'Free and paid courses for UG, PG and intern learners.' : 'Roles for students, freshers and interns, checked before you see them.'}</p>
-<form class="search-box" data-form="search"><label class="search-field"><input name="q" type="search" aria-label="Search" placeholder="${courses ? 'Course, skill or provider' : 'Role, skill or company'}" value="${esc(S.f.q)}"></label><label class="search-field"><input name="loc" aria-label="Location" placeholder="Remote or city" value="${esc(S.f.loc)}"></label><button class="search-button">Search</button></form>${courses ? '' : '<div class="try-row" id="try" hidden></div>' + filterRow()}</div></section>
+    $('#app').innerHTML = `${railHTML()}<section class="hero hero-compact container"><div><h1>${courses ? 'Courses to build your skills' : 'Jobs &amp; internships for you'}</h1><p class="lead">${courses ? 'Free and paid courses for UG, PG and intern learners. One card per topic, with every site that teaches it.' : 'Roles for students, freshers and interns. Each card tells you where it comes from.'}</p>
+<form class="search-box" data-form="search"><label class="search-field"><input name="q" type="search" aria-label="Search" placeholder="${courses ? 'Course, skill or provider' : 'Role, skill or company'}" value="${esc(S.f.q)}"></label><label class="search-field"><input name="loc" aria-label="Location" placeholder="Remote or city" value="${esc(S.f.loc)}"></label><button class="search-button">Search</button></form>${courses ? '' : '<div class="try-row" id="try" hidden></div>' + filterRow()}<div id="rf-host">${refineRow(scope)}</div></div></section>
 <section class="container page" id="browse"><div class="list-head"><div><h2>${courses ? 'All courses' : 'All jobs &amp; internships'}</h2><p class="desc"><span id="count"></span></p></div>${courses ? '' : `<div class="tabs">${[['', 'All'], ['Job', 'Jobs'], ['Internship', 'Internships']].map(([v, t]) => `<button class="${S.f.type === v ? 'active' : ''}" data-act="tab" data-id="${v}">${t}</button>`).join('')}</div>`}</div>${chips}<div class="opportunity-grid" id="grid"></div></section>`;
     mineP.then(() => rail()).catch(() => { });
     tryChips(courses);

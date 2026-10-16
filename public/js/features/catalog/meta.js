@@ -1,7 +1,7 @@
 // Shared by the catalog builder (scripts/build-catalog.js) and the browser (catalog.js).
 // A catalog row is tiny: [topic, provider#, category, flag]. It is turned into a full listing here, in the browser.
-// HONEST NOTE: catalog entries are TOPIC listings. Each one opens the provider's own search page for that topic,
-// so the student picks the exact course there. They are not individually verified course pages.
+// HONEST NOTE: catalog entries are SEARCH LINKS, not postings. A course topic or a job role is one entry (see group.js); its buttons open each
+// provider's or job board's own search page, so the student picks the exact course or opening there. Fyndr has not checked any single page behind them.
 const enc = encodeURIComponent;
 // [name, short key, pay text, duration, url(topic), title suffix]
 export const PROVIDERS = [
@@ -51,18 +51,8 @@ export const PROVIDERS = [
     ['TED-Ed and YouTube Edu', 'ted', 'Free', 'Short lessons', q => 'https://www.youtube.com/results?search_query=' + enc(q + ' lecture playlist'), 'lecture playlists'],
     ['Google Digital Garage and Skillshop', 'gdg', 'Free', 'Self-paced, 1 to 40 hours', q => 'https://www.google.com/search?q=' + enc(q + ' site:skillshop.withgoogle.com OR site:learndigital.withgoogle.com'), 'Google certificates']
 ];
-// Any search gets cards, even for a topic Fyndr has never listed: one per provider, each opening that provider's own search for exactly what was typed.
-const VIRTUAL = [0, 1, 2, 3, 16, 8, 10, 11, 21]; // Coursera, edX, Udemy, YouTube, Class Central, SWAYAM, Alison, FutureLearn, Google
 const h32 = s => { let h = 2166136261; for (const c of s) { h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0; } return h; };
 export const cleanQuery = q => String(q || '').replace(/\s+/g, ' ').trim().slice(0, 80);
-export function virtualCourses(q) {
-    const topic = cleanQuery(q);
-    if (topic.length < 2) {
-        return [];
-    }
-    const now = new Date().toISOString();
-    return VIRTUAL.map(pi => ({ ...expandCourse([topic, pi, '', 'a', ''], 0), id: 'cat_cq_' + h32(topic.toLowerCase()).toString(36) + '_' + pi, cat: undefined, virtual: true, created: now }));
-}
 // [provider name, what you get, link for this topic] for every provider, shown in the "Looking for ...?" card.
 export const providerLinks = q => PROVIDERS.map(P => [P[0], /^Free\b/.test(P[2]) ? 'free' : /Paid/.test(P[2]) ? 'paid' : 'free to start', P[4](cleanQuery(q))]);
 const AUD = { u: 'UG students (first to third year)', p: 'PG students and final-year UG', a: 'Anyone starting out' };
@@ -84,18 +74,20 @@ export function expandCourse(r, i) {
 // Each row opens the job board's own live search for that role and city (openings change every day, so none is "stored" here).
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 // [name, url(role, city)]  city is '' for remote / anywhere
+export const NATION = 'India'; // place value meaning "all of India" (as opposed to '' = remote only, or a city name)
+const city = c => (c && c !== NATION ? c : '');
 export const BOARDS = [
-    ['LinkedIn Jobs', (q, c) => 'https://www.linkedin.com/jobs/search/?keywords=' + enc(q) + (c ? '&location=' + enc(c + ', India') : '&location=India&f_WT=2')],
+    ['LinkedIn Jobs', (q, c) => 'https://www.linkedin.com/jobs/search/?keywords=' + enc(q) + (c === NATION ? '&location=India' : c ? '&location=' + enc(c + ', India') : '&location=India&f_WT=2')],
     ['Indeed India', (q, c) => 'https://in.indeed.com/jobs?q=' + enc(q) + '&l=' + enc(c || 'Remote')],
-    ['Naukri', (q, c) => 'https://www.naukri.com/' + slug(q) + '-jobs' + (c ? '-in-' + slug(c) : '')],
+    ['Naukri', (q, c) => 'https://www.naukri.com/' + slug(q) + '-jobs' + (city(c) ? '-in-' + slug(c) : '')],
     ['Internshala', q => 'https://internshala.com/internships/keywords-' + slug(q.replace(/\bintern(ship)?\b/i, '')) + '/'],
     // ---- added later: always appended, so older listing ids stay the same ----
-    ['Glassdoor', (q, c) => 'https://www.glassdoor.co.in/Job/jobs.htm?sc.keyword=' + enc(q) + (c ? '&locKeyword=' + enc(c) : '')],
-    ['Foundit (Monster)', (q, c) => 'https://www.foundit.in/srp/results?query=' + enc(q) + (c ? '&locations=' + enc(c) : '')],
-    ['TimesJobs', (q, c) => 'https://www.timesjobs.com/candidate/job-search.html?txtKeywords=' + enc(q) + '&txtLocation=' + enc(c || '')],
+    ['Glassdoor', (q, c) => 'https://www.glassdoor.co.in/Job/jobs.htm?sc.keyword=' + enc(q) + (city(c) ? '&locKeyword=' + enc(c) : '')],
+    ['Foundit (Monster)', (q, c) => 'https://www.foundit.in/srp/results?query=' + enc(q) + (city(c) ? '&locations=' + enc(c) : '')],
+    ['TimesJobs', (q, c) => 'https://www.timesjobs.com/candidate/job-search.html?txtKeywords=' + enc(q) + '&txtLocation=' + enc(city(c))],
     ['Shine', q => 'https://www.shine.com/job-search/' + slug(q) + '-jobs'],
     ['Freshersworld', q => 'https://www.freshersworld.com/jobs/jobsearch/' + slug(q) + '-jobs'],
-    ['Jooble', (q, c) => 'https://in.jooble.org/SearchResult?ukw=' + enc(q) + (c ? '&rg=' + enc(c) : '')],
+    ['Jooble', (q, c) => 'https://in.jooble.org/SearchResult?ukw=' + enc(q) + (city(c) ? '&rg=' + enc(c) : '')],
     ['Apna', q => 'https://apna.co/jobs?search=' + enc(q)],
     ['Hirist (tech)', q => 'https://www.hirist.tech/search/' + enc(q)],
     ['Wellfound (startups)', q => 'https://www.google.com/search?q=' + enc(q + ' site:wellfound.com')],
@@ -103,25 +95,11 @@ export const BOARDS = [
     ['Cutshort', q => 'https://www.google.com/search?q=' + enc(q + ' site:cutshort.io')],
     ['Unstop', q => 'https://unstop.com/search?searchTerm=' + enc(q)]
 ];
-// Any job search gets cards too: one per board, opening that board's own search for exactly what was typed. (Used on the Jobs page.)
-export const jobLinks = (q, city) => BOARDS.map(B => [B[0], B[1](cleanQuery(q), city || '')]);
-export function virtualJobs(q, city) {
-    const role = cleanQuery(q);
-    if (role.length < 2) {
-        return [];
-    }
-    const now = new Date().toISOString();
-    return [0, 1, 2, 3, 4, 5].flatMap(bi => {
-        const intern = bi === 3;
-        const B = BOARDS[bi];
-        return [{
-            id: 'cat_jq_' + h32(role.toLowerCase() + (city || '')).toString(36) + '_' + bi, type: intern ? 'Internship' : 'Job', title: role + (intern ? '' : ''), orgName: B[0], orgId: 'catalog', orgVerified: false,
-            location: city ? city + ', India' : 'India · many cities and remote', pay: 'Check listing', duration: '', virtual: true, cat: undefined,
-            description: 'Opens ' + B[0] + ' with this exact search (' + role + (city ? ' in ' + city : '') + '). Openings change every day, so the board shows what is open right now.',
-            applyUrl: B[1](role, city || ''), status: 'approved', source: 'import', origin: 'catalog', created: now
-        }];
-    });
-}
+// The link for one board, role and place. place: a city, '' (remote) or NATION (all of India).
+export const boardUrl = (bi, q, place = NATION) => BOARDS[bi][1](cleanQuery(q), place);
+// The "Looking for ...?" row on the Jobs page: one link per board, opening that board's own search for exactly what was typed.
+// city: a city name, or empty for all of India.
+export const jobLinks = (q, city) => BOARDS.map(B => [B[0], B[1](cleanQuery(q), city || NATION)]);
 export function expandJob(r, i) {
     const [title, kind, bi, city, cat, skills = ''] = r;
     const intern = kind === 'i';

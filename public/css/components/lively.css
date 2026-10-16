@@ -49,8 +49,8 @@
 
 :root:not([data-theme=dark]) .chip-c.on,
 :root:not([data-theme=dark]) .chip-f.on {
-  background: var(--chip-h, var(--lv-teal));
-  border-color: var(--chip-h, var(--lv-teal));
+  background: color-mix(in srgb, var(--chip-h, var(--lv-teal)) 72%, #000);
+  border-color: color-mix(in srgb, var(--chip-h, var(--lv-teal)) 72%, #000);
   color: #fff;
 }
 

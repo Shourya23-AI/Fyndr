@@ -119,7 +119,7 @@ export async function route() {
     markNav(r);
     // An open chat fills the screen: the page footer is hidden while you are inside one (see css/components/soft.css)
     document.body.classList.toggle('in-chat', ['groups', 'community'].includes(r) && !!S.arg);
-    document.title = 'Fyndr: internships and jobs, checked before you see them';
+    document.title = 'Fyndr: internships, jobs and courses for students';
     try {
         if (!['login', 'register'].includes(r)) {
             closeAuth();

@@ -98,6 +98,7 @@ R('DELETE', '/api/admin/users/:id', ['admin'], ({ user, p }) => {
     db.listings = db.listings.filter(l => l.orgId !== p[0]);
     db.applications = db.applications.filter(a => a.userId !== p[0] && db.listings.some(l => l.id === a.listingId));
     db.saved = (db.saved || []).filter(x => x.userId !== p[0] && db.listings.some(l => l.id === x.listingId));
+    db.reports = (db.reports || []).filter(x => x.userId !== p[0]); // what a person reported goes with the person
     rmFile(p[0] + '.pdf'); // resume, ID/proof document: personal files must not outlive the account
     rmFile('proof-' + p[0]);
     save();
@@ -156,4 +157,14 @@ R('POST', '/api/admin/staff-invite/revoke', ['admin'], ({ body: b }) => {
     db.staffInvites = (db.staffInvites || []).filter(i => i.email !== String(b.email || '').toLowerCase());
     save();
     return { ok: 1 };
+});
+// Staff: look for new and closed openings at the companies now, instead of waiting for the next scheduled run. The result is kept so the admin can see it.
+R('POST', '/api/admin/refresh', MOD, async () => {
+    const out = await require('../jobs/auto-import').runOnce(() => { });
+    if (!out) {
+        bad(409, 'A refresh is already running, or nothing could be collected. Try again in a minute.');
+    }
+    db.importStatus = { at: new Date().toISOString(), ...out };
+    save();
+    return { ok: 1, ...out };
 });

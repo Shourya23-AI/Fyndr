@@ -13,6 +13,10 @@ const I = {
     me: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',
     org: '<path d="M4 20V6l8-3 8 3v14M9 20v-5h6v5M8 9h2M14 9h2M8 12h2M14 12h2"/>',
     theme: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+    doc: '<path d="M7 3h7l4 4v14H7zM14 3v4h4M9.5 12h5M9.5 15.5h5"/>',
+    lock: '<path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"/>',
+    mail: '<path d="M4 6h16v12H4zM4 7l8 6 8-6"/>',
+    get: '<path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/>',
     out: '<path d="M10 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M15 8l4 4-4 4M19 12H9"/>',
     in: '<path d="M14 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M9 8l-4 4 4 4M5 12h10"/>'
 };
@@ -34,7 +38,8 @@ function html() {
     return `<div class="side-back" data-act="sideclose"></div>
 <aside class="side" id="side" aria-label="Menu" inert><div class="side-top"><a class="logo" href="#/" data-act="sideclose">${LOGO}Fyndr</a><button class="icon-btn side-x" data-act="sideclose" aria-label="Close menu">✕</button></div>${who}
 <nav class="side-links" aria-label="Main">${main.join('')}</nav><nav class="side-links side-more" aria-label="Account">${more.join('')}</nav>
-<div class="side-foot"><button data-act="theme">${ic('theme')}<span>Dark / light mode</span></button>${sign}</div></aside>`;
+<nav class="side-links side-legal" aria-label="Legal">${link('#/terms', 'terms', 'doc', 'Terms &amp; Conditions')}${link('#/privacy', 'privacy', 'lock', 'Privacy Policy')}${link('#/contact', 'contact', 'mail', 'Contact Us')}</nav>
+<div class="side-foot"><button data-act="theme">${ic('theme')}<span>Dark / light mode</span></button>${sign}<div class="side-end"><span>© 2026 Fyndr</span><button class="install-btn install-round" type="button" data-act="install-app" aria-label="Get the app" title="Get the app">${ic('get')}</button></div></div></aside>`;
 }
 export function side() {
     let root = document.getElementById('side-root');

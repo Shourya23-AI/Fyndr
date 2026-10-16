@@ -2,6 +2,7 @@
 import { S } from '../../core/state.js';
 import { rankForMe } from '../suggestions/personal.js';
 import { nearRows, remoteRows, originFrom, locate, NEAR_KM } from './place.js';
+import { isActive } from '../listings/refine.js';
 const PLACES = [['any', 'Anywhere'], ['near', 'Near me'], ['remote', 'Remote']];
 export const filterRow = () => `<div class="jf" role="group" aria-label="Filter jobs">${PLACES.map(([k, t]) => `<button type="button" class="jf-b ${S.pf.place === k ? 'on' : ''}" data-act="place" data-id="${k}" aria-pressed="${S.pf.place === k}">${t}</button>`).join('')}<span class="jf-sep" aria-hidden="true"></span><button type="button" class="jf-b jf-fit ${S.pf.fit ? 'on' : ''}" data-act="fit" aria-pressed="${S.pf.fit}">Suitable for me</button></div>`;
 export const paintFilters = () => {
@@ -28,6 +29,7 @@ const profileOf = async () => {
 export async function byPlace(rows) {
     const mode = S.pf.place;
     S.fnote = '';
+    S.pf.city = ''; // the city job-board links should look in (set below for "Near me")
     if (mode === 'remote') {
         S.fnote = 'Remote and work-from-home only';
         return remoteRows(rows);
@@ -50,6 +52,7 @@ export async function byPlace(rows) {
             return [];
         }
     }
+    S.pf.city = o.city[0];
     const out = nearRows(rows, o.city);
     S.fnote = `Within ${NEAR_KM} km of ${o.city[0]}${o.how === 'device' ? ' (found from your device, never stored)' : o.how === 'profile' ? ' (from your profile)' : ''}${out.length ? '' : '. Nothing here yet: try Anywhere or Remote'}`;
     return out;
@@ -70,3 +73,16 @@ export async function bySuit(rows) {
     S.fnote = (S.fnote ? S.fnote + ' · ' : '') + (good.length >= 6 ? 'Only jobs that suit your profile' : 'Closest matches to your profile');
     return shown;
 }
+
+// Second row: stipend / duration / source for jobs, price / certificate / source for courses. data-act="rf", data-id="key:value".
+const GROUPS = {
+    jobs: [['Source', 'src', [['', 'All'], ['direct', 'Direct from company']]], ['Stipend', 'pay', [['', 'Any'], ['any', 'Stated'], ['10', '₹10k+/mo'], ['25', '₹25k+/mo']]], ['Duration', 'dur', [['', 'Any'], ['short', 'Up to 2 mo'], ['mid', '3 to 6 mo'], ['long', '6+ mo']]]],
+    courses: [['Price', 'price', [['', 'Any'], ['free', 'Has free option'], ['allfree', 'Fully free']]], ['Source', 'src', [['', 'All']]]]
+};
+export const refineRow = scope => {
+    const courses = scope === 'courses';
+    const g = GROUPS[courses ? 'courses' : 'jobs'].filter(x => x[2].length > 1);
+    const btn = (k, v, t) => `<button type="button" class="jf-b ${(S.rf[k] || '') === v ? 'on' : ''}" data-act="rf" data-id="${k}:${v}" aria-pressed="${(S.rf[k] || '') === v}">${t}</button>`;
+    const flag = (k, t) => `<button type="button" class="jf-b ${S.rf[k] ? 'on' : ''}" data-act="rf" data-id="${k}:flag" aria-pressed="${!!S.rf[k]}">${t}</button>`;
+    return `<div class="jf rf" role="group" aria-label="More filters">${g.map(([label, k, opts], i) => `${i ? '<span class="jf-sep" aria-hidden="true"></span>' : ''}<span class="rf-l">${label}</span>${opts.map(([v, t]) => btn(k, v, t)).join('')}`).join('')}${courses ? flag('cert', 'Has certificate') : flag('remote', 'Remote only')}${isActive(S.rf) ? '<button type="button" class="jf-b rf-clear" data-act="rfclear">Clear filters</button>' : ''}</div>`;
+};

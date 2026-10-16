@@ -5,10 +5,11 @@ import { card } from './card.js';
 import { catKey, monogram } from './banner.js';
 import { companyFor, isListed, careersCard } from './careers.js';
 import { rankForMe } from '../suggestions/personal.js';
-import { virtualCourses, virtualJobs, providerLinks, jobLinks, cleanQuery } from '../catalog/meta.js';
+import { providerLinks, jobLinks, cleanQuery } from '../catalog/meta.js';
 import { cityIn } from './place.js';
 import { esc } from '../../core/dom.js';
 import { byPlace, bySuit } from './filters.js';
+import { refine, refineNote } from '../listings/refine.js';
 import { preferFor, cleanStudy } from '../suggestions/study.js';
 export const PAGE = 48; // cards drawn at a time; the next batch loads by itself as you scroll (see core/autoload.js)
 const EMPTY = '<div class="empty"><b>No matches yet</b><p>Try fewer keywords, another category or a different location.</p><button class="button button-dark button-small" data-act="clear">Clear search</button></div>';
@@ -50,6 +51,9 @@ export async function loadListings(mineP) {
     }
     const qs = new URLSearchParams(Object.entries(f).filter(([, v]) => v)).toString();
     let [ls] = await Promise.all([api('/listings?' + qs), mineP]);
+    const before = ls.length;
+    ls = refine(ls, S.rf);
+    const rnote = refineNote(S.rf, before, ls.length);
     S.fnote = '';
     S.smatch = null;
     S.fitSort = false;
@@ -58,6 +62,9 @@ export async function loadListings(mineP) {
         if (S.pf.fit && S.me?.role === 'user' && S.me.onboarded) {
             ls = await bySuit(ls);
         }
+    }
+    if (rnote) {
+        S.fnote = (S.fnote ? S.fnote + ' · ' : '') + rnote;
     }
     S.lall = S.pf.fit && jobs && S.fitSort ? ls : await forMe(ls);
     if (!S.fitSort && !S.f.q && S.me?.role === 'user' && S.me.onboarded) {
@@ -69,28 +76,20 @@ export async function loadListings(mineP) {
     }
     S.cnote = await careersNote(ls);
     if (S.scope === 'courses' && cleanQuery(S.f.q).length > 1) {
-        // Whatever was typed gets a card: a link row for every provider, and (when few courses matched) one card per provider for that exact search.
+        // Whatever was typed gets a "Looking for ...?" card: a link to every provider's own search for it, whether or not Fyndr lists the topic.
         S.cnote = courseFind(S.f.q, ls.length);
-        if (ls.length < 12) {
-            const have = new Set(ls.map(x => x.id));
-            S.lall = S.lall.concat(virtualCourses(S.f.q).filter(x => !have.has(x.id)));
-        }
     }
     if (jobs && cleanQuery(S.f.q).length > 1) {
-        // Same for jobs: whatever was typed gets a link row for every job board, and (when few jobs matched) one card per board for that exact search.
+        // Same for jobs: whatever was typed gets a link to every job board's own search for it.
         const city = cityIn(S.f.loc);
         S.cnote = jobFind(S.f.q, city && city[0], ls.length) + (S.cnote || '');
-        if (ls.length < 12 && S.pf.place !== 'near') {
-            const have = new Set(ls.map(x => x.id));
-            S.lall = S.lall.concat(virtualJobs(S.f.q, city && city[0]).filter(x => !have.has(x.id) && (!S.f.type || x.type === S.f.type)));
-        }
     }
     drawListings();
 }
 // "Looking for X?" card for the Jobs page: where to find openings for anything searched, whether or not Fyndr lists it.
 function jobFind(q, city, found) {
     const t = cleanQuery(q);
-    return `<article class="cfind"><h3>Looking for “${esc(t)}”${city ? ' in ' + esc(city) : ''}?</h3><p>${found ? `${found.toLocaleString()} matching ${found === 1 ? 'listing is' : 'listings are'} below. ` : 'Nothing on Fyndr matches this exact search yet, but you can look on any of these. '}Each link opens that job board's own live search, so you see what is open today.</p>
+    return `<article class="cfind"><h3>Looking for “${esc(t)}”${city ? ' in ' + esc(city) : ''}?</h3><p>${found ? `${found.toLocaleString()} matching ${found === 1 ? 'listing is' : 'listings are'} below. ` : 'Nothing on Fyndr matches this exact search yet, but you can look on any of these. '}Each link opens that job board's own live search, so you see what is open today. Fyndr has not checked the openings you will find there.</p>
 <div class="cf-links">${jobLinks(t, city).map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer nofollow"><b>${esc(n)}</b><span>live search</span></a>`).join('')}</div></article>`;
 }
 // "Looking for X?" card for the Courses page: where to find a course on anything searched, whether or not Fyndr lists it.

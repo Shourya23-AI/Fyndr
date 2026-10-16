@@ -3,9 +3,24 @@ import { esc, TICK } from '../../core/dom.js';
 import { isStaff } from '../../core/state.js';
 import { safeImg } from '../../core/image.js';
 import { rating } from '../trust/trust.js';
-import { bannerOf, monogram } from './banner.js';
-// Legitimacy rating chip (0-100) with the reasons as a tooltip. Every listing was also checked by a person before it appeared.
-export const trustChip = l => { const r = rating(l); return `<span class="lc-trust" data-band="${r.band}" title="${esc(r.reasons.length ? 'Why: ' + r.reasons.join('; ') : 'No warning signs found in the text')}">${r.label} · ${r.score}/100</span>`; };
+import { posterOf, webLogo } from './poster.js';
+import { originOf, isSearch, seenAgo, staleDays } from '../listings/origin.js';
+import { linksFor } from '../catalog/group.js';
+import { NATION as NATION_PLACE } from '../catalog/meta.js';
+import { cityIn } from './place.js';
+// Legitimacy rating chip (0-100) with the reasons as a tooltip. It is worked out from the listing's own text by simple rules (trust.js).
+// A search link (a course topic or job role that opens a provider's own search) is not a posting, so it is never rated: it gets no chip.
+export const trustChip = l => { if (isSearch(l)) { return ''; } const r = rating(l); return `<span class="lc-trust" data-band="${r.band}" title="${esc(r.reasons.length ? 'Why: ' + r.reasons.join('; ') : 'No warning signs found in the text')}">${r.label} · ${r.score}/100</span>`; };
+// Small badge saying where the listing comes from: Direct from company, Posted on Fyndr, Search links ... (listings/origin.js).
+export const originTag = l => { const o = originOf(l); const seen = o.k === 'direct' ? seenAgo(l) : ''; return `<p class="lc-origin" data-k="${o.k}" title="${esc(o.note)}">${o.k === 'direct' || o.k === 'posted' ? TICK : ''}${esc(o.label)}${seen ? ` · seen open ${esc(seen)}` : ''}${o.k === 'direct' && staleDays(l) >= 3 ? ' · may have closed, check on their page' : ''}</p>`; };
+// Where the job-board links should look: the city typed in the Location box, else the city "Near me" found, else all of India.
+export const placeNow = () => { if (S.pf && S.pf.place === 'remote') { return ''; } const c = cityIn(S.f && S.f.loc); return c ? c[0] : (S.pf && S.pf.city) || NATION_PLACE; };
+// "LinkedIn Jobs" -> "LinkedIn", "Indeed India" -> "Indeed", "Hirist (tech)" -> "Hirist"
+export const shortName = n => String(n).replace(/ (Jobs|India)$/, '').replace(/ \((Monster|tech|startups)\)$/, '');
+// The first few provider / job board buttons on a card of a course topic or job role.
+export const linkChips = (l, n = 3) => !l.links ? '' : `<div class="lc-links" role="group" aria-label="${l.type === 'Course' ? 'Open on a learning site' : 'Open on a job board'}">${linksFor(l, placeNow()).slice(0, n).map(k => `<a class="lc-link" href="${esc(k.u)}" target="_blank" rel="noopener noreferrer nofollow" data-act="extclick">${esc(shortName(k.n))}${k.tier === 'free' ? '<i>Free</i>' : ''}</a>`).join('')}${l.links.length > n ? `<button type="button" class="lc-link lc-more" data-act="view" data-id="${esc(l.id)}">+${l.links.length - n} more</button>` : ''}</div>`;
+// Where a role is, short enough for a card: "Bengaluru, Delhi +5 · Remote"
+const locLabel = l => (l.cities && l.cities.length ? l.cities.slice(0, 2).join(', ') + (l.cities.length > 2 ? ` +${l.cities.length - 2}` : '') + ' · Remote' : l.location);
 // One listing card: cover picture, organization logo on it, title, provider, duration, then "View Details" and a save heart.
 // Used by browse, suggestions and the saved list on the dashboard. The full listing is kept in S.lmap for the details popup.
 const CLOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
@@ -13,20 +28,15 @@ const PIN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.
 const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5S3.5 15 3.5 9.3A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 8.5 2.7C20.5 15 12 20.5 12 20.5z"/></svg>';
 export const heart = (l, sv) => `<button class="save-button ${sv ? 'saved' : ''}" data-act="save" data-id="${l.id}" aria-pressed="${sv}" aria-label="${sv ? 'Remove from saved' : 'Save'}">${HEART}</button>`;
 // Logo tile: the organization's logo, or its first letter when it did not add one.
-export const logoOf = l => safeImg(l.logo) ? `<img src="${safeImg(l.logo)}" alt="">` : monogram(l.orgName);
-// Cover, best first: the picture the organization uploaded, or the company's own picture found by the server (brand.js);
-// else the company's brand colour with its logo in the middle; else a soft gradient with the type written on it.
+export const logoOf = l => safeImg(l.logo) ? `<img src="${safeImg(l.logo)}" alt="">` : l.links && l.links[0] ? webLogo({ orgName: l.links[0].n }) : webLogo(l);
+// Cover, best first: the picture/poster the organization uploaded; otherwise a poster drawn for the listing (poster.js):
+// the company's brand colour, its real logo, the role as the headline and a layout/pattern picked per listing.
 export const coverOf = l => {
     const src = safeImg(l.image);
     if (src) {
         return `<img class="lc-img" src="${src}" alt="" loading="lazy" decoding="async">`;
     }
-    const color = /^#[0-9a-f]{6}$/i.test(l.brandColor || '') ? l.brandColor : '';
-    const logo = safeImg(l.logo);
-    if (color && logo) {
-        return `<span class="lc-img lc-none lc-brand" data-t="${esc(l.type)}" style="--bc:${color}"><span class="lc-big"><img src="${logo}" alt="" loading="lazy" decoding="async"></span></span>`;
-    }
-    return bannerOf(l);
+    return posterOf(l);
 };
 // Optional match info from the suggestions engine (features/suggestions/engine.js): a score badge on the cover and the top reasons.
 const flags = m => {
@@ -51,9 +61,10 @@ export const card = (l, match) => {
     S.lmap[l.id] = l;
     const sv = S.mine.saved.includes(l.id);
     const course = l.type === 'Course';
-    return `<article class="lcard"><div class="lc-media">${coverOf(l)}${flags(m)}<span class="lc-type">${esc(l.type)}</span><span class="lc-logo">${logoOf(l)}</span></div>
-<div class="lc-body"><h3>${esc(l.title)}</h3><p class="lc-org">${course ? '<span>Provider</span> ' : ''}${esc(l.orgName)}${l.orgVerified ? `<i class="lc-ok" title="Verified organization">${TICK}</i>` : ''}</p>
-<p class="lc-meta">${l.duration ? `<span>${CLOCK}${esc(l.duration)}</span>` : ''}<span>${PIN}${esc(l.location)}</span></p><p class="lc-pay">${esc(l.pay)}</p>${m && m.reasons.length ? `<ul class="lc-why">${m.reasons.slice(0, 1).map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
-<div class="lc-acts"><button class="button button-dark button-small" data-act="view" data-id="${l.id}">View Details</button>${S.me?.role === 'user' && !l.virtual ? heart(l, sv) : ''}</div></div></article>`;
+    const org = l.search ? `<span>${course ? 'On' : 'Search on'}</span> ${esc(l.orgName)}` : `${course ? '<span>Provider</span> ' : ''}${esc(l.orgName)}${l.orgVerified ? `<i class="lc-ok" title="Verified organization">${TICK}</i>` : ''}`;
+    return `<article class="lcard${l.search ? ' lcard-group' : ''}"><div class="lc-media">${coverOf(l)}${flags(m)}<span class="lc-type">${esc(l.type)}</span><span class="lc-logo">${logoOf(l)}</span></div>
+<div class="lc-body"><h3>${esc(l.title)}</h3><p class="lc-org">${org}</p>${originTag(l)}
+<p class="lc-meta">${l.duration ? `<span>${CLOCK}${esc(l.duration)}</span>` : ''}<span>${PIN}${esc(locLabel(l))}</span></p><p class="lc-pay">${esc(l.pay)}</p>${m && m.reasons.length ? `<ul class="lc-why">${m.reasons.slice(0, 1).map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}${linkChips(l)}
+<div class="lc-acts"><button class="button button-dark button-small" data-act="view" data-id="${l.id}">View Details</button>${S.me?.role === 'user' ? heart(l, sv) : ''}</div></div></article>`;
 };
 export const canApply = () => !(S.me?.role === 'org' || isStaff(S.me));

@@ -2,7 +2,7 @@
   "id": "fyndr",
   "name": "Fyndr",
   "short_name": "Fyndr",
-  "description": "Internships, jobs and courses from organizations our team has verified.",
+  "description": "Internships, jobs and courses for students, with the source of every listing shown.",
   "start_url": "index.html",
   "scope": "./",
   "display": "standalone",

@@ -8,18 +8,18 @@ const ICONS = [
     `<svg viewBox="0 0 120 120" aria-hidden="true">${G('g3', '#8fc4a8', '#3f7a5f')}<path d="M10 56 108 14 76 106 54 72z" fill="url(#g3)"/><path d="M54 72 108 14 62 62z" fill="#fff" opacity=".28"/><path d="M54 72 52 98 66 82" fill="#2f6b4f"/></svg>`
 ];
 const CHAPTERS = [
-    ['Verified', 'Every listing is checked first.', 'We confirm the organization, review each post before it goes live, and drop scams. Nothing reaches you unchecked.', ['Organization verified by our team', 'Poster email and phone confirmed', 'Expired listings are closed']],
+    ['Honest labels', 'Every card says where it comes from.', 'Posts from organizations are reviewed by our team before they go live. Openings read from company career pages are marked Direct from company and close when the company removes them. Search links only open a job board or course site, and we do not vouch for what you find there.', ['Posted on Fyndr: reviewed first', 'Direct from company: closes automatically', 'Search links: marked, never rated']],
     ['Matched', 'See where you actually stand.', 'Add your skills once. Fyndr compares them with open roles on your own device and tells you which ones fit and what is missing.', ['A match score for every role', 'The exact skills you still need', 'Courses that close the gap']],
     ['Applied', 'Apply without the guesswork.', 'Save what you like, apply from your profile, and follow each application from one dashboard.', ['One profile for every application', 'Save jobs and courses', 'Track every status in one place']]
 ];
 const CATS = ['Software', 'Data & AI', 'Design', 'Marketing', 'Finance', 'Core engineering'];
-const TICK = ['Verified before you see it', 'Internships', 'Jobs', 'Courses', 'Free for students', 'Find work worth doing'];
+const TICK = ['Every card shows its source', 'Internships', 'Jobs', 'Courses', 'Free for students', 'Find work worth doing'];
 const ticker = () => { const t = TICK.map(x => `<span>${x}</span>`).join(''); return `<div class="lp-tick" aria-hidden="true"><div class="lp-tick-in">${t}${t}${t}${t}</div></div>`; };
 export function landing(me) {
     const go = me ? (me.role === 'user' ? '#/jobs' : '#/dashboard') : '';
     const ctaMain = me ? `<a class="btn-primary" href="${go}">${me.role === 'user' ? 'Continue to jobs' : 'Open your dashboard'}</a>` : '<button class="btn-primary" data-act="auth" data-mode="signup">Create a free account</button>';
     $('#app').innerHTML = `<div class="lp">
-<section class="container lp-hero"><div class="lp-copy"><h1>Find work worth doing</h1><p class="lead">Internships, jobs and courses from organizations our team has verified. Free to browse and apply.</p>
+<section class="container lp-hero"><div class="lp-copy"><h1>Find work worth doing</h1><p class="lead">Internships, jobs and courses in one place: reviewed posts from organizations, openings straight from company career pages, and links to job boards and course sites. Free for students.</p>
 ${me ? `<a class="btn-primary lp-go" href="${go}">${me.role === 'user' ? 'Continue to jobs' : 'Open your dashboard'}</a>` : `<form class="lp-search" role="search" onsubmit="return false"><input type="search" aria-label="Search by role or city" placeholder="Search a role or city…" /><button type="submit" class="btn-primary" data-act="auth" data-mode="signup">Find</button></form>`}
 <p class="desc">Hiring? <a class="link" href="#/organizations">Register your organization</a>${me ? '' : ' · Have an account? <button class="link" data-act="auth" data-mode="signin">Sign in</button>'}</p></div>
 <div class="lp-visual"><img src="img/students.jpg" width="1330" height="628" alt="Students working together on laptops" /><div class="lp-card">${SPEC()}</div></div></section>

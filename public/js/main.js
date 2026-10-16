@@ -10,6 +10,7 @@ import { cachedMe } from './features/auth/load-me.js';
 import { initReveal } from './core/reveal.js';
 import { initMotion } from './core/motion.js';
 import { initAutoload } from './core/autoload.js';
+import { bindLogoFallback } from './features/browse/poster.js';
 import { loadCatalog } from './features/catalog/catalog.js';
 // Entry point. Draw the shell INSTANTLY from what this device remembers (header + page-shaped placeholders),
 // then wire up events and let route() fill in the real page as soon as Firebase and the server have answered.
@@ -25,6 +26,7 @@ bindEvents();
 initReveal();
 initMotion();
 initAutoload();
+bindLogoFallback();
 addEventListener('hashchange', route);
 route();
 

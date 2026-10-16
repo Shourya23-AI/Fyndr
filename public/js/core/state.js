@@ -9,6 +9,7 @@
 //   S.ph     phone.email verification state (cid = Client ID, busy = popup open)
 export const S = {
     pf: { place: 'any', fit: false }, // jobs page place filter (any | near | remote) and "Suitable for me"
+    rf: { src: '', pay: '', dur: '', price: '', cert: false, remote: false }, // stipend / duration / price / certificate / source filters (listings/refine.js)
     me: null, lmap: {}, scope: 'jobs', f: {
         type: '', q: '', loc: ''
     }, mine: { saved: [], applications: [] }, match: {}, skills: [], skillLv: {}, ph: {

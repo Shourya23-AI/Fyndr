@@ -29,6 +29,17 @@ export const actions = {
         toast('Invite cancelled');
         dashboard();
     },
+    async rpclose(b, id, s) { // close every open report about a listing
+        await api('/admin/reports/' + encodeURIComponent(id), 'PATCH', { status: s });
+        toast('Done');
+        dashboard();
+    },
+    async rphide(b, id) { // reject the listing (it leaves the public list), then close its reports
+        await api('/admin/listings/' + encodeURIComponent(id), 'PATCH', { status: 'rejected' });
+        await api('/admin/reports/' + encodeURIComponent(id), 'PATCH', { status: 'actioned' });
+        toast('Listing hidden');
+        dashboard();
+    },
     async pstat(b, id, s) {
         await api('/admin/proof/' + id, 'PATCH', { status: s });
         toast('Updated');

@@ -5,13 +5,23 @@ import { api } from '../../core/api.js';
 import { toast } from '../../core/dom.js';
 import { openAuth } from '../auth/auth-modal.js';
 import { loadListings, drawListings, drawMore } from './listings.js';
-import { paintFilters } from './filters.js';
+import { paintFilters, refineRow } from './filters.js';
+import { EMPTY_RF } from '../listings/refine.js';
 import { browse } from './browse.js';
 import { dashboard } from '../dashboard/dashboard.js';
-import { openDetail, closeDetail } from './detail.js';
+import { openDetail, closeDetail, setPlace } from './detail.js';
 import { moreSuggestions } from '../suggestions/suggest.js';
 import { slide } from '../suggestions/rail.js';
 import { track } from '../../services/analytics/analytics.js';
+// The place chooser in the details popup of a job role: the board links follow it.
+export const bind = () => {
+    document.addEventListener('change', e => {
+        const sel = e.target.closest && e.target.closest('select[data-place-for]');
+        if (sel) {
+            setPlace(sel);
+        }
+    });
+};
 // data-act handlers
 export const actions = {
     tab(b, id) {
@@ -22,6 +32,26 @@ export const actions = {
     place(b, id) {
         S.pf.place = ['near', 'remote'].includes(id) ? id : 'any';
         paintFilters();
+        loadListings().catch(() => { });
+    },
+    rf(b, id) {
+        const [k, v] = String(id).split(':');
+        if (!(k in EMPTY_RF)) {
+            return;
+        }
+        S.rf[k] = v === 'flag' ? !S.rf[k] : v;
+        const h = document.getElementById('rf-host');
+        if (h) {
+            h.innerHTML = refineRow(S.scope);
+        }
+        loadListings().catch(() => { });
+    },
+    rfclear() {
+        S.rf = { ...EMPTY_RF };
+        const h = document.getElementById('rf-host');
+        if (h) {
+            h.innerHTML = refineRow(S.scope);
+        }
         loadListings().catch(() => { });
     },
     fit() {
@@ -57,6 +87,7 @@ export const actions = {
     clear() {
         S.cat = '';
         S.pf = { place: 'any', fit: false };
+        S.rf = { ...EMPTY_RF };
         S.f = {
             type: '', q: '', loc: ''
         };
