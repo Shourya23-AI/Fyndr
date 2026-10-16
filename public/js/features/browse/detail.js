@@ -109,7 +109,7 @@ ${whyBlock(S.match?.[l.id])}
 <section class="dt-sec"><h4 class="dt-h">How to apply</h4><ol class="dt-desc dt-steps">${sm.steps.map(x => `<li>${x}</li>`).join('')}</ol></section>
 ${ext && !search ? `<div class="dt-link"><span>Official page</span><a href="${esc(ext)}" target="_blank" rel="noopener noreferrer nofollow" ${canApply() ? 'data-act="extclick"' : ''}>${esc(ext)}</a><small>Opens in a new tab on ${esc(host)}. Never pay a fee or share an OTP to apply.</small></div>` : ''}
 </div>
-<div class="dt-foot">${S.me?.role === 'user' ? heart(l, sv) : ''}${S.me ? `<button type="button" class="button dt-share" data-act="shareopen" data-id="${esc(l.id)}" data-s="listing" aria-label="Share to a group or community">Share</button>` : ''}${cta || '<button class="button dt-cta" data-dt-close>Close</button>'}</div></div>`;
+<div class="dt-foot">${S.me?.role === 'user' ? heart(l, sv) : ''}${S.me?.role === 'user' ? `<button type="button" class="button dt-track" data-act="trkadd" data-id="${esc(l.id)}" data-s="applied" title="Add to your tracker as Applied">I applied</button>` : ''}${S.me ? `<button type="button" class="button dt-share" data-act="shareopen" data-id="${esc(l.id)}" data-s="listing" aria-label="Share to a group or community">Share</button>` : ''}${cta || '<button class="button dt-cta" data-dt-close>Close</button>'}</div></div>`;
     el.addEventListener('click', e => {
         if (e.target === el || e.target.closest('[data-dt-close]')) {
             closeDetail();

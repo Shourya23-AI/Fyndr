@@ -1,0 +1,41 @@
+// Application tracker: stages, follow-up dates, storage, Fyndr applications on the board.  Run:  node test/tracker.test.js
+let pass = 0, fail = 0;
+const ok = (c, n) => { c ? pass++ : (fail++, console.log('  FAIL', n)); };
+const T = await import('../public/js/features/tracker/tracker.js');
+const NOW = Date.parse('2026-10-16T10:00:00Z');
+const store = () => { const m = {}; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = v; } }; };
+
+let l = T.add([], { id: 'imp_1', title: 'Data Intern', org: 'Postman', type: 'Internship', url: 'https://example.com/j/1' }, 'saved', NOW);
+ok(l.length === 1 && l[0].stage === 'saved' && l[0].remind === '', 'saved item has no reminder');
+l = T.setStage(l, 'imp_1', 'applied', NOW);
+ok(l[0].stage === 'applied' && l[0].remind === '2026-10-23' && l[0].history.length === 1, 'applying suggests a follow-up a week later');
+l = T.setStage(l, 'imp_1', 'interview', NOW);
+ok(l[0].remind === '2026-10-23', 'a date already set is kept when moving on');
+l = T.setRemind(l, 'imp_1', '2026-10-18');
+ok(l[0].remind === '2026-10-18' && T.setRemind(l, 'imp_1', 'soon')[0].remind === '', 'reminder must be a real date');
+ok(T.due(l, NOW).length === 0 && T.due(l, Date.parse('2026-10-18T09:00:00Z')).length === 1, 'due on the day, not before');
+l = T.setStage(l, 'imp_1', 'offer', NOW);
+ok(l[0].remind === '' && T.due(l, Date.parse('2027-01-01T00:00:00Z')).length === 0, 'offer and closed clear the reminder');
+ok(T.setStage(l, 'imp_1', 'bogus')[0].stage === 'offer', 'unknown stage ignored');
+l = T.add(l, { id: 'imp_1', title: 'Data Intern' }, 'offer', NOW);
+ok(l.length === 1, 'adding the same listing twice keeps one item');
+ok(T.add([], { title: '   ' }).length === 0, 'empty title is not added');
+const m = T.add([], { title: 'Manual role', org: 'Acme', url: 'http://insecure.example' }, 'applied', NOW);
+ok(m[0].url === '' && /^m_/.test(m[0].id), 'manual items get an id; non-https links are dropped');
+const x = T.add([], { id: 'a', title: '<b>x</b>\u0000\n'.repeat(40) }, 'saved', NOW);
+ok(x[0].title.length <= 120 && !/\u0000/.test(x[0].title), 'text is capped and cleaned');
+l = T.setNote(l, 'imp_1', 'n'.repeat(900));
+ok(l[0].note.length === 600, 'note capped at 600');
+ok(T.remove(l, 'imp_1').length === 0, 'remove');
+
+const s = store();
+ok(T.save('u1', l, s) && T.load('u1', s).length === 1 && T.load('u2', s).length === 0, 'stored per person');
+s.setItem('fyndr-tracker:bad', '{not json');
+ok(T.load('bad', s).length === 0 && T.load('x', { getItem() { throw new Error('blocked'); } }).length === 0, 'bad or blocked storage gives an empty list');
+ok(T.save('u1', l, { setItem() { throw new Error('full'); } }) === false, 'failed save reports false');
+const c = T.counts([{ stage: 'saved' }, { stage: 'applied' }, { stage: 'applied' }]);
+ok(c.saved === 1 && c.applied === 2 && c.offer === 0, 'counts per stage');
+const fy = T.fromFyndr([{ id: '1', status: 'reviewing', created: '2026-10-01T00:00:00Z', listing: { title: 'A', orgName: 'B', type: 'Job' } }, { id: '2', status: 'accepted', listing: { title: 'C', orgName: 'D' } }, { id: '3', status: 'rejected', listing: { title: 'E' } }, { id: '4', status: 'applied' }]);
+ok(fy.length === 3 && fy.map(a => a.stage).join() === 'applied,offer,closed' && fy.every(a => a.fyndr), 'Fyndr applications map to stages and are read-only');
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

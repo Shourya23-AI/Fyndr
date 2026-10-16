@@ -6,8 +6,9 @@ import { buildResume, pdfUrl } from './resume.js';
 import { privacyPanel } from '../privacy/privacy.view.js';
 import { foryouTab } from '../suggestions/foryou.js';
 import { lastVisit } from '../suggestions/suggest.js';
+import { trackerTab, dueCount } from '../tracker/tracker.view.js';
 // Candidate dashboard: left sidebar (Profile / Resume / Applications), read-only. Editing lives on #/profile.
-const TABS = [['foryou', 'For you', 'M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z'], ['profile', 'Profile', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0'], ['resume', 'Resume', 'M7 3h8l4 4v14H7zM14 3v5h5M10 13h6M10 17h6'], ['apps', 'Applications', 'M4 7h16v12H4zM9 7V4h6v3'], ['privacy', 'Privacy & data', 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4']];
+const TABS = [['foryou', 'For you', 'M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z'], ['profile', 'Profile', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0'], ['resume', 'Resume', 'M7 3h8l4 4v14H7zM14 3v5h5M10 13h6M10 17h6'], ['apps', 'Applications', 'M4 7h16v12H4zM9 7V4h6v3'], ['tracker', 'Tracker', 'M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v5h-4z'], ['privacy', 'Privacy & data', 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4']];
 const row = (k, v) => `<div class="info-row"><span>${k}</span><b>${v || '<i class="na">Not added</i>'}</b></div>`;
 const RT = { site: 'Website resume', own: 'Uploaded resume' };
 export const resumeLabel = t => RT[t] || RT.site;
@@ -66,9 +67,9 @@ export async function userDashboard(a) {
         name: d.name || S.me.name, email: d.email || S.me.email, phone: d.phone, photo: d.photo
     };
     const body = {
-        foryou: () => foryouTab(d, ls, { lastSeen: lastVisit(S.me.id || S.me.email) }), profile: () => profileTab(d, me), resume: () => resumeTab(d, me), apps: () => appsTab(ls.filter(l => S.mine.saved.includes(l.id))), privacy: () => privacyTab(d)
+        foryou: () => foryouTab(d, ls, { lastSeen: lastVisit(S.me.id || S.me.email) }), profile: () => profileTab(d, me), resume: () => resumeTab(d, me), apps: () => appsTab(ls.filter(l => S.mine.saved.includes(l.id))), tracker: () => trackerTab(ls.filter(l => S.mine.saved.includes(l.id))), privacy: () => privacyTab(d)
     }[S.dtab]();
-    a.innerHTML = `<div class="dash-layout"><aside class="dash-side"><nav>${TABS.map(([id, t, ic]) => `<button class="side-btn ${S.dtab === id ? 'on' : ''}" data-act="dtab" data-id="${id}"><svg viewBox="0 0 24 24"><path d="${ic}"/></svg>${t}</button>`).join('')}</nav><a class="side-link" href="#/profile">Manage profile ↗</a></aside><main class="dash-main">${body}</main></div>`;
+    a.innerHTML = `<div class="dash-layout"><aside class="dash-side"><nav>${TABS.map(([id, t, ic]) => `<button class="side-btn ${S.dtab === id ? 'on' : ''}" data-act="dtab" data-id="${id}"><svg viewBox="0 0 24 24"><path d="${ic}"/></svg>${t}${id === 'tracker' && dueCount() ? `<b class="tk-badge" title="Follow-ups due">${dueCount()}</b>` : ''}</button>`).join('')}</nav><a class="side-link" href="#/profile">Manage profile ↗</a></aside><main class="dash-main">${body}</main></div>`;
     S.dd = { d, me };
     if (S.dtab === 'resume' && S.rsel === 'own' && d.resume) {
         showOwn();
