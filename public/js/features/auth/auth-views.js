@@ -3,7 +3,7 @@ import { fb } from '../../services/firebase/firebase-init.js';
 import { route } from '../../core/router.js';
 import { openAuth } from './auth-modal.js';
 // Full-page auth screens: verify email, forgot password, finish setup.
-const roleSel = `<select name="role" onchange="document.querySelectorAll('.on-only').forEach(e=>e.hidden=this.value!=='org')"><option value="user">I'm looking for opportunities</option><option value="org">I'm an organization hiring</option></select>`;
+const roleSel = `<select name="role" data-role-toggle><option value="user">I'm looking for opportunities</option><option value="org">I'm an organization hiring</option></select>`;
 export const authView = m => {
     const A = h => $('#app').innerHTML = `<div class="auth-page"><div class="glass auth-solo">${h}</div></div>`;
     if (!fb.configured) {

@@ -14,11 +14,13 @@ h = /<!--STATIC-PRELOAD-->[\s\S]*<!--\/STATIC-PRELOAD-->/.test(h) ? h.replace(/<
 fs.writeFileSync(p, h);
 console.log('preload tags written');
 
-// precache.json: every file the service worker saves on the first visit, so the whole site (scripts, styles, catalogs) is on the device
+// precache.json: every file the service worker saves on the first visit, so the whole app shell (scripts, styles, icons) is on the device
 // after one load and every page change after that is instant. Re-run this script after adding files.
 const all = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? all(path.join(d, e.name)) : [path.join(d, e.name)]);
 const rel = f => path.relative(PUB, f).split(path.sep).join('/');
-const keep = rel => /^(js\/.+\.js|css\/app\.css|catalog\/.+\.json|icons\/.+\.(png|svg)|favicon\.svg|config\/(firebase-config|phone-email)\.json)$/.test(rel);
+// The two catalogs (about 1.8 MB) are NOT saved on first visit: that cost every new visitor mobile data before they asked for a job or course.
+// They are fetched when first used and the service worker keeps that copy (stale-while-revalidate).
+const keep = rel => /^(boot\.js|js\/.+\.js|css\/app\.css|icons\/.+\.(png|svg)|favicon\.svg|config\/(firebase-config|phone-email)\.json)$/.test(rel);
 const list = ['index.html', ...all(PUB).map(rel).filter(keep).sort()];
 fs.writeFileSync(path.join(PUB, 'precache.json'), JSON.stringify(list));
 console.log('precache.json:', list.length, 'files');

@@ -17,6 +17,12 @@ export const bind = () => {
         if (e.target.dataset && e.target.dataset.study) {
             fillStudy(e.target.closest('form'));
         }
+        // Sign-up: show the organization-only fields when "I'm an organization hiring" is picked (was an inline onchange="").
+        if (e.target.dataset && 'roleToggle' in e.target.dataset) {
+            document.querySelectorAll('.on-only').forEach(el => {
+                el.hidden = e.target.value !== 'org';
+            });
+        }
     });
 };
 // data-act handlers

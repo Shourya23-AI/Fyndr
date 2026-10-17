@@ -20,7 +20,7 @@ export function landing(me) {
     const ctaMain = me ? `<a class="btn-primary" href="${go}">${me.role === 'user' ? 'Continue to jobs' : 'Open your dashboard'}</a>` : '<button class="btn-primary" data-act="auth" data-mode="signup">Create a free account</button>';
     $('#app').innerHTML = `<div class="lp">
 <section class="container lp-hero"><div class="lp-copy"><h1>Find work worth doing</h1><p class="lead">Internships, jobs and courses in one place: reviewed posts from organizations, openings straight from company career pages, and links to job boards and course sites. Free for students.</p>
-${me ? `<a class="btn-primary lp-go" href="${go}">${me.role === 'user' ? 'Continue to jobs' : 'Open your dashboard'}</a>` : `<form class="lp-search" role="search" onsubmit="return false"><input type="search" aria-label="Search by role or city" placeholder="Search a role or city…" /><button type="submit" class="btn-primary" data-act="auth" data-mode="signup">Find</button></form>`}
+${me ? `<a class="btn-primary lp-go" href="${go}">${me.role === 'user' ? 'Continue to jobs' : 'Open your dashboard'}</a>` : `<form class="lp-search" role="search"><input type="search" aria-label="Search by role or city" placeholder="Search a role or city…" /><button type="submit" class="btn-primary" data-act="auth" data-mode="signup">Find</button></form>`}
 <p class="desc">Hiring? <a class="link" href="#/organizations">Register your organization</a>${me ? '' : ' · Have an account? <button class="link" data-act="auth" data-mode="signin">Sign in</button>'}</p></div>
 <div class="lp-visual"><img src="img/students.jpg" width="1330" height="628" alt="Students working together on laptops" /><div class="lp-card">${SPEC()}</div></div></section>
 ${ticker()}

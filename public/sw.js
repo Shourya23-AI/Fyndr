@@ -8,8 +8,8 @@
 // On static hosting (GitHub Pages) nothing replaces the token above, so the cache name is a fixed label.
 // CHANGE THE LABEL below whenever you publish a new version, so visitors drop the old cached files.
 const BUILD = '__BUILD__';
-const CACHE = 'fyndr-' + (BUILD.indexOf('__') === 0 ? 'static-2026-10-16-instant-v30' : BUILD);
-const SHELL = ['./', 'index.html', 'css/app.css', 'js/main.js', 'favicon.svg', 'icons/icon-192.png'];
+const CACHE = 'fyndr-' + (BUILD.indexOf('__') === 0 ? 'static-2026-10-16-instant-v31' : BUILD);
+const SHELL = ['./', 'index.html', 'boot.js', 'css/app.css', 'js/main.js', 'favicon.svg', 'icons/icon-192.png'];
 const CONFIG_API = ['/api/firebase-config', '/api/phone-config'];
 
 self.addEventListener('install', event => {

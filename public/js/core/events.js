@@ -53,6 +53,9 @@ export function bindEvents() {
     });
     document.addEventListener('change', dashboard.onChange);
     document.addEventListener('submit', async (e) => {
+        if (e.target.matches && e.target.matches('.lp-search')) {
+            e.preventDefault(); // the landing search box only opens sign-up (its button has data-act); it must never submit natively
+        }
         const fm = e.target.dataset.form;
         if (!fm) {
             return;
