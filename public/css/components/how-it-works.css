@@ -1,0 +1,35 @@
+/* "Four checks" numbered rows (home and organizations pages) */
+.how {
+  padding: 64px 0;
+  border-top: 1px solid var(--line);
+}
+
+.rows {
+  margin-top: 22px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 36px 1fr 1.5fr;
+  gap: 20px;
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+}
+
+.row b {
+  font-size: 17px;
+}
+
+.row p {
+  margin: 0;
+  color: var(--muted);
+}
+
+@media (max-width: 800px) {
+  .row {
+    grid-template-columns: 30px 1fr;
+  }
+  .row p {
+    grid-column: 2;
+  }
+}

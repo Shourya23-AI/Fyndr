@@ -1,0 +1,43 @@
+/* Fyndr logo (header, footer and sidebar): an image lockup (mark + wordmark).
+   img/logo.png is for light mode, img/logo-dark.png (light wordmark) for dark mode. */
+.logo {
+  display: flex;
+  flex: none;            /* never let the flex row squeeze the logo */
+  align-items: center;
+  line-height: 0;
+  overflow: visible;
+  min-width: max-content;
+}
+
+.logo-img {
+  display: block;
+  flex: none;
+  height: 44px;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  padding: 2px 0;        /* breathing room so the y tail / arrow are never clipped */
+  transition: transform .5s var(--ease-spring, ease);
+}
+
+.logo-darkmode {
+  display: none;
+}
+
+:root[data-theme=dark] .logo-light {
+  display: none;
+}
+
+:root[data-theme=dark] .logo-darkmode {
+  display: block;
+}
+
+.footer .logo-img {
+  height: 32px;
+}
+
+@media (max-width: 800px) {
+  .nav .logo-img {
+    height: 38px;
+  }
+}

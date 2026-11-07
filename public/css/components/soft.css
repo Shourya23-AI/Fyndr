@@ -1,0 +1,24 @@
+/* Soft pass: rounder corners, gentler shadows and pastel chat bubbles. Loaded before dark.css, so dark mode still wins. */
+:root { --r-card: 20px; --r-soft: 14px; --shadow-soft: 0 6px 24px -10px var(--shadow); }
+.lcard, .bk-card, .cm-card, .gp-card, .panel, .empty { border-radius: var(--r-card); border-color: var(--line-soft); box-shadow: var(--shadow-soft); }
+.lcard, .bk-card, .cm-card { transition: transform .2s ease, box-shadow .2s ease; }
+.lcard:hover, .bk-card:hover, .cm-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -12px var(--shadow); }
+.button, .button-small, .search-button, .chip-c { border-radius: 999px; }
+.search-field input, .fld input, .fld textarea, .fld select { border-radius: var(--r-soft); }
+.ch-card, .bk-sheet, .ap-box { border-radius: 24px; }
+.cm-av { border-radius: 16px; background: linear-gradient(135deg, var(--yellow), var(--yellow-soft)); color: var(--deep); }
+.hero-compact h1 { letter-spacing: -.01em; }
+@media (prefers-reduced-motion: reduce) { .lcard, .bk-card, .cm-card, .sh-btn { transition: none; } .lcard:hover, .bk-card:hover, .cm-card:hover { transform: none; } }
+
+/* (the chat room itself is styled in chat.css) */
+
+/* a shared job / course / book */
+.ch-share { width: min(340px, 100%); padding: 12px; border: 1px solid var(--line-soft); border-radius: 18px; background: var(--white); box-shadow: none; }
+.ch-share[data-k=job] .sh-pic { background: linear-gradient(135deg, #dce8f5, #c6d9ee); color: #3d6485; }
+.ch-share[data-k=course] .sh-pic { background: linear-gradient(135deg, #e6e0f4, #d4cbee); color: #5b4b8f; }
+.ch-share[data-k=book] .sh-pic { background: linear-gradient(135deg, #f6e9d2, #efdab6); color: #8a6420; }
+.sh-pic { width: 58px; height: 58px; border-radius: 16px; }
+.sh-btn { padding: 7px 14px; }
+.sh-btn:first-child { border-color: transparent; background: var(--green); color: #fff; }
+.sh-btn:first-child:hover { background: var(--deep); }
+

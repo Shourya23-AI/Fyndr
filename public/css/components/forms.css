@@ -1,0 +1,191 @@
+/* Forms and inputs */
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.form.cols {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.form .full {
+  grid-column: 1/-1;
+}
+
+.fld {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.form input:not([type=checkbox]),
+.form select,
+.form textarea,
+.tbl select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  font-size: 14px;
+}
+
+.form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.form input:focus,
+.form select:focus,
+.form textarea:focus {
+  outline: 0;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent);
+}
+
+.pw {
+  position: relative;
+  display: block;
+}
+
+.pw input {
+  padding-right: 70px!important;
+}
+
+.pw .mini {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.or::before,
+.or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.err {
+  margin: 0;
+  color: var(--bad-fg);
+  font-size: 13px;
+}
+
+.err:empty {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .form.cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Image pickers in the "Post an opportunity" form */
+.img-pick {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.img-pick > b {
+  font-size: 13px;
+}
+
+.img-pick > small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.img-drop {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  min-height: 120px;
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+  background: var(--yellow-soft);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+
+.img-drop:hover {
+  border-color: var(--green);
+}
+
+.img-drop.cover {
+  aspect-ratio: 16 / 9;
+}
+
+.img-drop.logo {
+  width: 120px;
+  height: 120px;
+}
+
+.img-drop img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.img-drop.logo img {
+  object-fit: contain;
+  background: #fff;
+}
+
+.img-drop input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  padding: 0;
+  border: 0;
+}
+
+.img-drop.has span {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(15, 16, 18, .65);
+  color: #fff;
+  font-size: 11px;
+}
+
+.img-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .img-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,11 @@
+# Weekly pull requests when a GitHub Action used by the workflows has a new version.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /functions
+    schedule:
+      interval: weekly

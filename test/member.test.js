@@ -1,0 +1,24 @@
+import assert from 'node:assert';
+// Signed-in landing page (the page the logo opens): markup only, `document` is a stub that catches innerHTML.
+process.on('unhandledRejection', () => { });
+const root = { innerHTML: '' };
+globalThis.window = { matchMedia: () => ({ matches: false }) };
+globalThis.matchMedia = window.matchMedia;
+globalThis.document = { querySelector: () => root, getElementById: () => null, querySelectorAll: () => [], addEventListener() { } };
+let n = 0; const ok = (c, msg) => { assert(c, msg); n++; };
+const { memberLanding } = await import('../public/js/features/home/member.js');
+memberLanding({ role: 'user', name: 'Priya <b>Rao</b>', phoneVerified: true });
+let h = root.innerHTML;
+ok((h.match(/<h1/g) || []).length === 1 && /Good to see you, Priya\./.test(h), 'one h1 with the first name');
+ok(!/<b>Rao/.test(h), 'name is escaped');
+ok(/id="guide"/.test(h) && /data-act="guide-jump"/.test(h), 'the guide mounts here and the next step opens it');
+ok(!/data-act="auth"/.test(h), 'no sign-up or sign-in on the signed-in page');
+ok((h.match(/class="mh-link"/g) || []).length === 6, 'six ways back into the site');
+ok(!/Verify now/.test(h), 'no phone note when the phone is verified');
+memberLanding({ role: 'user', name: 'Priya', phoneVerified: false });
+ok(/Verify now/.test(root.innerHTML), 'phone note when not verified');
+memberLanding({ role: 'org', orgName: 'Acme' });
+h = root.innerHTML;
+ok(!/id="guide"/.test(h) && /Open your dashboard/.test(h), 'organizations get no guide');
+console.log(`\n${n} passed, 0 failed`);
+process.exit(0);

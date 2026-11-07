@@ -1,0 +1,67 @@
+/* Motion + polish layer (loaded last before dark.css). Only transform/opacity are animated. */
+:root{--ease:cubic-bezier(.2,.7,.2,1);--ease-spring:cubic-bezier(.34,1.4,.5,1)}
+html{scroll-behavior:smooth}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+::selection{background:color-mix(in srgb,var(--green) 30%,transparent)}
+:focus-visible{outline:2.5px solid var(--green);outline-offset:3px;border-radius:8px}
+
+/* header: glass bar that firms up on scroll */
+.site-header{transition:box-shadow .3s var(--ease),background .3s var(--ease),backdrop-filter .3s}
+.site-header.is-scrolled{box-shadow:0 10px 30px -18px var(--shadow)}
+.nav{animation:fy-drop .6s var(--ease) both}
+@keyframes fy-drop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+
+/* scroll progress */
+.fy-progress{position:fixed;left:0;top:0;right:0;height:3px;z-index:60;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,var(--green),var(--deep));pointer-events:none}
+
+/* buttons: lift, press, shine */
+.button,.btn-primary,.btn-line,.gbtn{transition:transform .25s var(--ease-spring),box-shadow .25s var(--ease),background .2s,color .2s}
+.btn-primary,.button-dark{overflow:hidden}
+.btn-primary::after,.button-dark::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);transition:transform .7s var(--ease);pointer-events:none}
+.btn-primary:hover::after,.button-dark:hover::after{transform:translateX(120%)}
+.btn-primary:hover,.button-dark:hover,.btn-line:hover{transform:translateY(-2px)}
+.is-pressed{transform:scale(.96)!important}
+
+/* cards: lift on hover */
+.lcard,.panel,.sugg{transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .25s}
+.lcard:hover{transform:translateY(-4px);box-shadow:0 18px 38px -18px var(--shadow);border-color:color-mix(in srgb,var(--green) 40%,var(--line))}
+.tag,.who{transition:transform .2s var(--ease-spring)}
+.who:hover{transform:translateY(-1px)}
+
+/* page entrance */
+#app>*:not(.sk-page){animation:fy-page-in .45s var(--ease) both}
+@keyframes fy-up{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+/* LANDING: its own styles and the one entrance animation live in pages/landing.css */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .nav,#app>*{animation:none!important}
+}
+
+/* PART 2: app-wide polish */
+.auth-page.modal{animation:fy-pop .4s var(--ease-spring) both}
+@keyframes fy-pop{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+#toast{animation:fy-toast .4s var(--ease-spring) both}
+@keyframes fy-toast{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
+#side-root .side{transition:transform .45s var(--ease)}
+#side-root .side-back{transition:opacity .35s var(--ease)}
+.side-links a{transition:transform .25s var(--ease),background .2s}
+.side-links a:hover{transform:translateX(4px)}
+.form input,.form select,.form textarea{transition:border-color .2s,box-shadow .25s var(--ease)}
+.form input:focus,.form select:focus,.form textarea:focus{border-color:var(--green);box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 18%,transparent)}
+.footer a{transition:color .2s}
+.footer a:hover{color:var(--ink)}
+.logo:hover .logo-img{transform:scale(1.04)}
+.icon-btn{transition:transform .35s var(--ease-spring),background .2s}
+.icon-btn:hover{transform:rotate(25deg)}
+.tabs button,.chip{transition:transform .2s var(--ease-spring),background .2s,color .2s}
+.tabs button:hover,.chip:hover{transform:translateY(-1px)}
+/* skeleton shimmer + staggered card entrance */
+.sk,.sk-line,.sk-block,.sk-circle{position:relative;overflow:hidden}
+.opportunity-grid>.lcard{animation:fy-up .55s var(--ease) both}
+.opportunity-grid>.lcard:nth-child(2){animation-delay:.05s}.opportunity-grid>.lcard:nth-child(3){animation-delay:.1s}
+.opportunity-grid>.lcard:nth-child(4){animation-delay:.15s}.opportunity-grid>.lcard:nth-child(5){animation-delay:.2s}
+.opportunity-grid>.lcard:nth-child(n+6){animation-delay:.25s}
+.lc-media{overflow:hidden}.lc-media img{transition:transform .6s var(--ease)}.lcard:hover .lc-media img{transform:scale(1.05)}
+@media (max-width:760px){.lcard:hover{transform:none}.nav{gap:12px}}
+@media (prefers-reduced-motion:reduce){.opportunity-grid>.lcard,.auth-page.modal,#toast{animation:none!important}.logo:hover .logo-img,.icon-btn:hover{transform:none}}

@@ -1,0 +1,21 @@
+/* Scroll reveal (see js/core/reveal.js). Only transform + opacity are animated, so it stays smooth. */
+.rv {
+  opacity: 0;
+  transform: translateY(26px) scale(.985);
+  transition: opacity .6s cubic-bezier(.2, .7, .2, 1) var(--rv-d, 0ms), transform .6s cubic-bezier(.2, .7, .2, 1) var(--rv-d, 0ms) !important;
+}
+.rv.rv-in {
+  opacity: 1;
+  transform: none;
+}
+/* the page itself fades in softly each time it is drawn */
+@keyframes fy-page-in { from { opacity: 0; } to { opacity: 1; } }
+#app > section:not(.sk-page), #app > .container:not(.sk-page) { animation: fy-page-in .3s ease both; }
+/* cards: smoother hover */
+.lcard { will-change: transform; }
+.opportunity-grid .more { grid-column: 1 / -1; text-align: center; padding: 8px 0 4px; }
+.lcard { content-visibility: auto; contain-intrinsic-size: 320px; }
+@media (prefers-reduced-motion: reduce) {
+  .rv { opacity: 1; transform: none; transition: none !important; }
+  #app > section, #app > .container { animation: none !important; }
+}

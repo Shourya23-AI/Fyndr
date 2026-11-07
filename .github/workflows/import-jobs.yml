@@ -1,0 +1,56 @@
+# Keeps the site's jobs, internships and courses fresh BY ITSELF. Nobody has to run anything.
+#   - every 3 hours (GitHub may start it a few minutes late)
+#   - right after you change config/companies.json, config/courses.json or config/import-settings.json
+#   - any time you click Actions > Import jobs > Run workflow
+# Needs ONE secret, set once: Settings > Secrets and variables > Actions > New repository secret
+#   name: FIREBASE_SERVICE_ACCOUNT   value: the whole service-account JSON (Firebase Console > Project settings > Service accounts > Generate new private key)
+# Never commit that key to the repository. If it ever leaks, delete it in Google Cloud Console and make a new one.
+name: Import jobs
+on:
+  schedule:
+    - cron: '15 */3 * * *'
+  workflow_dispatch: {}
+  push:
+    branches: [main, master]
+    paths:
+      - 'config/companies.json'
+      - 'config/courses.json'
+      - 'config/import-settings.json'
+permissions:
+  contents: read
+concurrency:
+  group: import-jobs
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Are the project files at the top of the repository?
+        run: |
+          for f in scripts/import-to-firestore.js scripts/import-jobs.js config/companies.json public/js/package.json; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Cannot find $f. The project files must sit at the TOP of the repository (next to the .github folder), not inside an extra folder like fyndr/. On GitHub: open the folder, move its contents up one level, or re-upload the files from INSIDE the fyndr folder."
+              ls -la
+              exit 1
+            fi
+          done
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Is the secret set?
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::The FIREBASE_SERVICE_ACCOUNT secret is missing. Settings > Secrets and variables > Actions > New repository secret (see README: 'No command line needed')."
+            exit 1
+          fi
+      - run: npm install --no-save --ignore-scripts --no-audit --no-fund firebase-admin@12
+      - run: node scripts/import-to-firestore.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # Optional (free key from developer.adzuna.com). Without them the Adzuna source is simply skipped.
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
