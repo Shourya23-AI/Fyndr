@@ -19,6 +19,7 @@ import { expiredApps } from './retention.js';
 import { POLICY_VERSION } from '../../features/legal/constants.js';
 import { ADMIN_EMAILS } from './config.js';
 import { trustScore, decide } from '../../features/trust/trust.js';
+import { cleanBasics } from '../../features/profile/basics.rules.js';
 import { cleanReport, cleanTitle, cleanOrg, isCatalogId, reportId } from '../../features/report/report.rules.js';
 import { isExpired, dropExpired } from '../../features/listings/expiry.js';
 import { QUAL, EXP, JT, ORG_TYPES, IMG_MAX, now, lc, bad, isMain, isFree, gmailAllowed, pub, meOf, completion, cleanExtras, need, imgOk, filterListings, adminData, cleanForm, cleanImport, hash, studyFrom } from './helpers.js';
@@ -518,10 +519,19 @@ async function run(path, method, b, fu) {
                 bad('Add at least one skill');
             }
             const profile = {
-                qualification: b.qualification, ...studyFrom(b), field: b.field.trim().slice(0, 80), institution: b.institution.trim().slice(0, 100), gradYear: yr, skills, experience: b.experience, jobTypes: (Array.isArray(b.jobTypes) ? b.jobTypes : []).filter(t => JT.includes(t)), locations: String(b.locations || '').trim().slice(0, 150), headline: String(b.headline || '').trim().slice(0, 100), summary: String(b.summary || '').trim().slice(0, 500), projects: String(b.projects || '').trim().slice(0, 800), link: String(b.link || '').trim().slice(0, 200), ...cleanExtras(b, skills), done: true
+                qualification: b.qualification, ...studyFrom(b), field: b.field.trim().slice(0, 80), institution: b.institution.trim().slice(0, 100), gradYear: yr, skills, experience: b.experience, jobTypes: (Array.isArray(b.jobTypes) ? b.jobTypes : []).filter(t => JT.includes(t)), locations: String(b.locations || '').trim().slice(0, 150), headline: b.headline === undefined ? (user.profile?.headline || '') : String(b.headline || '').trim().slice(0, 100), summary: b.summary === undefined ? (user.profile?.summary || '') : String(b.summary || '').trim().slice(0, 500), projects: String(b.projects || '').trim().slice(0, 800), link: String(b.link || '').trim().slice(0, 200), ...cleanExtras(b, skills), done: true
             };
             await patchMe({ profile });
             return { completion: completion({ ...user, profile }) };
+        }
+        case 'PUT /profile/basic': { // Basic info card: name, headline and about, saved without the rest of the profile form
+            only('user');
+            const r = cleanBasics(b);
+            if (!r.ok) {
+                bad(r.error);
+            }
+            await patchMe({ name: r.name, 'profile.headline': r.headline, 'profile.summary': r.about });
+            return { name: r.name, headline: r.headline, summary: r.about };
         }
         case 'POST /resume': {
             only('user');

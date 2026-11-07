@@ -4,6 +4,10 @@ Versions follow [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH. MA
 (then a new `/api/v2` is added and `/api/v1` keeps working), MINOR = new features, PATCH = fixes. Change `version` in `package.json`; `/readyz` shows it.
 
 ## 1.2.0 (production hardening, in progress)
+### Added: edit your profile (Basic info card)
+- `#/profile` now starts with a **Basic info** card: change your name, photo, headline and about text, and see your sign-in email, verified phone (masked) and member-since date. It saves on its own (`PUT /api/profile/basic`), so you no longer have to fill in every required education field just to fix a name. Before, the name could not be changed at all.
+- The long form below it is now "Education, skills and preferences". It no longer contains photo, headline or about (first-time setup still does, as one step), and saving it keeps whatever the Basic info card saved.
+- The rules (name 2-80 characters with letters, headline 100, about 500, no angle brackets or control characters in the name) live in one file, `features/profile/basics.rules.js`, used by the browser/Firestore mode and the Node server. No Firestore rules change was needed (the owner could already write `name` and `profile`). `test/profile-edit.test.js` covers the rules, both backends and the "big form keeps headline and about" behaviour.
 ### Fixed: phone verification in Firefox/Zen and on phones
 - The login went through phone.email in the same tab for Firefox-based browsers and phones. phone.email's own page needs the window that opened it (`window.opener`) to finish, so it failed with `TypeError: window.opener is null` and the number was never verified. Phone verification now always opens phone.email in a popup/new tab straight from the click (`startLogin` in `phone-email.js`); the same-tab mode is gone. If the browser blocks the popup, the page says to allow pop-ups and press the button again. The service-worker cache label was bumped so visitors get the new script.
 ### Changed: landing page for signed-in members

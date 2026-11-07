@@ -4,6 +4,7 @@ import { api } from '../../core/api.js';
 import { route } from '../../core/router.js';
 import { chips, addSkill, resumeUI, photoUI, REP } from './profile.view.js';
 import { nav } from '../layout/nav.js';
+import { rememberMe } from '../auth/load-me.js';
 const shrinkPhoto = f => new Promise((ok, no) => {
     const im = new Image();
     const u = URL.createObjectURL(f);
@@ -114,6 +115,19 @@ const group = (fd, map) => {
     return Array.from({ length: n }, (_, i) => Object.fromEntries(ks.map(k => [map[k], fd.getAll(k)[i]])));
 };
 export const forms = {
+    // Basic info card: name, headline and about save on their own (PUT /profile/basic), the rest of the profile is left as it is.
+    async basics(d, e) {
+        const r = await api('/profile/basic', 'PUT', { name: d.name, headline: d.headline, summary: d.summary });
+        const f = e.target.elements;
+        f.namedItem('name').value = r.name; // show what was actually saved (extra spaces and odd characters are cleaned)
+        f.namedItem('headline').value = r.headline;
+        f.namedItem('summary').value = r.summary;
+        S.me.name = r.name;
+        rememberMe(S.me);
+        nav();
+        photoUI(S.me.photo); // the letter shown when there is no photo comes from the name
+        toast('Profile updated');
+    },
     async profile(d, e) {
         const fd = new FormData(e.target);
         const pend = $('#skillin').value.trim();

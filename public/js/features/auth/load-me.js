@@ -25,7 +25,7 @@ export async function loadMe() {
 // A small copy of the profile is kept on this device so the next page load can draw the signed-in header immediately,
 // before Firebase has finished starting. It is only a hint: the real profile always replaces it.
 const KEY = 'fyndr-me';
-function rememberMe(m) {
+export function rememberMe(m) {
     try {
         const { photo, ...rest } = m;
         localStorage.setItem(KEY, JSON.stringify(photo && photo.length < 30000 ? m : rest));

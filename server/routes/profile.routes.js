@@ -4,6 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const { QUAL, EXP, JT, completion, cleanExtras, studyFrom } = require('../lib/helpers');
 const { UP_DIR: UP } = require('../config');
+const { pathToFileURL } = require('url');
+// The Basic info rules (name / headline / about) are the browser's own file, loaded once with a dynamic import.
+let rules;
+const load = async () => rules || (rules = await import(pathToFileURL(path.join(__dirname, '..', '..', 'public', 'js', 'features', 'profile', 'basics.rules.js')).href));
 // Candidate profile + resume.
 R('GET', '/api/profile', ['user'], ({ user }) => ({
     profile: user.profile || {}, resume: user.resume || null, completion: completion(user), phone: user.phone || null, name: user.name, email: user.email, photo: user.photo || null, joined: user.created
@@ -23,10 +27,21 @@ R('PUT', '/api/profile', ['user'], ({ user, body: b }) => {
     }
     user.profile = {
         qualification: b.qualification, ...studyFrom(b), field: b.field.trim().slice(0, 80), institution: b.institution.trim().slice(0, 100), gradYear: yr, skills, experience: b.experience,
-        jobTypes: (Array.isArray(b.jobTypes) ? b.jobTypes : []).filter(t => JT.includes(t)), locations: String(b.locations || '').trim().slice(0, 150), headline: String(b.headline || '').trim().slice(0, 100), summary: String(b.summary || '').trim().slice(0, 500), projects: String(b.projects || '').trim().slice(0, 800), link: String(b.link || '').trim().slice(0, 200), ...cleanExtras(b, skills), done: true
+        jobTypes: (Array.isArray(b.jobTypes) ? b.jobTypes : []).filter(t => JT.includes(t)), locations: String(b.locations || '').trim().slice(0, 150), headline: b.headline === undefined ? (user.profile?.headline || '') : String(b.headline || '').trim().slice(0, 100), summary: b.summary === undefined ? (user.profile?.summary || '') : String(b.summary || '').trim().slice(0, 500), projects: String(b.projects || '').trim().slice(0, 800), link: String(b.link || '').trim().slice(0, 200), ...cleanExtras(b, skills), done: true
     };
     save();
     return { completion: completion(user) };
+});
+// Basic info card: name, headline and about can be saved on their own, without the rest of the profile form.
+R('PUT', '/api/profile/basic', ['user'], async ({ user, body: b }) => {
+    const r = (await load()).cleanBasics(b);
+    if (!r.ok) {
+        bad(400, r.error);
+    }
+    user.name = r.name;
+    user.profile = { ...(user.profile || {}), headline: r.headline, summary: r.about };
+    save();
+    return { name: r.name, headline: r.headline, summary: r.about };
 });
 R('POST', '/api/resume', ['user'], ({ user, body: b }) => {
     const buf = Buffer.from(String(b.data || ''), 'base64');
