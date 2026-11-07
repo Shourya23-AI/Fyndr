@@ -1213,7 +1213,7 @@ body.dt-lock {
 .dt-board { min-width: 0; overflow-wrap: anywhere; }
 .dt-boards select { max-width: 100%; }
 .dt-report { margin-top: 6px; }
-.rp-box { width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; }
+.rp-box { width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
 .rp-box textarea { width: 100%; box-sizing: border-box; resize: vertical; }
 @media (max-width: 640px) {
   .dt-boardlist { grid-template-columns: 1fr 1fr; }
