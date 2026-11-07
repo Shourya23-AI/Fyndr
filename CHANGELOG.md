@@ -4,6 +4,8 @@ Versions follow [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH. MA
 (then a new `/api/v2` is added and `/api/v1` keeps working), MINOR = new features, PATCH = fixes. Change `version` in `package.json`; `/readyz` shows it.
 
 ## 1.2.0 (production hardening, in progress)
+### Fixed: phone verification in Firefox/Zen and on phones
+- The login went through phone.email in the same tab for Firefox-based browsers and phones. phone.email's own page needs the window that opened it (`window.opener`) to finish, so it failed with `TypeError: window.opener is null` and the number was never verified. Phone verification now always opens phone.email in a popup/new tab straight from the click (`startLogin` in `phone-email.js`); the same-tab mode is gone. If the browser blocks the popup, the page says to allow pop-ups and press the button again. The service-worker cache label was bumped so visitors get the new script.
 ### Changed: landing page for signed-in members
 - People who are signed in now get their own landing page (`features/home/member.js`): a welcome, next steps, the career guide, quick links to every section and a phone-verification reminder, with no sign-up or sign-in buttons. Signed-out visitors still see the original page.
 ### Added: career guide, typos and live links

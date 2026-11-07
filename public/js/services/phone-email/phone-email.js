@@ -31,15 +31,10 @@ function loginUrl(id) {
     return 'https://www.phone.email/auth/log-in?client_id=' + encodeURIComponent(id) + '&redirect_url=' + encodeURIComponent(redirect);
 }
 
-// Firefox-based browsers (Firefox, Zen...) and phones are unreliable with login popups: they often block them,
-// open them as tabs, or cut the link back to this page. There we go through phone.email in this same tab instead.
-const preferRedirect = () => /Firefox|FxiOS|Android|iPhone|iPad|iPod|Mobi/.test(navigator.userAgent);
-
-// Same-tab login. phone-callback.html returns here afterwards and the token is picked up by takePendingToken().
-function redirectLogin(url) {
-    location.assign(url);
-    return Object.assign(new Promise(() => {}), { cancel() {}, redirected: true });
-}
+// phone.email only works as a popup (or new tab) opened by this page: when the number is confirmed, phone.email's own page sets
+// window.opener.location to our callback page and closes itself. Opened in this same tab there is no opener, so its script fails with
+// "TypeError: window.opener is null" (reading .location) and the login never finishes. That is why there is no
+// same-tab mode here (Firefox, Zen and phones included): always window.open() straight from the click.
 
 // phone-callback.html returns to  #/phone?token=...  . Called by the router on every navigation: moves the token out of the
 // address bar into storage (so a redirect to another page can't lose it) and cleans the URL.
@@ -60,7 +55,8 @@ export function capturePhoneToken() {
     }
 }
 
-// Token left behind by phone-callback.html when it could not hand it to an open tab (full-page flow).
+// Token left behind by phone-callback.html when it could not hand it to an open tab. phone.email sends the opener tab itself to the
+// callback page, so this is the normal way the token reaches the app.
 export function takePendingToken() {
     let token = '';
     for (const store of [sessionStorage, localStorage]) {
@@ -73,17 +69,16 @@ export function takePendingToken() {
 }
 
 // Opens the popup and resolves with the access_token. Must be called straight from a click so popup blockers allow it.
+// Throws { message } when the browser blocks the popup.
 // `wait.cancel()` stops listening. (We do not poll popup.closed: some browsers report it as closed once the popup visits another site.)
 export function startLogin(id) {
     const url = loginUrl(id);
-    if (preferRedirect()) {
-        return redirectLogin(url);
-    }
     const left = (screen.width - 500) / 2;
     const top = (screen.height - 600) / 2;
     const popup = window.open(url, 'peLoginWindow', 'toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=500,height=560,top=' + top + ',left=' + left);
     if (!popup) {
-        return redirectLogin(url);
+        // Blocked. Do NOT continue in this tab (see above): ask the person to allow the popup and press the button again.
+        throw { message: 'Your browser blocked the phone.email window. Allow pop-ups for this site (look for the icon in the address bar), then press the button again.' };
     }
     let stop;
     let reject;

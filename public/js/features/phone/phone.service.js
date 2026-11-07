@@ -50,15 +50,22 @@ export async function phoneRecheck() {
 }
 
 // Opens the phone.email popup, waits for its token, and lets our server confirm it.
-// If the browser blocks the popup, startLogin() continues in this tab and phoneResume() finishes the job on return.
+// phone.email finishes by sending this tab to phone-callback.html, which returns here, and phoneResume() then confirms the token.
+// If the browser blocks the popup, startLogin() throws and we show a message asking to allow pop-ups.
 export async function phoneVerify() {
     if (!S.ph.cid) {
         throw { message: 'Phone verification is not set up yet. The site owner must add a phone.email Client ID.' };
     }
     S.ph.error = '';
-    const wait = startLogin(S.ph.cid); // opens the popup immediately (inside the click)
+    let wait;
+    try {
+        wait = startLogin(S.ph.cid); // opens the popup immediately (inside the click)
+    } catch (x) {
+        S.ph.error = ferr(x);
+        phoneRender();
+        return;
+    }
     S.ph.busy = true;
-    S.ph.redirecting = !!wait.redirected;
     S.ph.cancel = () => wait.cancel();
     phoneRender();
     try {

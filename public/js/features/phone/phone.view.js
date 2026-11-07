@@ -48,17 +48,11 @@ export function phoneRender() {
     if (S.ph.checking) {
         return card(`<h3>${SPIN} Checking…</h3><p class="desc">Looking at your account.</p>`);
     }
-    if (S.ph.busy && S.ph.redirecting) {
-        return card(`
-            <h3>${SPIN} Taking you to phone.email…</h3>
-            ${steps(0)}
-            <p class="desc">Enter your number and the one-time code there. You come straight back here when you are done.</p>`);
-    }
     if (S.ph.busy) {
         return card(`
             <h3>${SPIN} Finish in the popup</h3>
             ${steps(0)}
-            <p class="desc">Enter your phone number and the one-time code in the window that just opened. This page updates by itself when you are done.</p>
+            <p class="desc">Enter your phone number and the one-time code in the window that just opened. This page updates by itself when you are done. If no window opened, allow pop-ups for this site and press Cancel, then try again.</p>
             <div class="form"><button class="button" data-act="phone-cancel">Cancel and start again</button></div>`);
     }
     const why = S.me.role === 'org' ? 'Organizations must verify a phone number before posting.' : 'You must verify a phone number before applying.';
