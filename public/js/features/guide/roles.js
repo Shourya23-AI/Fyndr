@@ -98,10 +98,17 @@ export const ROLES = [
     },
     {
         id: 'ml-engineer', title: 'Machine Learning Engineer', domain: 'data', minQual: 3,
-        aka: ['ml engineer', 'ai engineer', 'artificial intelligence engineer', 'machine learning', 'deep learning engineer', 'nlp engineer', 'computer vision engineer', 'generative ai engineer', 'ai developer'],
+        aka: ['ml engineer', 'ai engineer', 'artificial intelligence engineer', 'machine learning', 'deep learning engineer', 'computer vision engineer', 'ai developer'],
         summary: 'You build and ship machine learning models into real products, so they work reliably at scale.',
         qualNote: 'Usually a Bachelor\u2019s or Master\u2019s in CS, AI or a related field.',
         must: ['python', 'dsa', 'pandas', 'machine learning', 'deep learning', 'git'], nice: ['nlp', 'computer vision', 'sql', 'docker', 'aws', 'ci/cd']
+    },
+    {
+        id: 'nlp-engineer', title: 'NLP Engineer', domain: 'data', minQual: 3,
+        aka: ['nlp engineer', 'nlp', 'natural language processing', 'natural language processing engineer', 'nlp developer', 'nlp scientist', 'nlp researcher', 'language model engineer', 'llm engineer', 'generative ai engineer', 'conversational ai engineer', 'chatbot developer', 'text mining engineer', 'computational linguist'],
+        summary: 'You build systems that understand and write human language: chatbots, search, summarisers and large language model apps.',
+        qualNote: 'Usually a Bachelor\u2019s or Master\u2019s in CS, AI or linguistics-related fields; strong projects count a lot.',
+        must: ['python', 'machine learning', 'nlp', 'deep learning', 'pandas', 'git'], nice: ['statistics', 'sql', 'docker', 'aws', 'rest api']
     },
     {
         id: 'data-engineer', title: 'Data Engineer', domain: 'data', minQual: 3,

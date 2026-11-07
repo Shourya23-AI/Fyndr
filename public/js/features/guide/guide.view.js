@@ -239,6 +239,12 @@ async function aiAnswer(id, t) {
 }
 
 async function job(id, t) {
+    // small talk ("hi", "thanks", "help") is not a job: answer it kindly and steer back to the dream-job question
+    if (/^\s*(hi+|hello+|hey+|hii+|yo|sup|namaste|good\s*(morning|afternoon|evening)|thanks?( you)?|thx|ok(ay)?|cool|help|who are you|what can you do)\W*$/i.test(t)) {
+        const thanks = /thank|thx|^\s*(ok|cool)/i.test(t);
+        await say(id, thanks ? 'Happy to help!' : 'Hey! Good to see you. I can map any job to the skills and courses you need.', 'Type the job you dream of, like <b>Data analyst</b>, or tap an example.');
+        return ask('job', 'Type your dream job, e.g. Data analyst', EXAMPLES.map(x => [x, x, 'job']));
+    }
     const u = understand(t);
     if (u.kind === 'role' && u.fuzzy) {
         await say(id, `I read that as <b>${esc(u.role.title)}</b>. Is that the job you mean?`);
@@ -256,7 +262,7 @@ async function job(id, t) {
         await say(id, `That sounds like ${esc(a[1])}. Here are the jobs I can map there:`);
         return ask('job', 'Or type your own dream job', [...u.roles.map(r => [r.title, r.id, 'role']), ['None of these', 'x', 'none']]);
     }
-    await say(id, 'I do not have a map for that job yet, and I would rather not guess. Pick the area that interests you most and I will show the jobs I can check:');
+    await say(id, 'I could not match that to a job yet. Try a job title like <b>Data analyst</b> or <b>Graphic designer</b>, or pick the area that interests you most and I will show the jobs I can check:');
     return ask('job', 'Or type a different job', AREAS.map(a => [a[1], a[0], 'area']));
 }
 
