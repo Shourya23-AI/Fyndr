@@ -36,6 +36,29 @@ function loginUrl(id) {
 // "TypeError: window.opener is null" (reading .location) and the login never finishes. That is why there is no
 // same-tab mode here (Firefox, Zen and phones included): always window.open() straight from the click.
 
+// A short trail of what happened during a verification attempt, kept in this tab's session storage (phone-callback.js writes to the same
+// key). The phone page shows it under "Technical details" when an attempt ends without a result, so a failure can be explained.
+export const TRAIL_KEY = 'fyndr-phone-log';
+export function phoneTrail(msg) {
+    try {
+        const lines = (sessionStorage.getItem(TRAIL_KEY) || '').split('\n').filter(Boolean);
+        lines.push(new Date().toTimeString().slice(0, 8) + ' ' + String(msg).slice(0, 200));
+        sessionStorage.setItem(TRAIL_KEY, lines.slice(-30).join('\n'));
+    } catch { } // storage can be blocked by privacy settings
+}
+export function readPhoneTrail() {
+    try {
+        return sessionStorage.getItem(TRAIL_KEY) || '';
+    } catch {
+        return '';
+    }
+}
+export function clearPhoneTrail() {
+    try {
+        sessionStorage.removeItem(TRAIL_KEY);
+    } catch { }
+}
+
 // phone-callback.html returns to  #/phone?token=...  . Called by the router on every navigation: moves the token out of the
 // address bar into storage (so a redirect to another page can't lose it) and cleans the URL.
 export function capturePhoneToken() {
@@ -70,16 +93,38 @@ export function takePendingToken() {
 
 // Opens the popup and resolves with the access_token. Must be called straight from a click so popup blockers allow it.
 // Throws { message } when the browser blocks the popup.
-// `wait.cancel()` stops listening. (We do not poll popup.closed: some browsers report it as closed once the popup visits another site.)
-export function startLogin(id) {
+// `wait.cancel()` stops listening and closes the popup.
+// onStall(): called once when the popup has been closed for `stallMs` and still nothing came back to this page. (If the hand-over is
+// working, phone.email sends THIS tab to the callback page within a moment of closing, so this page is gone before that fires.)
+// A "closed" popup is only reported, never acted on: some browsers say closed once the popup visits another site.
+export function startLogin(id, { onStall, pollMs = 500, stallMs = 4000 } = {}) {
+    clearPhoneTrail();
     const url = loginUrl(id);
     const left = (screen.width - 500) / 2;
     const top = (screen.height - 600) / 2;
     const popup = window.open(url, 'peLoginWindow', 'toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=500,height=560,top=' + top + ',left=' + left);
     if (!popup) {
         // Blocked. Do NOT continue in this tab (see above): ask the person to allow the popup and press the button again.
+        phoneTrail('the browser blocked the phone.email window');
         throw { message: 'Your browser blocked the phone.email window. Allow pop-ups for this site (look for the icon in the address bar), then press the button again.' };
     }
+    phoneTrail('phone.email window opened');
+    let closedAt = 0;
+    const watch = setInterval(() => {
+        let closed = false;
+        try {
+            closed = popup.closed;
+        } catch { }
+        if (closed && !closedAt) {
+            closedAt = Date.now();
+            phoneTrail('phone.email window closed, waiting for its result');
+        }
+        if (closedAt && Date.now() - closedAt >= stallMs) {
+            clearInterval(watch);
+            phoneTrail('window closed ' + Math.round(stallMs / 1000) + 's ago and no result reached this page');
+            onStall && onStall();
+        }
+    }, pollMs);
     let stop;
     let reject;
     const wait = new Promise((resolve, rej) => {
@@ -88,6 +133,7 @@ export function startLogin(id) {
         const onMessage = msg => {
             if (msg && msg.type === 'fyndr-phone-token' && msg.token) {
                 channel && channel.postMessage({ type: 'fyndr-phone-ack' }); // tells the callback page we have it
+                phoneTrail('result received from the phone.email window');
                 stop();
                 resolve(msg.token);
             }
@@ -102,12 +148,14 @@ export function startLogin(id) {
         }
         addEventListener('message', onWindowMessage);
         stop = () => {
+            clearInterval(watch);
             channel && channel.close();
             removeEventListener('message', onWindowMessage);
         };
     });
     // Attached after construction: referencing `wait` inside the executor throws (it is not initialised yet).
     wait.cancel = () => {
+        phoneTrail('this page cancelled the attempt and closed the phone.email window');
         stop();
         try {
             popup.close();

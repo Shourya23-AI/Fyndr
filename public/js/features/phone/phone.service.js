@@ -2,7 +2,7 @@ import { S } from '../../core/state.js';
 import { api, clearApiCache } from '../../core/api.js';
 import { toast } from '../../core/dom.js';
 import { ferr } from '../../core/errors.js';
-import { startLogin, takePendingToken } from '../../services/phone-email/phone-email.js';
+import { startLogin, takePendingToken, phoneTrail } from '../../services/phone-email/phone-email.js';
 import { phoneRender } from './phone.view.js';
 import { nav } from '../layout/nav.js';
 
@@ -11,7 +11,9 @@ async function phoneConfirm(token) {
     S.ph.verifying = true;
     S.ph.error = '';
     phoneRender();
+    phoneTrail('asking the server to confirm the result');
     S.me = await api('/phone/verify', 'POST', { access_token: token });
+    phoneTrail('number verified');
     // Show a clear success screen, then move on by itself.
     S.ph.verifying = false;
     S.ph.done = true;
@@ -57,9 +59,18 @@ export async function phoneVerify() {
         throw { message: 'Phone verification is not set up yet. The site owner must add a phone.email Client ID.' };
     }
     S.ph.error = '';
+    S.ph.stalled = false;
     let wait;
     try {
-        wait = startLogin(S.ph.cid); // opens the popup immediately (inside the click)
+        // opens the popup immediately (inside the click)
+        wait = startLogin(S.ph.cid, {
+            onStall() {
+                S.ph.stalled = true;
+                if (location.hash === '#/phone' && S.ph.busy) {
+                    phoneRender();
+                }
+            }
+        });
     } catch (x) {
         S.ph.error = ferr(x);
         phoneRender();
@@ -75,6 +86,7 @@ export async function phoneVerify() {
             return;
         }
         S.ph.error = ferr(x); // shown on the page (a toast alone is easy to miss)
+        phoneTrail('failed: ' + S.ph.error);
     } finally {
         S.ph.verifying = false;
         S.ph.busy = false;
@@ -91,10 +103,12 @@ export async function phoneResume() {
     if (!token || S.me.phoneVerified) {
         return;
     }
+    phoneTrail('back on the phone page with a result from phone.email');
     try {
         await phoneConfirm(token);
     } catch (x) {
         S.ph.error = ferr(x);
+        phoneTrail('failed: ' + S.ph.error);
     } finally {
         S.ph.verifying = false;
         if (location.hash === '#/phone') {

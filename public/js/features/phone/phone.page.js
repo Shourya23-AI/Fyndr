@@ -9,7 +9,7 @@ export async function phoneView() {
         return location.hash = '#/dashboard';
     }
     S.ph.cancel?.();
-    S.ph = { busy: false, verifying: false, done: false, error: '', cancel: null, cid: undefined };
+    S.ph = { busy: false, verifying: false, done: false, stalled: false, error: '', cancel: null, cid: undefined };
     phoneRender();
     const id = await phoneClientId();
     if (location.hash !== '#/phone') {

@@ -135,3 +135,29 @@ main:has(> .phone-page) {
     transform: rotate(360deg);
   }
 }
+
+/* "Technical details": the trail of the last verification attempt */
+.ph-log {
+  margin-top: 18px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ph-log summary {
+  cursor: pointer;
+}
+
+.ph-log pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.ph-log p {
+  margin: 0;
+}

@@ -4,6 +4,10 @@ Versions follow [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH. MA
 (then a new `/api/v2` is added and `/api/v1` keeps working), MINOR = new features, PATCH = fixes. Change `version` in `package.json`; `/readyz` shows it.
 
 ## 1.2.0 (production hardening, in progress)
+### Added: phone verification explains itself when the phone.email window closes without a result
+- Reported: the phone.email window closes after pressing Continue, but the number is not verified. That hand-over happens inside phone.email's own page, so it can only be seen from the browser. Every attempt now keeps a short trail (window opened, window closed, result received, callback page opened with or without a result and an opener, server check, or "this page cancelled the attempt"). It is shown under **Technical details** on the phone page when an attempt fails or stalls.
+- If the window stays closed for 4 seconds and nothing came back, the page says so and offers Cancel and start again (before, it kept saying "Finish in the popup" for ever). A closed window is only reported, never acted on, so a browser that wrongly reports "closed" cannot break a working attempt.
+- `test/phone-popup.test.js` covers the popup hand-over, blocked popups, the stall report, cancelling, the trail and the callback page.
 ### Added: edit your profile (Basic info card)
 - `#/profile` now starts with a **Basic info** card: change your name, photo, headline and about text, and see your sign-in email, verified phone (masked) and member-since date. It saves on its own (`PUT /api/profile/basic`), so you no longer have to fill in every required education field just to fix a name. Before, the name could not be changed at all.
 - The long form below it is now "Education, skills and preferences". It no longer contains photo, headline or about (first-time setup still does, as one step), and saving it keeps whatever the Basic info card saved.

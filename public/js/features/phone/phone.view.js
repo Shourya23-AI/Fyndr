@@ -1,6 +1,7 @@
 import { S } from '../../core/state.js';
 import { $, esc } from '../../core/dom.js';
 import { skeleton } from '../../core/skeleton.js';
+import { readPhoneTrail } from '../../services/phone-email/phone-email.js';
 
 const ICON_PHONE = '<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
 const ICON_CHECK = '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
@@ -20,6 +21,12 @@ const card = (inner, icon = ICON_PHONE) => {
 // Three visible steps so the person always knows where they are: 1 phone.email (number + code) -> 2 we confirm -> 3 done.
 const steps = at => `<ol class="phone-steps">${['Enter number and code', 'We confirm it', 'Done'].map((t, i) => `<li class="${i < at ? 'done' : i === at ? 'now' : ''}"><i>${i < at ? '✓' : i + 1}</i>${t}</li>`).join('')}</ol>`;
 const error = () => S.ph.error ? `<p class="err phone-err" id="err" role="alert">${esc(S.ph.error)}</p>` : '<p class="err" id="err"></p>';
+
+// What happened during the last attempt (written by phone-email.js and phone-callback.js), for when it did not work.
+const trail = () => {
+    const t = readPhoneTrail();
+    return t ? `<details class="ph-log"><summary>Technical details</summary><pre>${esc(t)}</pre><p>If you ask for help, send this text along.</p></details>` : '';
+};
 
 // #/phone: one button opens phone.email (number + one-time code); our server then confirms the result.
 export function phoneRender() {
@@ -53,7 +60,9 @@ export function phoneRender() {
             <h3>${SPIN} Finish in the popup</h3>
             ${steps(0)}
             <p class="desc">Enter your phone number and the one-time code in the window that just opened. This page updates by itself when you are done. If no window opened, allow pop-ups for this site and press Cancel, then try again.</p>
-            <div class="form"><button class="button" data-act="phone-cancel">Cancel and start again</button></div>`);
+            ${S.ph.stalled ? '<p class="err phone-err" role="alert">The phone.email window is closed, but nothing came back to this page. Press the button below and try once more.</p>' : ''}
+            <div class="form"><button class="button" data-act="phone-cancel">Cancel and start again</button></div>
+            ${S.ph.stalled ? trail() : ''}`);
     }
     const why = S.me.role === 'org' ? 'Organizations must verify a phone number before posting.' : 'You must verify a phone number before applying.';
     card(`
@@ -64,5 +73,6 @@ export function phoneRender() {
             ${error()}
             <button class="button button-dark" data-act="phone-open">${S.ph.error ? 'Try again' : 'Verify with phone'}</button>
             <button class="button" data-act="phone-recheck">I already verified: check again</button>
-        </div>`);
+        </div>
+        ${S.ph.error ? trail() : ''}`);
 }

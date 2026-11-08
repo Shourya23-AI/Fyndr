@@ -10,6 +10,16 @@ const token = pick("access_token") || pick("token") || pick("user_json_url");
 const failure = pick("error") || pick("error_description");
 const back = document.getElementById("back");
 
+// Same trail the Fyndr page shows under "Technical details" (key and format: services/phone-email/phone-email.js).
+function trail(text) {
+  try {
+    const lines = (sessionStorage.getItem("fyndr-phone-log") || "").split("\n").filter(Boolean);
+    lines.push(new Date().toTimeString().slice(0, 8) + " " + text);
+    sessionStorage.setItem("fyndr-phone-log", lines.slice(-30).join("\n"));
+  } catch {} // storage can be blocked by privacy settings
+}
+trail("callback page opened: " + (token ? "result received" : "NO result") + (window.opener ? ", has an opener window" : ", no opener window") + (failure ? ", phone.email error: " + failure.slice(0, 80) : ""));
+
 function show(text, link) {
   message.textContent = text;
   if (link) {
@@ -25,6 +35,7 @@ function backToApp() {
     } catch {} // storage can be blocked by privacy settings
   }
   back.href = target;
+  trail("going back to Fyndr in this tab");
   show("Taking you back to Fyndr…", true);
   location.replace(target);
 }
@@ -54,6 +65,7 @@ if (!token) {
   } catch {}
 
   const handedOver = () => {
+    trail("result handed to the other Fyndr tab");
     show("Phone number received. You can close this window.", true);
     setTimeout(() => window.close(), 600);
   };
