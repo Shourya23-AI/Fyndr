@@ -35,7 +35,7 @@ export function phoneRender() {
             <h3>Phone verified</h3>
             ${steps(3)}
             <p class="desc"><span class="tag tag-verified">✓ Phone verified</span> ${esc(S.me.phoneMasked || '')}</p>
-            <div class="form"><a class="button button-dark" href="#/dashboard">Continue</a></div>`, ICON_CHECK);
+            <div class="form"><a class="button button-dark" href="${S.me.role === 'user' ? '#/profile' : '#/dashboard'}">${S.me.role === 'user' ? 'Continue to your profile' : 'Continue'}</a></div>`, ICON_CHECK);
     }
     if (S.ph.cid === undefined) {
         $('#app').innerHTML = skeleton('center');

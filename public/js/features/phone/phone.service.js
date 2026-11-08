@@ -23,9 +23,10 @@ async function phoneConfirm(token) {
         phoneRender();
         setTimeout(() => {
             if (location.hash === '#/phone') {
-                location.hash = '#/dashboard';
+                // Members continue to their profile (basic info, education, skills); organizations go to their dashboard.
+                location.hash = S.me.role === 'user' ? '#/profile' : '#/dashboard';
             }
-        }, 2500);
+        }, 1500);
     }
 }
 
