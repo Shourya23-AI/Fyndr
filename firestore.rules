@@ -42,6 +42,10 @@ service cloud.firestore {
     function isStaff() {
       return isMain() || (hasStaffDoc() && staffRole() in ['admin', 'moderator']);
     }
+    // A phone claim is { uids: [...], at } (older ones were { uid, at }). One number may be used by up to 5 accounts.
+    function claimHolders(d) {
+      return d.get('uids', d.get('uid', '') == '' ? [] : [d.get('uid', '')]);
+    }
     function myDoc() {
       return get(/databases/$(database)/documents/users/$(me())).data;
     }
@@ -123,16 +127,16 @@ service cloud.firestore {
           // sizes: a name or website cannot grow until the 1 MB document limit
           && (!changed().hasAny(['name']) || (request.resource.data.name is string && request.resource.data.name.size() <= 80))
           && (!changed().hasAny(['website']) || (request.resource.data.website is string && request.resource.data.website.size() <= 200))
-          // a phone number is only accepted together with its phones/{phoneId} claim (one number, one account).
-          // phoneId is the number's digits; it must equal the phone without its '+', and the claim must belong to this person.
+          // a phone number is only accepted together with its phones/{phoneId} claim (one number can be used by up to 5 accounts).
+          // phoneId is the number's digits; it must equal the phone without its '+', and this person must be on that claim's list.
           && (!changed().hasAny(['phone', 'phoneId'])
               // current site: phoneId = the number's digits, tied to phone by plain concatenation
               || (request.resource.data.get('phoneId', '') != ''
                   && request.resource.data.phone == '+' + request.resource.data.phoneId
-                  && getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phoneId)).data.uid == me())
+                  && me() in claimHolders(getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phoneId)).data))
               // older site files (no phoneId): still accepted so a cached page does not break
               || (request.resource.data.get('phoneId', '') == ''
-                  && getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phone.replace('[+]', ''))).data.uid == me())))
+                  && me() in claimHolders(getAfter(/databases/$(database)/documents/phones/$(request.resource.data.phone.replace('[+]', ''))).data))))
         // moderators and admins: verify organizations and proof documents
         || (isStaff() && changed().hasOnly(['verified', 'proof']))
         // admins only: organization size and the Gmail-posting override
@@ -163,14 +167,35 @@ service cloud.firestore {
       }
     }
 
-    // ---------- one verified phone number = one account ----------
+    // ---------- one verified phone number = up to 5 accounts ----------
+    // phones/{digits} = { uids: [account ids], at }. A person adds only themselves (never beyond 5) and removes only themselves.
     match /phones/{digits} {
       allow get: if signedIn();
       allow create: if signedIn()
         && digits.matches('[0-9]{8,15}')
-        && request.resource.data.keys().hasOnly(['uid', 'at'])
-        && request.resource.data.uid == me();
-      allow delete: if isAdmin() || (signedIn() && resource.data.uid == me());
+        && request.resource.data.keys().hasOnly(['uids', 'at'])
+        && request.resource.data.uids is list
+        && request.resource.data.uids.size() == 1
+        && request.resource.data.uids[0] == me();
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['uids', 'at'])
+        && request.resource.data.uids is list
+        && (
+          // join: the list grows by exactly one entry, which is me, and stays at 5 or fewer
+          (request.resource.data.uids.size() <= 5
+            && request.resource.data.uids.size() == claimHolders(resource.data).size() + 1
+            && request.resource.data.uids.hasAll(claimHolders(resource.data))
+            && me() in request.resource.data.uids
+            && !(me() in claimHolders(resource.data)))
+          // leave: the list shrinks by exactly me
+          || (me() in claimHolders(resource.data)
+            && request.resource.data.uids.size() == claimHolders(resource.data).size() - 1
+            && claimHolders(resource.data).hasAll(request.resource.data.uids)
+            && !(me() in request.resource.data.uids))
+          // admins removing a deleted account's place
+          || (isAdmin() && request.resource.data.uids.size() <= 5));
+      // The last account on a number removes the claim; admins can remove any.
+      allow delete: if isAdmin() || (signedIn() && me() in claimHolders(resource.data) && claimHolders(resource.data).size() == 1);
     }
 
     // ---------- listings (jobs, internships, courses) ----------

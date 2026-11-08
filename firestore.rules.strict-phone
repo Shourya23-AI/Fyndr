@@ -45,6 +45,10 @@ service cloud.firestore {
     function isStaff() {
       return isMain() || (hasStaffDoc() && staffRole() in ['admin', 'moderator']);
     }
+    // A phone claim is { uids: [...], at } (older ones were { uid, at }). One number may be used by up to 5 accounts.
+    function claimHolders(d) {
+      return d.get('uids', d.get('uid', '') == '' ? [] : [d.get('uid', '')]);
+    }
     function myDoc() {
       return get(/databases/$(database)/documents/users/$(me())).data;
     }
@@ -160,10 +164,17 @@ service cloud.firestore {
 
     // ---------- one verified phone number = one account ----------
     match /phones/{digits} {
-      // claims are created only by the verifyPhone Cloud Function; a person can read just their own, and can release it only while deleting their account
-      allow get: if signedIn() && resource.data.uid == me();
-      allow create, update: if false;
-      allow delete: if isAdmin() || (signedIn() && resource.data.uid == me() && !existsAfter(/databases/$(database)/documents/users/$(me())));
+      // claims are created and changed only by the verifyPhone Cloud Function (up to 5 accounts per number); a person can read a claim they are on,
+      // and can only take THEMSELVES off it (deleting their account)
+      allow get: if signedIn() && me() in claimHolders(resource.data);
+      allow create: if false;
+      allow update: if signedIn()
+        && me() in claimHolders(resource.data)
+        && request.resource.data.keys().hasOnly(['uids', 'at'])
+        && request.resource.data.uids.size() == claimHolders(resource.data).size() - 1
+        && claimHolders(resource.data).hasAll(request.resource.data.uids)
+        && !(me() in request.resource.data.uids);
+      allow delete: if isAdmin() || (signedIn() && me() in claimHolders(resource.data) && claimHolders(resource.data).size() == 1);
     }
 
     // ---------- listings (jobs, internships, courses) ----------

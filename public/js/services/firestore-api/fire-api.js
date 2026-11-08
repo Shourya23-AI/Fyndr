@@ -8,7 +8,7 @@
 //   applications/{uid}_{listing} one application per candidate per listing           (candidate, that organization, staff)
 //   blobs/{uid}_{kind}_{i}      chunks of resume PDFs and proof documents            (owner; staff for proofs)
 //   blobs/ar_{appId}_{i}        the resume copy shared by ONE application            (candidate, that organization; deleted with the application)
-//   phones/{digits}             one verified phone number belongs to one account
+//   phones/{digits}             { uids: [...], at }: one verified phone number can be used by up to PHONE_MAX_ACCOUNTS (5) accounts
 //   staff/{email}               admin / moderator roles
 //   reports/{listingId}_{uid}   "Report this listing": one report per person per listing           (the reporter writes; staff read)
 import { fs, friendly, SITE_VERSION } from './fire.js';
@@ -24,6 +24,8 @@ import { cleanReport, cleanTitle, cleanOrg, isCatalogId, reportId } from '../../
 import { isExpired, dropExpired } from '../../features/listings/expiry.js';
 import { QUAL, EXP, JT, ORG_TYPES, IMG_MAX, now, lc, bad, isMain, isFree, gmailAllowed, pub, meOf, completion, cleanExtras, need, imgOk, filterListings, adminData, cleanForm, cleanImport, hash, studyFrom } from './helpers.js';
 
+// How many accounts may share one verified phone number. Keep in sync with firestore.rules (phones) and functions/phone.js.
+const PHONE_MAX_ACCOUNTS = 5;
 const NUM = ['views', 'searches', 'emptySearches', 'saves', 'applyClicks'];
 // Counters from the browser, cleaned: whole numbers 0-50, plain words only, at most 10 words per kind.
 const cleanCounts = b => {
@@ -181,7 +183,16 @@ async function run(path, method, b, fu) {
         await bt.commit();
         const refs = [...ls.docs.map(x => x.ref), ...sv.docs.map(x => x.ref), ...rp.docs.map(x => x.ref)];
         if (u.phone) {
-            refs.push(ref('phones', digits(u.phone)));
+            // The number may be shared: only the last account to leave removes it; the others just give up their place.
+            const pr = ref('phones', digits(u.phone));
+            const snap = await m.getDoc(pr).catch(() => null);
+            const d = snap && snap.exists() ? snap.data() : null;
+            const rest = (d ? (Array.isArray(d.uids) ? d.uids : d.uid ? [d.uid] : []) : []).filter(x => x !== u.id);
+            if (d && rest.length) {
+                await m.setDoc(pr, { uids: rest, at: d.at || now() });
+            } else {
+                refs.push(pr);
+            }
         }
         await wipe([...refs, ref('users', u.id)]);
     };
@@ -369,12 +380,14 @@ async function run(path, method, b, fu) {
                 }
             };
             const owner = await step('checking the number is free', () => m.getDoc(pr));
-            if (owner.exists() && owner.data().uid !== user.id) {
-                bad('This phone number is already used by another account', 'PHONE_TAKEN');
+            const od = owner.exists() ? owner.data() : null;
+            const holders = od ? (Array.isArray(od.uids) ? od.uids : od.uid ? [od.uid] : []) : []; // older claims were { uid, at }
+            if (!holders.includes(user.id) && holders.length >= PHONE_MAX_ACCOUNTS) {
+                bad('This phone number is already used by ' + PHONE_MAX_ACCOUNTS + ' accounts, the maximum. Use a different number.', 'PHONE_LIMIT');
             }
-            // Two plain writes (no batch): 1) claim the number, 2) save it on the account. A retry after a half-done attempt just continues.
-            if (!owner.exists()) {
-                await step('claiming the number', () => m.setDoc(pr, { uid: user.id, at: now() }));
+            // Two plain writes (no batch): 1) add this account to the number's list, 2) save the number on the account. A retry after a half-done attempt just continues.
+            if (!holders.includes(user.id)) {
+                await step('claiming the number', () => m.setDoc(pr, { uids: [...holders, user.id], at: od?.at || now() }));
             }
             await step('saving the verified number', () => m.updateDoc(ref('users', user.id), { phone: ph, phoneId: digits(ph) }));
             return meOf({ ...user, phone: ph });

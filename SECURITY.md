@@ -4,7 +4,7 @@ The code can only do part of this. The items in **bold** are settings only you c
 
 ## Already in the code
 - Every piece of text from users and imported listings is escaped before it is drawn (`esc()`); apply links must be https and open with `noopener noreferrer nofollow`.
-- `firestore.rules` is the real backend security: verified email required, people can only touch their own data, only staff approve listings or verify organizations, one phone number per account, imported listings can only be created by staff, applications can only be changed by the owning organization.
+- `firestore.rules` is the real backend security: verified email required, people can only touch their own data, only staff approve listings or verify organizations, a verified phone number can be shared by at most 5 accounts, imported listings can only be created by staff, applications can only be changed by the owning organization.
 - Content-Security-Policy and referrer policy in `index.html` (blocks scripts and frames from any host that is not Google/Firebase/phone.email). The Node server also sends HSTS, nosniff, X-Frame-Options and a permissions policy.
 - Trust score + review queue for imported listings; scam-like listings (fees, ID or OTP requests) are never stored.
 - Usage counters are consent-based, daily totals only, rate-capped by the rules, readable only by staff.

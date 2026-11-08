@@ -47,7 +47,16 @@ await api('admin', '/admin/proof/org1', 'PATCH', { status: 'verified' });
 ok((await api('org', '/me')).verified === true, 'org verified');
 await throws(() => api('org', '/listings', 'POST', post), /PHONE_REQUIRED/, 'phone required to post');
 await api('org', '/phone/verify', 'POST', { access_token: 'tokA' });
-await throws(() => api('cand', '/phone/verify', 'POST', { access_token: 'tokA' }), /PHONE_TAKEN/, 'same phone on 2nd account refused');
+ok(Array.isArray(mock.store.get('phones/919876543210').uids) && mock.store.get('phones/919876543210').uids.join() === 'org1', 'the number is stored as a list of accounts');
+mock.store.set('phones/919876543210', { uids: ['org1', 'x2', 'x3', 'x4', 'x5'], at: 'now' }); // pretend 5 accounts already use this number
+await throws(() => api('cand', '/phone/verify', 'POST', { access_token: 'tokA' }), /PHONE_LIMIT/, 'a 6th account on the same phone is refused');
+mock.store.set('phones/919876543210', { uids: ['org1', 'x2', 'x3', 'x4'], at: 'now' }); // 4 accounts: room for one more
+await api('cand', '/phone/verify', 'POST', { access_token: 'tokA' });
+ok(mock.store.get('phones/919876543210').uids.length === 5 && (await api('cand', '/me')).phoneVerified === true, 'a 5th account can share the same phone');
+// put things back as the rest of this test expects: the candidate has no phone yet
+mock.store.set('phones/919876543210', { uids: ['org1'], at: 'now' });
+const candId = (await api('cand', '/me')).id;
+const cu = mock.store.get('users/' + candId); delete cu.phone; delete cu.phoneId; mock.store.set('users/' + candId, cu);
 await throws(() => api('org', '/listings', 'POST', { ...post, image: '' }), /cover image/i, 'cover image required');
 await throws(() => api('org', '/listings', 'POST', { ...post, image: 'data:text/html;base64,AAAA' }), /cover image/i, 'non-image refused');
 await throws(() => api('org', '/listings', 'POST', { ...post, image: 'data:image/jpeg;base64,' + 'A'.repeat(160000) }), /cover image/i, 'oversized image refused');

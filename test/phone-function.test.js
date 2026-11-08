@@ -40,12 +40,23 @@ const reply = body => async () => ({ json: async () => body });
     };
     await claimPhone(db, 'u1', '+919876543210');
     ok(data.users.u1.phone === '+919876543210' && data.users.u1.phoneId === '919876543210', 'the number is saved on the account');
-    ok(data.phones['919876543210'].uid === 'u1', 'and claimed for it');
-    ok(await rejects(claimPhone(db, 'u2', '+919876543210'), 'PHONE_TAKEN'), 'a second account cannot take the same number');
+    ok(data.phones['919876543210'].uids.join() === 'u1', 'and claimed for it');
+    data.users.u2 = { role: 'org' };
+    await claimPhone(db, 'u2', '+919876543210');
+    ok(data.phones['919876543210'].uids.join() === 'u1,u2', 'a second account can share the same number');
+    for (const id of ['u3', 'u4', 'u5']) { data.users[id] = { role: 'user' }; await claimPhone(db, id, '+919876543210'); }
+    ok(data.phones['919876543210'].uids.length === 5, 'five accounts can share one number');
+    data.users.u6 = { role: 'user' };
+    ok(await rejects(claimPhone(db, 'u6', '+919876543210'), 'PHONE_LIMIT'), 'a sixth account is refused');
     await claimPhone(db, 'u1', '+919876543210');
-    ok(true, 'the same person can verify again');
+    ok(data.phones['919876543210'].uids.length === 5, 'the same person can verify again without taking another place');
+    data.phones['910000000000'] = { uid: 'old1', at: 'x' }; // an older single-owner claim is still understood
+    await claimPhone(db, 'u6', '+910000000000');
+    ok(data.phones['910000000000'].uids.join() === 'old1,u6', 'an older { uid } claim is upgraded when another account joins');
     await claimPhone(db, 'u1', '+911234567890');
-    ok(!data.phones['919876543210'] && data.phones['911234567890'].uid === 'u1', 'changing number frees the old one');
+    ok(data.phones['919876543210'].uids.join() === 'u2,u3,u4,u5' && data.phones['911234567890'].uids.join() === 'u1', 'changing number gives up the place on the old one, others keep it');
+    for (const id of ['u2', 'u3', 'u4', 'u5']) { await claimPhone(db, id, '+911234567890'); }
+    ok(!data.phones['919876543210'], 'the last account to leave removes the old claim');
     ok(await rejects(claimPhone(db, 'nobody', '+911111111111'), 'NO_PROFILE'), 'no profile -> refused');
     ok(await rejects(claimPhone(db, 'staff1', '+912222222222'), 'FORBIDDEN'), 'staff accounts are not candidates or organizations');
 

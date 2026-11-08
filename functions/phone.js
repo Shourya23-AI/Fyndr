@@ -40,28 +40,37 @@ async function lookupPhone(token, clientId, fetchFn = fetch) {
     return phone;
 }
 
-// Gives the number to this account: one number = one account. Everything happens in one transaction.
+// How many accounts may share one verified number.
+const MAX_ACCOUNTS = Math.max(1, parseInt(process.env.PHONE_MAX_ACCOUNTS, 10) || 5);
+// A claim is { uids: [...], at }. Older claims were { uid, at }: still understood.
+const holdersOf = snap => (!snap || !snap.exists ? [] : Array.isArray(snap.data().uids) ? snap.data().uids : snap.data().uid ? [snap.data().uid] : []);
+
+// Gives the number to this account: up to MAX_ACCOUNTS accounts can share one number. Everything happens in one transaction.
 async function claimPhone(db, uid, phone) {
     const digits = phone.replace(/\D/g, '');
     await db.runTransaction(async t => {
         const userRef = db.collection('users').doc(uid);
         const claimRef = db.collection('phones').doc(digits);
         const [u, claim] = await Promise.all([t.get(userRef), t.get(claimRef)]);
+        const prev = u.exists ? String(u.data().phone || '').replace(/\D/g, '') : '';
+        const oldRef = prev && prev !== digits ? db.collection('phones').doc(prev) : null;
+        const oldClaim = oldRef ? await t.get(oldRef) : null; // all reads come before the writes
         if (!u.exists) {
             throw err(404, 'Create your profile first.', 'NO_PROFILE');
         }
         if (!['user', 'org'].includes(u.data().role)) {
             throw err(403, 'Forbidden', 'FORBIDDEN');
         }
-        if (claim.exists && claim.data().uid !== uid) {
-            throw err(409, 'This phone number is already used by another account', 'PHONE_TAKEN');
+        const holders = holdersOf(claim);
+        if (!holders.includes(uid) && holders.length >= MAX_ACCOUNTS) {
+            throw err(409, 'This phone number is already used by ' + MAX_ACCOUNTS + ' accounts, the maximum. Use a different number.', 'PHONE_LIMIT');
         }
-        const old = String(u.data().phone || '').replace(/\D/g, '');
-        if (old && old !== digits) {
-            t.delete(db.collection('phones').doc(old)); // a changed number frees the old one
+        if (oldRef) { // a changed number frees this account's place on the old one
+            const rest = holdersOf(oldClaim).filter(x => x !== uid);
+            rest.length ? t.set(oldRef, { uids: rest, at: new Date().toISOString() }) : t.delete(oldRef);
         }
         const at = new Date().toISOString();
-        t.set(claimRef, { uid, at });
+        t.set(claimRef, { uids: [...holders.filter(x => x !== uid), uid], at });
         t.update(userRef, { phone, phoneId: digits, phoneAt: at });
     });
     return phone;

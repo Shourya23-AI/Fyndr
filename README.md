@@ -270,7 +270,7 @@ The site now runs completely on **GitHub Pages + Firebase**. Accounts, profiles,
 - Organizations post only when verified + phone confirmed (and Gmail rule respected). New posts are "pending" until approved.
 - A candidate applies once per listing; only that organization can change the application status.
 - An organization can read a candidate's profile and resume only after the candidate applied to it.
-- One phone number can belong to one account. Staff roles live in `staff/{email}`; the main admin can never be changed.
+- One phone number can be used by up to 5 accounts (`phones/{digits}` holds a `uids` list; set `PHONE_MAX_ACCOUNTS` on the Node server or Cloud Function to change the limit, and edit the `5` in `firestore.rules` and `PHONE_MAX_ACCOUNTS` in `fire-api.js` for the Firestore mode). Staff roles live in `staff/{email}`; the main admin can never be changed.
 
 **Honest limits of having no server**
 - Phone verification is checked by the browser against phone.email (a server used to do this). Normal users can't skip it, but a technically skilled person could fake a number. For airtight checks you would need a small Cloud Function (Firebase "Blaze" plan) or the Node server.

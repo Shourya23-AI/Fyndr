@@ -68,7 +68,7 @@ export function phoneRender() {
     card(`
         <h3>Verify your phone</h3>
         ${steps(0)}
-        <p class="desc">${why} You enter your number and a one-time code, then come straight back here. One phone number can be linked to one account only.</p>
+        <p class="desc">${why} You enter your number and a one-time code, then come straight back here. One phone number can be linked to up to 5 accounts.</p>
         <div class="form">
             ${error()}
             <button class="button button-dark" data-act="phone-open">${S.ph.error ? 'Try again' : 'Verify with phone'}</button>

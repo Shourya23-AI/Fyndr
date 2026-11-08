@@ -1,7 +1,7 @@
 const { R, bad, need } = require('../lib/router');
 const { db, save } = require('../db/store');
 const { pub, meOf, ORG_TYPES, isFree } = require('../lib/helpers');
-const { PHONE_EMAIL_CLIENT_ID } = require('../config');
+const { PHONE_EMAIL_CLIENT_ID, PHONE_MAX_ACCOUNTS } = require('../config');
 // Sign-up profile creation, /me and phone verification.
 R('POST', '/api/init', 'fb', ({ fb, body: b }) => {
     if (db.users.some(u => u.id === fb.sub)) {
@@ -68,8 +68,8 @@ R('POST', '/api/phone/verify', ['user', 'org'], async ({ user, body: b }) => {
         console.warn('phone.email rejected the token. status=' + d.status + ' message=' + (d.message || '') + ' keys=' + Object.keys(d).join(','));
         bad(400, 'Phone verification failed or expired' + (d.message ? ' (' + String(d.message).slice(0, 80) + ')' : '') + '. Please try again.', 'PHONE_FAILED');
     }
-    if (db.users.some(u => u.id !== user.id && u.phone === ph)) {
-        bad(409, 'This phone number is already used by another account', 'PHONE_TAKEN');
+    if (db.users.filter(u => u.id !== user.id && u.phone === ph).length >= PHONE_MAX_ACCOUNTS) {
+        bad(409, 'This phone number is already used by ' + PHONE_MAX_ACCOUNTS + ' accounts, the maximum. Use a different number.', 'PHONE_LIMIT');
     }
     user.phone = ph;
     user.phoneAt = new Date().toISOString();

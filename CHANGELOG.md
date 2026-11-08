@@ -4,6 +4,9 @@ Versions follow [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH. MA
 (then a new `/api/v2` is added and `/api/v1` keeps working), MINOR = new features, PATCH = fixes. Change `version` in `package.json`; `/readyz` shows it.
 
 ## 1.2.0 (production hardening, in progress)
+### Changed: one phone number can now be used by up to 5 accounts
+- Before, a verified number could belong to one account only. `phones/{digits}` is now `{ uids: [...], at }` (older `{ uid, at }` claims still work and are upgraded when a second account joins). A 6th account gets "This phone number is already used by 5 accounts, the maximum" (code `PHONE_LIMIT`). Changed in `firestore.rules` (and the strict variant), `fire-api.js`, `functions/phone.js` and the Node server (`PHONE_MAX_ACCOUNTS`, default 5). Deleting an account only removes the number when it was the last account on it. **Publish the new `firestore.rules`.**
+
 ### Added: phone verification explains itself when the phone.email window closes without a result
 - Reported: the phone.email window closes after pressing Continue, but the number is not verified. That hand-over happens inside phone.email's own page, so it can only be seen from the browser. Every attempt now keeps a short trail (window opened, window closed, result received, callback page opened with or without a result and an opener, server check, or "this page cancelled the attempt"). It is shown under **Technical details** on the phone page when an attempt fails or stalls.
 - If the window stays closed for 4 seconds and nothing came back, the page says so and offers Cancel and start again (before, it kept saying "Finish in the popup" for ever). A closed window is only reported, never acted on, so a browser that wrongly reports "closed" cannot break a working attempt.
