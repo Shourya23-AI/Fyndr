@@ -99,6 +99,9 @@ export function takePendingToken() {
 // A "closed" popup is only reported, never acted on: some browsers say closed once the popup visits another site.
 export function startLogin(id, { onStall, pollMs = 500, stallMs = 4000 } = {}) {
     clearPhoneTrail();
+    try {
+        localStorage.removeItem(TOKEN_KEY); // a leftover from an earlier attempt must not count as this one's result
+    } catch { }
     const url = loginUrl(id);
     const left = (screen.width - 500) / 2;
     const top = (screen.height - 600) / 2;
@@ -147,7 +150,24 @@ export function startLogin(id, { onStall, pollMs = 500, stallMs = 4000 } = {}) {
             channel.onmessage = e => onMessage(e.data);
         }
         addEventListener('message', onWindowMessage);
+        // Second route that does not depend on window.opener or BroadcastChannel (both can be cut off by browser/host security
+        // headers): the callback page also writes the token to localStorage, which every tab of this site shares.
+        const poll = setInterval(() => {
+            let t = '';
+            try {
+                t = localStorage.getItem(TOKEN_KEY) || '';
+                if (t) {
+                    localStorage.removeItem(TOKEN_KEY);
+                }
+            } catch { }
+            if (t) {
+                phoneTrail('result received through shared storage');
+                stop();
+                resolve(t);
+            }
+        }, 400);
         stop = () => {
+            clearInterval(poll);
             clearInterval(watch);
             channel && channel.close();
             removeEventListener('message', onWindowMessage);

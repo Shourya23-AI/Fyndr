@@ -51,6 +51,19 @@ if (!token) {
     channel = new BroadcastChannel("fyndr-phone");
   } catch {}
 
+  let stored = false;
+  try {
+    localStorage.setItem("fyndr-phone-token", token); // the Fyndr tab picks this up even if the messages below are cut off
+    stored = true;
+  } catch {} // storage can be blocked by privacy settings
+  const taken = () => {
+    try {
+      return stored && !localStorage.getItem("fyndr-phone-token");
+    } catch {
+      return false;
+    }
+  };
+
   let received = false;
   if (channel) {
     channel.onmessage = (e) => {
@@ -72,8 +85,8 @@ if (!token) {
 
   if (!channel) {
     // Very old browser: nothing to wait for, rely on the opener message.
-    window.opener ? handedOver() : backToApp();
+    window.opener || taken() ? handedOver() : backToApp();
   } else {
-    setTimeout(() => (received ? handedOver() : backToApp()), 900);
+    setTimeout(() => (received || taken() ? handedOver() : backToApp()), 900);
   }
 }
