@@ -1,5 +1,11 @@
 // Tiny script that must run before first paint. It lives in a file (not inline in index.html) so the page's
 // Content-Security-Policy can refuse ALL inline script: script-src has no 'unsafe-inline'.
+// 0) One address only: anyone who opens a retired address is moved to the real site (same page, same #/route). Keep in sync with js/core/site.js.
+const SITE = { origin: "https://fyndr-bmsit.vercel.app", retired: ["fyndr-2rjv.vercel.app"] };
+if (SITE.retired.includes(location.hostname)) {
+  location.replace(SITE.origin + location.pathname + location.search + location.hash);
+}
+
 // 1) Keep the browser's install prompt so the sidebar "Get the app" button can use it later.
 addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();

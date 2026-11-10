@@ -43,18 +43,21 @@ for (const f of walk(path.join(PUB, 'js')).filter(x => x.endsWith('.js'))) {
 ok(bad.length === 0, 'no inline handler inside script-built HTML: ' + bad.join(', '));
 
 // 3) boot.js does what the two inline scripts and the font onload used to do
-function boot({ stored, dark, links }) {
+function boot({ stored, dark, links, host = 'fyndr-bmsit.vercel.app' }) {
     const listeners = {};
     const sandbox = {
+        location: { hostname: host, pathname: '/', search: '', hash: '#/x', replace: u => { sandbox.went = u; } },
         localStorage: stored ? { theme: stored } : {},
         matchMedia: () => ({ matches: dark }),
         addEventListener: (t, fn) => { listeners[t] = fn; },
         document: { documentElement: { dataset: {} }, querySelectorAll: () => links }
     };
     vm.runInNewContext(read('boot.js'), sandbox);
-    return { theme: sandbox.document.documentElement.dataset.theme, listeners, window: sandbox.window };
+    return { theme: sandbox.document.documentElement.dataset.theme, listeners, window: sandbox.window, went: sandbox.went };
 }
 ok(boot({ stored: 'light', dark: true, links: [] }).theme === 'light', 'saved theme wins');
+ok(boot({ dark: true, links: [], host: 'fyndr-2rjv.vercel.app' }).went === 'https://fyndr-bmsit.vercel.app/#/x', 'the retired address is sent to the real one, keeping the #/route');
+ok(boot({ dark: true, links: [] }).went === undefined, 'the real address is not redirected');
 ok(boot({ dark: true, links: [] }).theme === 'dark' && boot({ dark: false, links: [] }).theme === 'light', 'system theme is the default');
 const pending = { media: 'print', sheet: null, addEventListener(t, fn) { this.fire = fn; } };
 const loaded = { media: 'print', sheet: {}, addEventListener() {} };

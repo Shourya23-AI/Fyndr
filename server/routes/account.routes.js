@@ -28,7 +28,31 @@ R('POST', '/api/init', 'fb', ({ fb, body: b }) => {
 R('GET', '/api/me', ['user', 'org', 'moderator', 'admin'], ({ user }) => meOf(user));
 // Phone: phone.email runs the SMS + OTP in a popup and hands the browser a short-lived access_token.
 // We never trust a number sent by the browser: the server exchanges the token with phone.email and stores the number it returns.
+// A person may try a few times, not hundreds: 10 attempts per hour per account.
+const tries = new Map();
+const tooMany = id => {
+    const now = Date.now();
+    const list = (tries.get(id) || []).filter(t => now - t < 3600e3);
+    list.push(now);
+    tries.set(id, list);
+    if (tries.size > 5000) {
+        tries.clear();
+    }
+    return list.length > 10;
+};
+function savePhone(user, ph) {
+    if (db.users.filter(u => u.id !== user.id && u.phone === ph).length >= PHONE_MAX_ACCOUNTS) {
+        bad(409, 'This phone number is already used by ' + PHONE_MAX_ACCOUNTS + ' accounts, the maximum. Use a different number.', 'PHONE_LIMIT');
+    }
+    user.phone = ph;
+    user.phoneAt = new Date().toISOString();
+    save();
+    return meOf(user);
+}
 R('POST', '/api/phone/verify', ['user', 'org'], async ({ user, body: b }) => {
+    if (tooMany(user.id)) {
+        bad(429, 'Too many attempts. Please wait a while and try again.', 'PHONE_RATE');
+    }
     if (!PHONE_EMAIL_CLIENT_ID) {
         bad(503, 'Phone verification is not set up yet. The site owner must add a phone.email Client ID.', 'NOT_CONFIGURED');
     }
@@ -68,11 +92,5 @@ R('POST', '/api/phone/verify', ['user', 'org'], async ({ user, body: b }) => {
         console.warn('phone.email rejected the token. status=' + d.status + ' message=' + (d.message || '') + ' keys=' + Object.keys(d).join(','));
         bad(400, 'Phone verification failed or expired' + (d.message ? ' (' + String(d.message).slice(0, 80) + ')' : '') + '. Please try again.', 'PHONE_FAILED');
     }
-    if (db.users.filter(u => u.id !== user.id && u.phone === ph).length >= PHONE_MAX_ACCOUNTS) {
-        bad(409, 'This phone number is already used by ' + PHONE_MAX_ACCOUNTS + ' accounts, the maximum. Use a different number.', 'PHONE_LIMIT');
-    }
-    user.phone = ph;
-    user.phoneAt = new Date().toISOString();
-    save();
-    return meOf(user);
+    return savePhone(user, ph);
 });

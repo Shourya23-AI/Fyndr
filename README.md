@@ -1,5 +1,7 @@
 # Fyndr
 
+> **Live address and deploy checklist:** see [docs/DEPLOY.md](docs/DEPLOY.md). Improvement plan: [docs/ROADMAP.md](docs/ROADMAP.md).
+
 ## Update: Groups + fast, fuller book search (steps 3 and 4)
 
 **Groups (`#/groups`, signed-in people only, link in the top bar and the phone menu)**

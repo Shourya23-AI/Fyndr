@@ -24,7 +24,7 @@ const more = p => {
 function profileTab(d, me) {
     const p = d.profile || {};
     return `<div class="dash-head"><h2>Profile</h2><p class="desc">Your details as employers see them.</p></div>
-<div class="panel prof-top">${me.photo ? `<img class="av-lg" src="${me.photo}" alt="">` : `<span class="av-lg ph">${esc((me.name || '?')[0].toUpperCase())}</span>`}<div><h3 style="margin:0">${esc(me.name)}</h3><p class="desc">${esc(p.headline || me.email)}</p><div class="bar" style="width:220px;margin-top:10px"><i style="width:${S.me.completion}%"></i></div><p class="desc" style="margin-top:4px">${S.me.completion}% complete</p></div></div>
+<div class="panel prof-top" style="flex-wrap:wrap">${me.photo ? `<img class="av-lg" src="${me.photo}" alt="">` : `<span class="av-lg ph">${esc((me.name || '?')[0].toUpperCase())}</span>`}<div><h3 style="margin:0">${esc(me.name)}</h3><p class="desc">${esc(p.headline || me.email)}</p><div class="bar" style="width:220px;margin-top:10px"><i style="width:${S.me.completion}%"></i></div><p class="desc" style="margin-top:4px">${S.me.completion}% complete</p></div><a class="button button-dark button-small" href="#/profile" style="margin-left:auto">Edit profile</a></div>
 <div class="dash-grid"><div class="panel"><h3>Account</h3>${row('Name', esc(me.name))}${row('Email', esc(me.email))}${row('Phone', d.phone ? esc(S.me.phoneMasked) + ' <span class="tag tag-verified">Verified</span>' : '')}${row('Member since', fmt(d.joined || S.me.created))}${row('Document check', S.me.proofStatus ? pill(S.me.proofStatus) : '')}</div>
 <div class="panel"><h3>Education</h3>${row('Qualification', esc(p.qualification))}${row('Field', esc(p.field))}${row('Institution', esc(p.institution))}${row('Graduation', esc(p.gradYear))}${row('Experience', esc(p.experience))}</div>
 <div class="panel"><h3>Skills</h3>${(p.skills || []).length ? `<div class="chips">${p.skills.map(s => `<span class="chip-s">${esc(s)}</span>`).join('')}</div>` : '<p class="desc">No skills added.</p>'}</div>
@@ -69,7 +69,7 @@ export async function userDashboard(a) {
     const body = {
         foryou: () => foryouTab(d, ls, { lastSeen: lastVisit(S.me.id || S.me.email) }), profile: () => profileTab(d, me), resume: () => resumeTab(d, me), apps: () => appsTab(ls.filter(l => S.mine.saved.includes(l.id))), tracker: () => trackerTab(ls.filter(l => S.mine.saved.includes(l.id))), privacy: () => privacyTab(d)
     }[S.dtab]();
-    a.innerHTML = `<div class="dash-layout"><aside class="dash-side"><nav>${TABS.map(([id, t, ic]) => `<button class="side-btn ${S.dtab === id ? 'on' : ''}" data-act="dtab" data-id="${id}"><svg viewBox="0 0 24 24"><path d="${ic}"/></svg>${t}${id === 'tracker' && dueCount() ? `<b class="tk-badge" title="Follow-ups due">${dueCount()}</b>` : ''}</button>`).join('')}</nav><a class="side-link" href="#/profile">Manage profile ↗</a></aside><main class="dash-main">${body}</main></div>`;
+    a.innerHTML = `<div class="dash-layout"><aside class="dash-side"><nav>${TABS.map(([id, t, ic]) => `<button class="side-btn ${S.dtab === id ? 'on' : ''}" data-act="dtab" data-id="${id}"><svg viewBox="0 0 24 24"><path d="${ic}"/></svg>${t}${id === 'tracker' && dueCount() ? `<b class="tk-badge" title="Follow-ups due">${dueCount()}</b>` : ''}</button>`).join('')}</nav><a class="side-link" href="#/profile">Edit profile ↗</a></aside><main class="dash-main">${body}</main></div>`;
     S.dd = { d, me };
     if (S.dtab === 'resume' && S.rsel === 'own' && d.resume) {
         showOwn();
@@ -84,6 +84,6 @@ export async function showOwn() {
         const r = await api('/resume/file');
         el.innerHTML = `<iframe class="pdf-frame" src="${await pdfUrl(r.data)}" title="Uploaded resume"></iframe>`;
     } catch (x) {
-        el.innerHTML = '<p class="desc">Could not load your uploaded resume. Re-upload it from Manage profile.</p>';
+        el.innerHTML = '<p class="desc">Could not load your uploaded resume. Re-upload it from Edit profile.</p>';
     }
 }

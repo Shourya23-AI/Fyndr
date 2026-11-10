@@ -1,0 +1,34 @@
+# Publishes firestore.rules to Firebase whenever the file changes on main, so the rules in Firebase can never fall behind the code
+# (that gap caused "the rules refused the check"). One-time setup: run `firebase login:ci` and save the token as the repository
+# secret FIREBASE_TOKEN. Until the secret exists this job just skips itself.
+name: Publish Firestore rules
+on:
+  push:
+    branches: [main]
+    paths: ['firestore.rules', 'firebase.json']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the secret exists
+        id: has
+        env:
+          T: ${{ secrets.FIREBASE_TOKEN }}
+        run: echo "ok=$([ -n "$T" ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.has.outputs.ok == 'yes'
+        with:
+          node-version: 22
+      - name: Publish rules
+        if: steps.has.outputs.ok == 'yes'
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx --yes firebase-tools@latest deploy --only firestore:rules --project fyndr-aiml4 --non-interactive
+      - name: Skipped
+        if: steps.has.outputs.ok != 'yes'
+        run: echo "FIREBASE_TOKEN secret is not set, so the rules were NOT published. Publish them by hand or add the secret."

@@ -112,6 +112,7 @@ export function startLogin(id, { onStall, pollMs = 500, stallMs = 4000 } = {}) {
         throw { message: 'Your browser blocked the phone.email window. Allow pop-ups for this site (look for the icon in the address bar), then press the button again.' };
     }
     phoneTrail('phone.email window opened');
+    phoneTrail('asked phone.email to send you back to ' + new URL('phone-callback.html', location.href).href);
     let closedAt = 0;
     const watch = setInterval(() => {
         let closed = false;

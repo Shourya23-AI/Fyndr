@@ -1,6 +1,6 @@
 {
   "name": "fyndr-app",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "main": "server.js",
   "engines": {
@@ -8,6 +8,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node scripts/test-all.js"
+    "test": "node scripts/test-all.js",
+    "stamp": "node scripts/stamp-build.js --force",
+    "deploy:rules": "firebase deploy --only firestore:rules --project fyndr-aiml4"
   }
 }

@@ -4,6 +4,13 @@ Versions follow [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH. MA
 (then a new `/api/v2` is added and `/api/v1` keeps working), MINOR = new features, PATCH = fixes. Change `version` in `package.json`; `/readyz` shows it.
 
 ## 1.2.0 (production hardening, in progress)
+### Changed: Part 2 of the improvement plan, phone.email hardening (no Firebase Phone Auth, no paid plan)
+- Friendly messages for phone.email failures (`features/phone/phone.errors.js`). "Technical details" now shows the return address we asked phone.email for and what the phone.email dashboard must contain. The Node server limits `/api/phone/verify` to 10 attempts per hour per account (429 `PHONE_RATE`).
+
+### Added: Part 1 of the improvement plan, one address and safe deploys (`docs/ROADMAP.md`, `docs/DEPLOY.md`)
+- The only address is `https://fyndr-bmsit.vercel.app`; `fyndr-2rjv.vercel.app` redirects to it (`vercel.json` + `boot.js`). Phone verification refuses to start on any other `*.vercel.app` address and says why.
+- Every Vercel deploy stamps its own service-worker cache name (`scripts/stamp-build.js`). `firestore.rules` is published automatically on change (`.github/workflows/deploy-rules.yml`, needs the `FIREBASE_TOKEN` secret) or with `npm run deploy:rules`. New `test/domain.test.js` keeps the address consistent.
+
 ### Changed: one phone number can now be used by up to 5 accounts
 - Before, a verified number could belong to one account only. `phones/{digits}` is now `{ uids: [...], at }` (older `{ uid, at }` claims still work and are upgraded when a second account joins). A 6th account gets "This phone number is already used by 5 accounts, the maximum" (code `PHONE_LIMIT`). Changed in `firestore.rules` (and the strict variant), `fire-api.js`, `functions/phone.js` and the Node server (`PHONE_MAX_ACCOUNTS`, default 5). Deleting an account only removes the number when it was the last account on it. **Publish the new `firestore.rules`.**
 

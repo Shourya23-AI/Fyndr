@@ -19,13 +19,14 @@ const card = (inner, icon = ICON_PHONE) => {
 };
 
 // Three visible steps so the person always knows where they are: 1 phone.email (number + code) -> 2 we confirm -> 3 done.
-const steps = at => `<ol class="phone-steps">${['Enter number and code', 'We confirm it', 'Done'].map((t, i) => `<li class="${i < at ? 'done' : i === at ? 'now' : ''}"><i>${i < at ? '✓' : i + 1}</i>${t}</li>`).join('')}</ol>`;
+const OTP_STEPS = ['Your number', 'Enter the code', 'Done'];
+const steps = (at, labels = ['Enter number and code', 'We confirm it', 'Done']) => `<ol class="phone-steps">${labels.map((t, i) => `<li class="${i < at ? 'done' : i === at ? 'now' : ''}"><i>${i < at ? '✓' : i + 1}</i>${t}</li>`).join('')}</ol>`;
 const error = () => S.ph.error ? `<p class="err phone-err" id="err" role="alert">${esc(S.ph.error)}</p>` : '<p class="err" id="err"></p>';
 
 // What happened during the last attempt (written by phone-email.js and phone-callback.js), for when it did not work.
 const trail = () => {
     const t = readPhoneTrail();
-    return t ? `<details class="ph-log"><summary>Technical details</summary><pre>${esc(t)}</pre><p>If you ask for help, send this text along.</p></details>` : '';
+    return t ? `<details class="ph-log"><summary>Technical details</summary><pre>${esc(t)}</pre><p>If you ask for help, send this text along. Site owner: in the phone.email dashboard the Domain URL and Redirect URL must be exactly ${esc(location.origin)} and ${esc(location.origin)}/phone-callback.html.</p></details>` : '';
 };
 
 // #/phone: one button opens phone.email (number + one-time code); our server then confirms the result.

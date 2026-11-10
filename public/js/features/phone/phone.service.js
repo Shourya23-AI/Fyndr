@@ -2,9 +2,31 @@ import { S } from '../../core/state.js';
 import { api, clearApiCache } from '../../core/api.js';
 import { toast } from '../../core/dom.js';
 import { ferr } from '../../core/errors.js';
+import { phoneMsg } from './phone.errors.js';
 import { startLogin, takePendingToken, phoneTrail } from '../../services/phone-email/phone-email.js';
 import { phoneRender } from './phone.view.js';
 import { nav } from '../layout/nav.js';
+import { SITE_ORIGIN, onWrongHost } from '../../core/site.js';
+
+const wrongAddress = () => 'Please open ' + SITE_ORIGIN.replace('https://', '') + ' to verify your phone. This address is not the main site, so the verification cannot finish here.';
+
+// After a number is saved: show a clear success screen, then move on by itself.
+// Members continue to their profile (basic info, education, skills); organizations go to their dashboard.
+function finishUp() {
+    S.ph.verifying = false;
+    S.ph.confirming = false;
+    S.ph.done = true;
+    toast('Phone verified ✓');
+    nav();
+    if (location.hash.startsWith('#/phone')) {
+        phoneRender();
+        setTimeout(() => {
+            if (location.hash === '#/phone') {
+                location.hash = S.me.role === 'user' ? '#/profile' : '#/dashboard';
+            }
+        }, 1500);
+    }
+}
 
 // Sends the phone.email token to our server, which confirms it and stores the verified number.
 async function phoneConfirm(token) {
@@ -14,20 +36,7 @@ async function phoneConfirm(token) {
     phoneTrail('asking the server to confirm the result');
     S.me = await api('/phone/verify', 'POST', { access_token: token });
     phoneTrail('number verified');
-    // Show a clear success screen, then move on by itself.
-    S.ph.verifying = false;
-    S.ph.done = true;
-    toast('Phone verified ✓');
-    nav();
-    if (location.hash.startsWith('#/phone')) {
-        phoneRender();
-        setTimeout(() => {
-            if (location.hash === '#/phone') {
-                // Members continue to their profile (basic info, education, skills); organizations go to their dashboard.
-                location.hash = S.me.role === 'user' ? '#/profile' : '#/dashboard';
-            }
-        }, 1500);
-    }
+    finishUp();
 }
 
 // "Check again": asks the server whether this account already has a verified number (e.g. verification finished in another tab).
@@ -59,6 +68,12 @@ export async function phoneVerify() {
     if (!S.ph.cid) {
         throw { message: 'Phone verification is not set up yet. The site owner must add a phone.email Client ID.' };
     }
+    if (onWrongHost()) {
+        // phone.email only returns to the one address saved in its dashboard, so verifying from any other address always fails.
+        S.ph.error = wrongAddress();
+        phoneRender();
+        return;
+    }
     S.ph.error = '';
     S.ph.stalled = false;
     let wait;
@@ -86,7 +101,7 @@ export async function phoneVerify() {
         if (x && x.cancelled) {
             return;
         }
-        S.ph.error = ferr(x); // shown on the page (a toast alone is easy to miss)
+        S.ph.error = phoneMsg(x); // shown on the page (a toast alone is easy to miss)
         phoneTrail('failed: ' + S.ph.error);
     } finally {
         S.ph.verifying = false;
@@ -108,7 +123,7 @@ export async function phoneResume() {
     try {
         await phoneConfirm(token);
     } catch (x) {
-        S.ph.error = ferr(x);
+        S.ph.error = phoneMsg(x);
         phoneTrail('failed: ' + S.ph.error);
     } finally {
         S.ph.verifying = false;
