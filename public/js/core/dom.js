@@ -14,7 +14,7 @@ export const toast = m => {
     clearTimeout(toast.t);
     toast.t = setTimeout(() => t.hidden = true, 2500);
 };
-export const table = (h, rows) => `<div class="tbl-wrap"><table class="tbl"><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr>${rows.join('') || `<tr><td colspan="${h.length}" style="color:var(--muted)">Nothing here yet.</td></tr>`}</table></div>`;
+export const table = (h, rows, empty = 'Nothing here yet.') => `<div class="tbl-wrap"><table class="tbl"><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr>${rows.join('') || `<tr><td colspan="${h.length}" class="st-none" style="color:var(--muted)">${empty}</td></tr>`}</table></div>`;
 export const pill = s => `<span class="pill ${s}">${s}</span>`;
 export const LOGO = '<img class="logo-img logo-light" src="img/logo.png" alt="Fyndr" width="128" height="41" decoding="async"><img class="logo-img logo-darkmode" src="img/logo-dark.png" alt="" aria-hidden="true" width="128" height="41" decoding="async">';
 export const TICK = '<svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg>';

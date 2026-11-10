@@ -13,6 +13,10 @@ import { browse } from '../features/browse/browse.js';
 import { orgPage } from '../features/organizations/org-page.js';
 import { proofView } from '../features/proof/proof.view.js';
 import { profileView } from '../features/profile/profile.view.js';
+import { setupView } from '../features/onboarding/setup.page.js';
+import { notifyView } from '../features/notifications/notify.view.js';
+import { errorHtml } from '../features/states/states.js';
+import { checkNow } from '../features/notifications/notify.service.js';
 import { phoneView } from '../features/phone/phone.page.js';
 import { dashboard } from '../features/dashboard/dashboard.js';
 import { resetView } from '../features/password-reset/reset.view.js';
@@ -131,10 +135,12 @@ export async function route() {
             }, register: () => {
                 home();
                 openAuth('signup');
-            }, jobs: () => browse('jobs'), courses: () => browse('courses'), community: communityView, groups: groupsView, liked: () => likedView(), library: libraryView, organizations: orgPage, proof: proofView, forgot: () => authView('forgot'), verify: () => authView('verify'), setup: () => authView('setup'), dashboard, profile: profileView, phone: phoneView, terms: termsView, privacy: privacyView, contact: contactView, reset: resetView, consent: consentView, apply: applyView
+            }, jobs: () => browse('jobs'), courses: () => browse('courses'), community: communityView, groups: groupsView, liked: () => likedView(), library: libraryView, organizations: orgPage, proof: proofView, forgot: () => authView('forgot'), verify: () => authView('verify'), setup: () => authView('setup'), dashboard, notifications: notifyView, profile: () => (S.me?.role === 'user' && !S.me.onboarded ? setupView() : profileView()), phone: phoneView, terms: termsView, privacy: privacyView, contact: contactView, reset: resetView, consent: consentView, apply: applyView
         }[r] || home)();
         askAnalytics();
+        checkNow(); // looks for application updates and new matches in the background (candidates only, at most every 10 minutes)
     } catch (e) {
+        $('#app').innerHTML = errorHtml(e && e.message); // a failed load shows what happened and a Try again button, not a skeleton that never ends
         toast(e.message);
     }
 }

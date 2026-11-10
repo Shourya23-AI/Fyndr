@@ -4,6 +4,27 @@ Versions follow [Semantic Versioning](https://semver.org): MAJOR.MINOR.PATCH. MA
 (then a new `/api/v2` is added and `/api/v1` keeps working), MINOR = new features, PATCH = fixes. Change `version` in `package.json`; `/readyz` shows it.
 
 ## 1.2.0 (production hardening, in progress)
+### Added: Part 3 of the improvement plan, step 3 of 3: empty, error and loading states (`docs/ROADMAP.md`)
+- New shared helpers (`features/states/states.js`): an empty state always has a title, a sentence of why, and buttons for what to do next; an error state shows plain words (never the raw error text), is announced to screen readers, and has **Try again**.
+- **A page that fails to load no longer leaves the grey skeleton on screen forever.** The router now replaces it with the error state and a Try again button (`retry` re-runs the route).
+- Empty states that used to be a dead end now point somewhere: dashboard Applications ("Browse jobs and internships"), Qualified for interview, Saved (heart explained, links to jobs and courses), Shared with organizations, Skills ("Add your skills"), For you ("Add skills", "Browse everything"), Groups ("Create a group", "Join a community"), and the organization dashboard's My listings and Applicants (what has to happen first).
+- `table()` takes an optional empty message. Loading text is announced (`role="status"`). The notifications page gets a page-shaped placeholder instead of the home skeleton.
+- `test/states.test.js` (19 checks). Service-worker cache label v62. **Part 3 is complete.**
+### Added: Part 3 of the improvement plan, step 2 of 3: notifications (`docs/ROADMAP.md`)
+- A bell in the header (candidates only) with an unread count, and a new page `#/notifications` (`features/notifications/`).
+- **Application updates:** when an organization moves one of your Fyndr applications to reviewing, interview, accepted or not selected, you get a notice that says what it means.
+- **New-match alerts:** a listing posted since your last check that fits your profile at "good" or better (the same engine as For you) is announced. At most three single notices per check, then one "and N more" notice. A switch on the page turns match alerts off; application updates stay on.
+- Works out of data you can already read, so **no backend and no Firestore rules change** (nothing to publish). The inbox lives on this device (`fyndr-inbox:<account>`, newest 50, rebuilt field by field when read). The first check only records where things stand, so nobody gets a pile of old news. It looks at most every 10 minutes, in the background, and a failed check is just retried later. "Check now" forces one.
+- Empty state says what you will see here and what to do next (finish profile, browse jobs).
+- `test/notify.test.js` (32 checks): status changes, the real match engine, de-duplication, caps, storage per account and distrust of stored data, escaping, no inline handlers, bell, wiring. Service-worker cache label v61.
+- Note: because the inbox is per device, a notice shows on the device that was open when the change was noticed. Server-side notices would need a Firestore rule and are left for a later step.
+### Added: Part 3 of the improvement plan, step 1 of 3: guided first-run profile setup (`docs/ROADMAP.md`)
+- A new account no longer lands on one long form. `#/profile` now opens a four-step setup: **Education**, **Skills**, **Goals**, **Intro** (`features/onboarding/`). A progress bar and the step list show where you are, and a live "Profile N% complete" number uses the same nine checks as the server, so it never disagrees with what is saved. Each step names exactly which field is missing instead of a generic error, keyboard and screen readers get the new step's heading and the first wrong field, and one-tap skill suggestions help people who do not know what to type.
+- What you typed is kept on this device while you go (`fyndr-setup:<account>`), so a reload or a closed tab resumes on the same step. The draft is cleaned on the way back in and removed after saving.
+- It saves through the same `PUT /api/profile` as before (no backend or Firestore rules change), then ends on **your profile page** with a welcome note.
+- The profile page now starts with a progress card: the % complete, a bar, and what is still worth doing (verify phone, upload a resume, add a photo, write an intro), each with a button that takes you to the right box. Finished items are ticked. Once everything is done it says so.
+- The old all-in-one onboarding form inside `profile.view.js` is gone; editing a profile (Basic info card + the education/skills form) is unchanged.
+- `test/setup-flow.test.js` (66 checks): the rules and the draft, the markup of every step and of the progress card (including no inline handlers, for the CSP), the preview % against the server's `completion()`, and the real save on both backends (Firestore mock and Node server). Service-worker cache label v60.
 ### Changed: Part 2 of the improvement plan, phone.email hardening (no Firebase Phone Auth, no paid plan)
 - Friendly messages for phone.email failures (`features/phone/phone.errors.js`). "Technical details" now shows the return address we asked phone.email for and what the phone.email dashboard must contain. The Node server limits `/api/phone/verify` to 10 attempts per hour per account (429 `PHONE_RATE`).
 

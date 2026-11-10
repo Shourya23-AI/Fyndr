@@ -1,0 +1,335 @@
+/* First-run setup (features/onboarding) and the progress card on the profile page. Colours come from base/theme.css, so dark mode follows. */
+.su {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.su-head {
+  margin-bottom: 18px;
+}
+
+.su-head h2 {
+  margin: 4px 0 6px;
+}
+
+.su-kick {
+  display: inline-block;
+  margin: 0;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--yellow-soft);
+  color: var(--deep);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.su-prog {
+  margin-bottom: 16px;
+}
+
+.su-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.su-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.su-steps b {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: var(--white);
+  font-size: 12px;
+}
+
+.su-steps li.on {
+  color: var(--ink);
+}
+
+.su-steps li.on b {
+  border-color: var(--green);
+  background: var(--green);
+  color: var(--on-accent, #fff);
+}
+
+.su-steps li.done b {
+  border-color: var(--green);
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.su-steps span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.su-prog .bar i,
+.pf-head2 .bar i {
+  transition: width .35s var(--ease, ease);
+}
+
+.su-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.su-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.su-card h3 {
+  margin: 0 0 4px;
+  outline: none;
+}
+
+.su-card .desc {
+  margin: 0 0 14px;
+}
+
+.su-fld {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.su-fld input:not([type=checkbox]),
+.su-fld select,
+.su-fld textarea,
+.su-skills input,
+.su-study select {
+  width: 100%;
+}
+
+.su-fld.bad input,
+.su-fld.bad select,
+.su-skills.bad input {
+  border-color: var(--bad-fg);
+}
+
+.su-err {
+  color: var(--bad-fg);
+  font-weight: 600;
+}
+
+.su-hint {
+  display: block;
+  margin: -6px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.study-pick .su-study-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.su-skills {
+  margin-bottom: 14px;
+}
+
+.su-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.su-label small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.su-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.chip-q {
+  padding: 4px 11px;
+  border: 1px dashed var(--line);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip-q:hover,
+.chip-q:focus-visible {
+  border-color: var(--green);
+  color: var(--deep);
+}
+
+.su-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  font-weight: 400;
+}
+
+.su-photo {
+  margin-bottom: 14px;
+}
+
+.su-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+/* profile page: progress card + what is left to do */
+.pf-head2 {
+  max-width: 720px;
+  margin: 0 auto 18px;
+}
+
+.pf-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pf-top h2 {
+  margin: 0;
+}
+
+.pf-top .desc {
+  margin: 2px 0 0;
+}
+
+.su-welcome {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  font-size: 14px;
+}
+
+.su-todo {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.su-todo li {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.su-todo b {
+  display: block;
+  font-size: 14px;
+}
+
+.su-todo small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.su-todo em {
+  color: var(--ok-fg);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.su-tick {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  font-size: 12px;
+}
+
+.su-todo .done .su-tick {
+  border-color: var(--green);
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.su-todo .done b {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.su-done {
+  margin: 14px 0 0;
+  color: var(--ok-fg);
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .su-card {
+    padding: 18px;
+  }
+
+  .su-steps span {
+    display: none;
+  }
+
+  .su-steps li.on span {
+    display: block;
+  }
+
+  .su-steps {
+    grid-template-columns: auto auto auto 1fr;
+  }
+
+  .study-pick .su-study-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .su-prog .bar i,
+  .pf-head2 .bar i {
+    transition: none;
+  }
+}

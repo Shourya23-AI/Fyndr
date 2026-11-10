@@ -25,7 +25,7 @@ export function drawList() {
 <label class="fld"><span class="desc">Add people now (optional): their email addresses</span><textarea name="emails" rows="2" placeholder="asha@example.com, ravi@example.com"></textarea></label>
 <p class="err"></p><div class="cm-acts"><button type="button" class="button button-small" data-act="gpnew">Cancel</button><button class="button button-dark button-small">Create group</button></div></form>
 <h2 class="lib-h">Your groups</h2>
-${list.length ? `<div class="cm-grid">${list.map(card).join('')}</div>` : '<div class="empty"><b>You are not in any group yet</b><p>Create one, or ask a group leader to add your email address.</p></div>'}</section>`;
+${list.length ? `<div class="cm-grid">${list.map(card).join('')}</div>` : '<div class="empty"><b>You are not in any group yet</b><p>Create one, or ask a group leader to add your email address.</p><div class="st-cta"><button type="button" class="button button-dark button-small" data-act="gpnew">Create a group</button><a class="button button-small" href="#/community">Join a community</a></div></div>'}</section>`;
 }
 async function listView() {
     $('#app').innerHTML = skeleton;

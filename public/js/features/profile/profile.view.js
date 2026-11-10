@@ -4,7 +4,8 @@ import { api } from '../../core/api.js';
 import { skeleton } from '../../core/skeleton.js';
 import { QUAL, EXP, JT, LEVELS } from './constants.js';
 import { recalledStudy, fillStudy, PROGRAMMES } from '../suggestions/study.js';
-// #/profile: education, skills chips, job types, resume.
+import { profileHead } from '../onboarding/setup.view.js';
+// #/profile: progress card, basic info, education, skills chips, job types, resume. (First-time setup is the guided steps in features/onboarding/.)
 const lvOpts = v => LEVELS.map((t, i) => `<option value="${i + 1}" ${(+v || 3) === i + 1 ? 'selected' : ''}>${t}</option>`).join('');
 export const chips = () => {
     const c = $('#chips');
@@ -44,17 +45,17 @@ export async function profileView() {
     $('#app').innerHTML = skeleton('center');
     const d = await api('/profile');
     const p = d.profile;
-    const onb = !S.me.onboarded;
+    const welcome = /[?&]welcome=1\b/.test(location.hash);
+    welcome && history.replaceState(null, '', '#/profile'); // the banner shows once, a reload does not repeat it
     S.skills = [...(p.skills || [])];
     S.skillLv = { ...(p.skillLevels || {}) };
     const rf = p.reference || {};
     const st = { ...(recalledStudy() || {}), ...(p.programme ? { programme: p.programme, studyYear: p.studyYear, semester: p.semester } : {}) }; // saved profile wins over what sign-up remembered
     const opt = (arr, v) => arr.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('');
-    // Signed-in members editing their profile get a separate "Basic info" card (name, photo, headline, about) that saves on its own.
-    // During first-time setup those three fields stay inside the one form below, so setup is still a single step.
+    // The "Basic info" card (name, photo, headline, about) saves on its own. First-time setup is the guided steps, not this page.
     const joined = d.joined && !isNaN(new Date(d.joined)) ? new Date(d.joined).toLocaleDateString('en', { month: 'long', year: 'numeric' }) : '';
     const phoneLine = d.phone ? `${esc(String(d.phone).replace(/\d(?=\d{4})/g, '•'))} <span class="pill approved">Verified</span>` : '<span>Not verified</span> <a href="#/phone">Verify now</a>';
-    const basics = onb ? '' : `<div class="panel pf-basic"><h2>Basic info</h2><p class="desc">Your name, photo and short intro. This saves on its own, so you do not need to fill in the rest of the page.</p><br>
+    const basics = `<div class="panel pf-basic"><h2>Basic info</h2><p class="desc">Your name, photo and short intro. This saves on its own, so you do not need to fill in the rest of the page.</p><br>
 <form class="form cols" data-form="basics">
 <div class="full photo-row" id="photo"></div>
 <input name="name" class="full" placeholder="Your full name" value="${esc(d.name)}" required minlength="2" maxlength="80" autocomplete="name" aria-label="Your full name">
@@ -62,9 +63,8 @@ export async function profileView() {
 <textarea name="summary" class="full" placeholder="About you, a few lines (optional)" maxlength="500" aria-label="About you">${esc(p.summary)}</textarea>
 <dl class="full pf-id"><div><dt>Email</dt><dd>${esc(d.email)}</dd><small>Your sign-in email. It cannot be changed here.</small></div><div><dt>Phone</dt><dd>${phoneLine}</dd></div>${joined ? `<div><dt>Member since</dt><dd>${esc(joined)}</dd></div>` : ''}</dl>
 <button class="button button-dark full">Save basic info</button><p class="err full" role="alert"></p></form></div>`;
-    $('#app').innerHTML = `<div class="container page">${onb ? '' : `<div class="pf-head"><h2>Your profile</h2><p class="desc">Profile ${d.completion}% complete</p></div>`}${basics}<div class="panel" style="max-width:720px;margin:auto">${onb ? `<h2>Tell us about your education</h2>
-<p class="desc">This helps us match you with the right jobs and courses. You can change it anytime.</p><br>` : `<h2>Education, skills and preferences</h2>
-<p class="desc">Used to match you with jobs and courses and to build your resume.</p><br>`}
+    $('#app').innerHTML = `<div class="container page">${profileHead(d, welcome)}${basics}<div class="panel" style="max-width:720px;margin:auto"><h2>Education, skills and preferences</h2>
+<p class="desc">Used to match you with jobs and courses and to build your resume.</p><br>
 <form class="form cols" data-form="profile">
 <select name="qualification" required><option value="">Highest qualification</option>${opt(QUAL, p.qualification)}</select>
 <input name="field" placeholder="Field of study" value="${esc(p.field)}" required>
@@ -73,9 +73,6 @@ export async function profileView() {
 <div class="full study-pick"><p class="desc">Where are you in your studies? Jobs and courses are suggested to match.</p><div class="study-sub" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><select name="programme" data-study="programme"><option value="">UG or PG</option>${PROGRAMMES.map(([k, t]) => `<option value="${k}" ${k === st.programme ? 'selected' : ''}>${t}</option>`).join('')}</select><select name="studyYear" data-study="year" data-keep="${esc(st.studyYear || '')}"></select><select name="semester" data-study="sem" data-keep="${esc(st.semester || '')}"></select></div><p class="desc study-note" hidden></p></div>
 <select name="experience" required><option value="">Experience level</option>${opt(EXP, p.experience)}</select>
 <input name="locations" placeholder="Preferred locations (comma separated)" value="${esc(p.locations)}">
-${onb ? `<div class="full photo-row" id="photo"></div>
-<input name="headline" class="full" placeholder="Title shown under your name, e.g. Final-year CS student (optional)" value="${esc(p.headline)}" maxlength="100">
-<textarea name="summary" class="full" placeholder="Short summary for your resume (optional)" maxlength="500">${esc(p.summary)}</textarea>` : ''}
 <textarea name="projects" class="full" placeholder="Projects, one per line (optional)" maxlength="800">${esc(p.projects)}</textarea>
 <div class="full"><div class="chips" id="chips"></div><input id="skillin" placeholder="Skills — type and press Enter, then pick a level"></div>
 <h3 class="full sec">Resume details <small>all optional: any part you leave empty is left off your resume</small></h3>
@@ -95,7 +92,7 @@ ${onb ? `<div class="full photo-row" id="photo"></div>
 <h3 class="full sec">Preferences</h3>
 <div class="full"><p class="desc">Looking for</p><div class="checks">${JT.map(t => `<label><input type="checkbox" name="jobTypes" value="${t}" ${p.jobTypes?.includes(t) ? 'checked' : ''}> ${t}</label>`).join('')}</div></div>
 <div class="full"><p class="desc">Resume (PDF, max 2 MB, optional)</p><div id="resume"></div><input type="file" id="resumein" accept="application/pdf"></div>
-<button class="button button-dark full">${onb ? 'Save and continue' : 'Save changes'}</button><p class="err full" id="err"></p></form></div></div>`;
+<button class="button button-dark full">Save changes</button><p class="err full" id="err"></p></form></div></div>`;
     chips();
     resumeUI(d.resume);
     photoUI(d.photo);

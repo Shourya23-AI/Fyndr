@@ -1,0 +1,4 @@
+/* Empty and error states (features/states/) */
+.st-cta{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px}
+.st-error{border-style:solid;border-color:var(--bad-fg)}
+.tbl td .st-none a{font-weight:600}

@@ -13,6 +13,9 @@ const ORDER = [
     'components/banner.css', 'components/poster.css', 'components/watermark.css', 'components/chat.css', 'components/share.css', 'components/soft.css', 'pages/motion.css', 'components/lively.css',
     'components/member.css',
     'components/guide.css',
+    'pages/setup.css',
+    'pages/notify.css',
+    'pages/states.css',
     'base/dark.css'
 ];
 const mini = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').replace(/\s*([{};,>])\s*/g, '$1').replace(/;}/g, '}').trim();

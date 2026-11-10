@@ -35,7 +35,7 @@ export function foryouTab(d, listings, { lastSeen = 0 } = {}) {
     S.match[c.closest?.l.id] = c.closest?.m;
     const jobsHtml = jobs.length
         ? `<h3 class="fy-h">Jobs and internships for you</h3><div class="opportunity-grid">${cards(jobs)}</div>${r.picks.length > n ? `<div class="more"><button class="button" data-act="fymore">Show more (${r.picks.length - n})</button></div>` : ''}`
-        : '<div class="empty"><b>No strong matches yet</b><p>Follow the learning steps below and add more skills, and they will appear.</p></div>';
+        : '<div class="empty"><b>No strong matches yet</b><p>Follow the learning steps below and add more skills, and they will appear. You will get a notification when a new listing fits you.</p><div class="st-cta"><a class="button button-dark button-small" href="#/profile">Add skills</a><a class="button button-small" href="#/jobs">Browse everything</a></div></div>';
     const steps = c.steps.slice(0, 3).map((u, i) => `<div class="fy-step"><div class="fy-step-head"><span class="fy-num">${i + 1}</span><div><b>Learn ${esc(u.label)}</b><p class="desc">Asked for by ${u.count} of your closest matches.</p></div></div>${u.courses.length ? `<div class="opportunity-grid">${cards(u.courses)}</div>` : '<p class="desc fy-nocourse">No course for this is listed yet. New courses are added automatically, so check back soon.</p>'}</div>`).join('');
     const road = steps ? `<h3 class="fy-h">Your learning roadmap</h3><p class="desc">The fastest way to more and better matches, in order.</p>${steps}` : '';
     const shown = new Set(c.steps.slice(0, 3).flatMap(u => u.courses.map(x => x.l.id)));

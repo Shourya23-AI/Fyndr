@@ -16,10 +16,10 @@ Decision: phone verification stays on **phone.email**. No Firebase Phone Auth an
 - Node server: at most 10 verify attempts per hour per account (`429 PHONE_RATE`).
 - Already in place from Part 1 and earlier: one address only, wrong-address guard, the result reaches the page by three routes (window, tab message, shared storage), up to 5 accounts per number.
 
-## Part 3: Onboarding and engagement
-- Guided first-run profile setup with a progress bar (the completion % already exists) that ends on the profile page.
-- Status-change notifications for applications; alerts for new listings that match a person's skills.
-- Empty states and loading states that tell people what to do next.
+## Part 3: Onboarding and engagement  ✅ done
+- ✅ Guided first-run profile setup with a progress bar (the completion % already exists) that ends on the profile page.
+- ✅ Status-change notifications for applications; alerts for new listings that match a person's skills.
+- ✅ Empty states and loading states that tell people what to do next.
 
 ## Part 4: Quality and polish
 - Lighthouse pass: speed, mobile layout, accessibility; fix what it finds.

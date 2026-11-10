@@ -7,6 +7,7 @@ import { privacyPanel } from '../privacy/privacy.view.js';
 import { foryouTab } from '../suggestions/foryou.js';
 import { lastVisit } from '../suggestions/suggest.js';
 import { trackerTab, dueCount } from '../tracker/tracker.view.js';
+import { emptyHtml, emptyCell, loadingText } from '../states/states.js';
 // Candidate dashboard: left sidebar (Profile / Resume / Applications), read-only. Editing lives on #/profile.
 const TABS = [['foryou', 'For you', 'M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z'], ['profile', 'Profile', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0'], ['resume', 'Resume', 'M7 3h8l4 4v14H7zM14 3v5h5M10 13h6M10 17h6'], ['apps', 'Applications', 'M4 7h16v12H4zM9 7V4h6v3'], ['tracker', 'Tracker', 'M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v5h-4z'], ['privacy', 'Privacy & data', 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4']];
 const row = (k, v) => `<div class="info-row"><span>${k}</span><b>${v || '<i class="na">Not added</i>'}</b></div>`;
@@ -27,7 +28,7 @@ function profileTab(d, me) {
 <div class="panel prof-top" style="flex-wrap:wrap">${me.photo ? `<img class="av-lg" src="${me.photo}" alt="">` : `<span class="av-lg ph">${esc((me.name || '?')[0].toUpperCase())}</span>`}<div><h3 style="margin:0">${esc(me.name)}</h3><p class="desc">${esc(p.headline || me.email)}</p><div class="bar" style="width:220px;margin-top:10px"><i style="width:${S.me.completion}%"></i></div><p class="desc" style="margin-top:4px">${S.me.completion}% complete</p></div><a class="button button-dark button-small" href="#/profile" style="margin-left:auto">Edit profile</a></div>
 <div class="dash-grid"><div class="panel"><h3>Account</h3>${row('Name', esc(me.name))}${row('Email', esc(me.email))}${row('Phone', d.phone ? esc(S.me.phoneMasked) + ' <span class="tag tag-verified">Verified</span>' : '')}${row('Member since', fmt(d.joined || S.me.created))}${row('Document check', S.me.proofStatus ? pill(S.me.proofStatus) : '')}</div>
 <div class="panel"><h3>Education</h3>${row('Qualification', esc(p.qualification))}${row('Field', esc(p.field))}${row('Institution', esc(p.institution))}${row('Graduation', esc(p.gradYear))}${row('Experience', esc(p.experience))}</div>
-<div class="panel"><h3>Skills</h3>${(p.skills || []).length ? `<div class="chips">${p.skills.map(s => `<span class="chip-s">${esc(s)}</span>`).join('')}</div>` : '<p class="desc">No skills added.</p>'}</div>
+<div class="panel"><h3>Skills</h3>${(p.skills || []).length ? `<div class="chips">${p.skills.map(s => `<span class="chip-s">${esc(s)}</span>`).join('')}</div>` : '<p class="desc">No skills added yet. <a href="#/profile">Add your skills</a> to get matches.</p>'}</div>
 <div class="panel"><h3>Preferences</h3>${row('Looking for', esc((p.jobTypes || []).join(', ')))}${row('Locations', esc(p.locations))}${row('Link', esc(p.link))}${row('Resume file', d.resume ? esc(d.resume.name) : '')}</div>
 ${more(p)}
 ${p.summary || p.projects ? `<div class="panel wide"><h3>About &amp; projects</h3>${p.summary ? `<p>${esc(p.summary)}</p>` : ''}${p.projects ? `<p class="desc" style="white-space:pre-line;margin-top:10px">${esc(p.projects)}</p>` : ''}</div>` : ''}</div>`;
@@ -40,7 +41,7 @@ function resumeTab(d, me) {
 <button class="button button-dark button-small" data-act="printresume">Download / print PDF</button><p class="desc" style="margin-top:12px">You pick one of these each time you apply.</p></div>
 <div class="resume-view panel" id="resview">${sel === 'site' ? buildResume({
         ...d, ...me, profile: d.profile
-    }) : '<p class="desc">Loading…</p>'}</div></div>`;
+    }) : loadingText('Loading your resume')}</div></div>`;
 }
 function appsTab(saved) {
     const ap = S.mine.applications;
@@ -48,15 +49,15 @@ function appsTab(saved) {
     const rowsOf = (l, w) => l.map(x => `<tr><td>${esc(x.listing?.title)}</td><td>${esc(x.listing?.orgName)}</td><td>${fmt(x.created)}</td><td>${resumeLabel(x.resumeType)}</td><td>${pill(x.status)}</td>${w ? `<td><button class="mini no" data-act="withdraw" data-id="${x.id}">Withdraw</button></td>` : ''}</tr>`);
     return `<div class="dash-head"><h2>Applications</h2><p class="desc">${ap.length} applied · ${iv.length} qualified for interview</p></div>
 <div class="stats3"><div class="stat"><b>${ap.length}</b><span>Applied</span></div><div class="stat"><b>${ap.filter(x => x.status === 'reviewing').length}</b><span>In review</span></div><div class="stat"><b>${iv.length}</b><span>Interview / selected</span></div></div>
-<div class="panel"><h3>Qualified for interview</h3>${table(['Role', 'Company', 'Applied', 'Resume used', 'Status'], rowsOf(iv))}</div>
-<div class="panel"><h3>All applications</h3>${table(['Role', 'Company', 'Applied', 'Resume used', 'Status', ''], rowsOf(ap, true))}</div>
-<h3 style="margin:24px 0 14px">Saved</h3><div class="opportunity-grid">${saved.map(l => card(l)).join('') || '<p style="color:var(--muted)">No saved listings.</p>'}</div>`;
+<div class="panel"><h3>Qualified for interview</h3>${table(['Role', 'Company', 'Applied', 'Resume used', 'Status'], rowsOf(iv), emptyCell('Nothing at interview stage yet. When an organization moves you forward it shows here, and you get a notification.'))}</div>
+<div class="panel"><h3>All applications</h3>${table(['Role', 'Company', 'Applied', 'Resume used', 'Status', ''], rowsOf(ap, true), emptyCell('You have not applied to anything on Fyndr yet.', { href: '#/jobs', label: 'Browse jobs and internships' }))}</div>
+<h3 style="margin:24px 0 14px">Saved</h3><div class="opportunity-grid">${saved.map(l => card(l)).join('') || emptyHtml({ title: 'Nothing saved yet', text: 'Tap the heart on any job, internship or course to keep it here.', actions: [{ label: 'Browse jobs and internships', href: '#/jobs' }, { label: 'Browse courses', href: '#/courses' }] })}</div>`;
 }
 // Privacy & data: what was shared with whom, and the download / delete controls.
 function privacyTab(d) {
     const ap = S.mine.applications;
     return `<div class="dash-head"><h2>Privacy &amp; data</h2><p class="desc">You decide what is shared and for how long.</p></div>
-<div class="panel"><h3>Shared with organizations</h3>${table(['Organization', 'Role', 'Shared on', 'What was shared', ''], ap.map(x => `<tr><td>${esc(x.listing?.orgName)}</td><td>${esc(x.listing?.title)}</td><td>${fmt(x.consentAt || x.created)}</td><td>${resumeLabel(x.resumeType)}</td><td><button class="mini no" data-act="withdraw" data-id="${x.id}">Withdraw</button></td></tr>`))}<p class="desc" style="margin-top:10px">Withdrawing removes the application and the copy of your resume that organization received.</p></div>
+<div class="panel"><h3>Shared with organizations</h3>${table(['Organization', 'Role', 'Shared on', 'What was shared', ''], ap.map(x => `<tr><td>${esc(x.listing?.orgName)}</td><td>${esc(x.listing?.title)}</td><td>${fmt(x.consentAt || x.created)}</td><td>${resumeLabel(x.resumeType)}</td><td><button class="mini no" data-act="withdraw" data-id="${x.id}">Withdraw</button></td></tr>`), emptyCell('Nothing shared yet. Your resume only goes to an organization when you apply to its listing.'))}<p class="desc" style="margin-top:10px">Withdrawing removes the application and the copy of your resume that organization received.</p></div>
 ${privacyPanel(S.me, !!d.resume)}`;
 }
 export async function userDashboard(a) {
